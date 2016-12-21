@@ -1,0 +1,107 @@
+#!/usr/bin/env python
+# coding=utf-8
+
+# Copyright 2016 Google Inc. All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+"""A Python -> Go transcompiler."""
+
+import argparse
+import ast
+import sys
+import textwrap
+
+from grumpy.compiler import block
+from grumpy.compiler import stmt
+from grumpy.compiler import util
+
+
+parser = argparse.ArgumentParser()
+parser.add_argument('filename', help='Python source filename')
+parser.add_argument('-modname', default='__main__', help='Python module name')
+parser.add_argument('-runtime', default='grumpy',
+                    help='Grumpy runtime package name')
+parser.add_argument('-libroot', default='grumpy/lib',
+                    help='Path where Grumpy standard library packages live')
+
+
+def main(args):
+  for arg in ('filename', 'modname', 'runtime', 'libroot'):
+    if not getattr(args, arg, None):
+      print >> sys.stderr, '{} arg must not be empty'.format(arg)
+      return 1
+  with open(args.filename) as py_file:
+    py_contents = py_file.read()
+  try:
+    mod = ast.parse(py_contents)
+  except SyntaxError as e:
+    print >> sys.stderr, '{}: line {}: invalid syntax: {}'.format(
+        e.filename, e.lineno, e.text)
+    return 2
+  full_package_name = args.modname.replace('.', '/')
+  mod_block = block.ModuleBlock(full_package_name, args.runtime, args.libroot,
+                                args.filename, py_contents.split('\n'))
+  mod_block.add_native_import('grumpy')
+  visitor = stmt.StatementVisitor(mod_block)
+  # Indent so that the module body is aligned with the goto labels.
+  with visitor.writer.indent_block():
+    try:
+      visitor.visit(mod)
+    except util.ParseError as e:
+      print >> sys.stderr, str(e)
+      return 2
+
+  imports = dict(mod_block.imports)
+  has_main = args.modname == '__main__'
+  if has_main:
+    imports['os'] = block.Package('os')
+
+  writer = util.Writer(sys.stdout)
+  package_name = args.modname.split('.')[-1]
+  if has_main:
+    package_name = 'main'
+  writer.write('package {}'.format(package_name))
+  writer.write_import_block(imports)
+
+  writer.write('func initModule(πF *πg.Frame, '
+               'πModule *πg.Module) *πg.BaseException {')
+  with writer.indent_block():
+    for s in sorted(mod_block.strings):
+      writer.write('ß{} := πg.InternStr({})'.format(s, util.go_str(s)))
+    writer.write(textwrap.dedent("""\
+        πGlobals := πModule.Dict()
+        _ = πGlobals"""))  # Suppress possible Go "declared and not used" error.
+    writer.write_block(mod_block, visitor.writer.out.getvalue())
+  writer.write(textwrap.dedent("""\
+      \t_, πE = πBlock.Exec(πF, πGlobals)
+      \treturn πE
+      }
+      var Handle *πg.ModuleHandle"""))
+
+  if has_main:
+    writer.write_tmpl(textwrap.dedent("""\
+      func main() {
+      \tHandle = πg.NewModuleHandle($filename, initModule)
+      \tπ_os.Exit(πg.RunMain(Handle))
+      }"""), filename=util.go_str(args.filename))
+  else:
+    writer.write_tmpl(textwrap.dedent("""\
+      func init() {
+      \tHandle = πg.NewModuleHandle($filename, initModule)
+      }"""), filename=util.go_str(args.filename))
+  return 0
+
+
+if __name__ == '__main__':
+  sys.exit(main(parser.parse_args()))
