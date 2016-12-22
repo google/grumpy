@@ -44,6 +44,8 @@ var (
 	KeyErrorType = newSimpleType("KeyError", LookupErrorType)
 	// LookupErrorType corresponds to the Python type 'LookupError'.
 	LookupErrorType = newSimpleType("LookupError", StandardErrorType)
+	// MemoryErrorType corresponds to the Python type 'MemoryError'.
+	MemoryErrorType = newSimpleType("MemoryError", StandardErrorType)
 	// NameErrorType corresponds to the Python type 'NameError'.
 	NameErrorType = newSimpleType("NameError", StandardErrorType)
 	// NotImplementedErrorType corresponds to the Python type
