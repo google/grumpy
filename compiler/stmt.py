@@ -74,7 +74,8 @@ class StatementVisitor(ast.NodeVisitor):
       for target in node.targets:
         self._tie_target(target, value.expr)
 
-  def visit_Break(self, _):
+  def visit_Break(self, node):
+    self._write_py_context(node.lineno)
     self.writer.write('goto Label{}'.format(self.block.top_loop().end_label))
 
   def visit_ClassDef(self, node):
@@ -139,10 +140,12 @@ class StatementVisitor(ast.NodeVisitor):
             util.go_str(node.name), bases.expr, cls.expr)
         self.block.bind_var(self.writer, node.name, type_.expr)
 
-  def visit_Continue(self, _):
+  def visit_Continue(self, node):
+    self._write_py_context(node.lineno)
     self.writer.write('goto Label{}'.format(self.block.top_loop().start_label))
 
   def visit_Delete(self, node):
+    self._write_py_context(node.lineno)
     for target in node.targets:
       if isinstance(target, ast.Attribute):
         with self.expr_visitor.visit(target.value) as t:
@@ -294,7 +297,7 @@ class StatementVisitor(ast.NodeVisitor):
     self._visit_each(node.body)
 
   def visit_Pass(self, node):
-    pass
+    self._write_py_context(node.lineno)
 
   def visit_Print(self, node):
     self._write_py_context(node.lineno)
@@ -674,3 +677,4 @@ class StatementVisitor(ast.NodeVisitor):
     if lineno:
       line = self.block.lines[lineno - 1].strip()
       self.writer.write('// line {}: {}'.format(lineno, line))
+      self.writer.write('πF.SetLineno({})'.format(lineno))

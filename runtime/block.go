@@ -14,13 +14,21 @@
 
 package grumpy
 
+import (
+	"reflect"
+)
+
+// FrameType is the object representing the Python 'frame' type.
+var BlockType = newBasisType("code", reflect.TypeOf(Block{}), toBlockUnsafe, ObjectType)
+
 // Block is a handle to code that runs in a new scope such as a function, class
 // or module.
 type Block struct {
+	Object
 	// name is the name of the compiled function or class, or "<module>".
-	name string
+	name string `attr:"co_name"`
 	// filename is the path of the file where the Python code originated.
-	filename string
+	filename string `attr:"co_filename"`
 	// fn is a closure that executes the body of the code block. It may be
 	// re-entered multiple times, e.g. for exception handling.
 	fn func(*Frame, *Object) (*Object, *BaseException)
@@ -28,13 +36,18 @@ type Block struct {
 
 // NewBlock creates a Block object.
 func NewBlock(name, filename string, fn func(*Frame, *Object) (*Object, *BaseException)) *Block {
-	return &Block{name, filename, fn}
+	return &Block{Object{typ: BlockType}, name, filename, fn}
+}
+
+func toBlockUnsafe(o *Object) *Block {
+	return (*Block)(o.toPointer())
 }
 
 // Exec runs b in the context of a new child frame of back.
 func (b *Block) Exec(back *Frame, globals *Dict) (*Object, *BaseException) {
 	f := newFrame(back)
 	f.globals = globals
+	f.block = b
 	return b.execInternal(f, nil)
 }
 
@@ -66,4 +79,8 @@ func (b *Block) execInternal(f *Frame, sendValue *Object) (*Object, *BaseExcepti
 		}
 		f.state = f.PopCheckpoint()
 	}
+}
+
+func initBlockType(dict map[string]*Object) {
+	BlockType.flags &= ^(typeFlagInstantiable | typeFlagBasetype)
 }

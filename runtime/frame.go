@@ -30,13 +30,15 @@ const (
 type Frame struct {
 	Object
 	*threadState
-	back *Frame
+	back *Frame `attr:"f_back"`
 	// checkpoints holds RunState values that should be executed when
 	// unwinding the stack due to an exception. Examples of checkpoints
 	// include exception handlers and finally blocks.
 	checkpoints []RunState
 	state       RunState
-	globals     *Dict
+	globals     *Dict  `attr:"f_globals"`
+	lineno      int    `attr:"f_lineno"`
+	block       *Block `attr:"f_code"`
 }
 
 // newFrame creates a new Frame whose parent frame is back.
@@ -63,6 +65,11 @@ func toFrameUnsafe(o *Object) *Frame {
 // ToObject upcasts f to an Object.
 func (f *Frame) ToObject() *Object {
 	return &f.Object
+}
+
+// SetLineno sets the current line number for the frame.
+func (f *Frame) SetLineno(lineno int) {
+	f.lineno = lineno
 }
 
 // State returns the current run state for f.
