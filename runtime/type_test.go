@@ -368,11 +368,41 @@ func TestTypeName(t *testing.T) {
 }
 
 func TestTypeNew(t *testing.T) {
+	fooMetaType := newTestClass("FooMeta", []*Type{TypeType}, NewDict())
+	fooType, raised := newClass(newFrame(nil), fooMetaType, "Foo", []*Type{ObjectType}, NewDict())
+	if raised != nil {
+		panic(raised)
+	}
+	barMetaType := newTestClass("BarMeta", []*Type{TypeType}, NewDict())
+	barType, raised := newClass(newFrame(nil), barMetaType, "Bar", []*Type{ObjectType}, NewDict())
+	if raised != nil {
+		panic(raised)
+	}
+	var bazMetaType *Type
+	bazMetaType = newTestClass("BazMeta", []*Type{barMetaType}, newStringDict(map[string]*Object{
+		// Returns true if type(lhs) == rhs.
+		"__eq__": newBuiltinFunction("__eq__", func(f *Frame, args Args, _ KWArgs) (*Object, *BaseException) {
+			if raised := checkMethodArgs(f, "__eq__", args, TypeType, TypeType); raised != nil {
+				return nil, raised
+			}
+			return GetBool(args[0].typ == toTypeUnsafe(args[1])).ToObject(), nil
+		}).ToObject(),
+	}))
+	bazType, raised := newClass(newFrame(nil), bazMetaType, "Baz", []*Type{ObjectType}, NewDict())
+	if raised != nil {
+		panic(raised)
+	}
 	cases := []invokeTestCase{
 		{wantExc: mustCreateException(TypeErrorType, "'__new__' requires 1 arguments")},
 		{args: wrapArgs(TypeType), wantExc: mustCreateException(TypeErrorType, "type() takes 1 or 3 arguments")},
 		{args: wrapArgs(TypeType, "foo", newTestTuple(false), NewDict()), wantExc: mustCreateException(TypeErrorType, "not a valid base class: False")},
 		{args: wrapArgs(TypeType, None), want: NoneType.ToObject()},
+		{args: wrapArgs(fooMetaType, "Qux", newTestTuple(fooType, barType), NewDict()), wantExc: mustCreateException(TypeErrorType, "metaclass conflict: the metaclass of a derived class must a be a (non-strict) subclass of the metaclasses of all its bases")},
+		// Test that the metaclass of the result is the most derived
+		// metaclass of the bases. In this case that should be
+		// bazMetaType so pass bazMetaType to be compared by the __eq__
+		// operator defined above.
+		{args: wrapArgs(barMetaType, "Qux", newTestTuple(barType, bazType), NewDict()), want: bazMetaType.ToObject()},
 	}
 	for _, cas := range cases {
 		if err := runInvokeMethodTestCase(TypeType, "__new__", &cas); err != "" {

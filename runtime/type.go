@@ -409,6 +409,7 @@ func typeNew(f *Frame, t *Type, args Args, kwargs KWArgs) (*Object, *BaseExcepti
 	bases := toTupleUnsafe(args[1]).elems
 	dict := toDictUnsafe(args[2])
 	baseTypes := make([]*Type, len(bases))
+	meta := t
 	for i, o := range bases {
 		if !o.isInstance(TypeType) {
 			s, raised := Repr(f, o)
@@ -417,9 +418,18 @@ func typeNew(f *Frame, t *Type, args Args, kwargs KWArgs) (*Object, *BaseExcepti
 			}
 			return nil, f.RaiseType(TypeErrorType, fmt.Sprintf("not a valid base class: %s", s.Value()))
 		}
+		// Choose the most derived metaclass among all the bases to be
+		// the metaclass for the new type.
+		if o.typ.isSubclass(meta) {
+			meta = o.typ
+		} else if !meta.isSubclass(o.typ) {
+			msg := "metaclass conflict: the metaclass of a derived class must " +
+				"a be a (non-strict) subclass of the metaclasses of all its bases"
+			return nil, f.RaiseType(TypeErrorType, msg)
+		}
 		baseTypes[i] = toTypeUnsafe(o)
 	}
-	ret, raised := newClass(f, t, name, baseTypes, dict)
+	ret, raised := newClass(f, meta, name, baseTypes, dict)
 	if raised != nil {
 		return nil, raised
 	}
