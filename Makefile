@@ -105,12 +105,14 @@ $(COMPILER_D_FILES): $(PY_DIR)/%.d: $(PY_DIR)/%.py $(COMPILER_SRCS)
 
 -include $(COMPILER_D_FILES)
 
-$(COMPILER_EXPR_VISITOR_PASS_FILES): build/site-packages/grumpy/compiler/expr_visitor_test.%.pass: build/site-packages/grumpy/compiler/expr_visitor_test.py $(RUNNER)
+# Does not depend on stdlibs since it makes minimal use of them.
+$(COMPILER_EXPR_VISITOR_PASS_FILES): build/site-packages/grumpy/compiler/expr_visitor_test.%.pass: build/site-packages/grumpy/compiler/expr_visitor_test.py $(RUNNER_BIN) $(COMPILER) $(RUNTIME)
 	@python $< --shard=$*
 	@touch $@
 	@echo 'compiler/expr_visitor_test $* PASS'
 
-$(COMPILER_STMT_PASS_FILES): build/site-packages/grumpy/compiler/stmt_test.%.pass: build/site-packages/grumpy/compiler/stmt_test.py $(RUNNER)
+# Does not depend on stdlibs since it makes minimal use of them.
+$(COMPILER_STMT_PASS_FILES): build/site-packages/grumpy/compiler/stmt_test.%.pass: build/site-packages/grumpy/compiler/stmt_test.py $(RUNNER_BIN) $(COMPILER) $(RUNTIME)
 	@python $< --shard=$*
 	@touch $@
 	@echo 'compiler/stmt_test $* PASS'
@@ -174,6 +176,7 @@ $(patsubst %_test,build/%.go,$(ACCEPT_TESTS)): build/%.go: %_test.py $(COMPILER)
 	@mkdir -p $(@D)
 	@grumpc $< > $@
 
+# TODO: These should not depend on stdlibs and should instead build a .d file.
 $(patsubst %,build/%,$(ACCEPT_TESTS)): build/%_test: build/%.go $(RUNTIME) $(STDLIB)
 	@mkdir -p $(@D)
 	@go build -o $@ $<
