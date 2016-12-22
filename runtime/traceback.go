@@ -21,12 +21,13 @@ import (
 // Traceback represents Python 'traceback' objects.
 type Traceback struct {
 	Object
-	frame *Frame `attr:"tb_frame"`
-	next  *Traceback
+	frame  *Frame `attr:"tb_frame"`
+	next   *Traceback
+	lineno int `attr:"tb_lineno"`
 }
 
 func newTraceback(f *Frame, next *Traceback) *Traceback {
-	return &Traceback{Object{typ: TracebackType}, f, next}
+	return &Traceback{Object{typ: TracebackType}, f, next, f.lineno}
 }
 
 func toTracebackUnsafe(o *Object) *Traceback {
