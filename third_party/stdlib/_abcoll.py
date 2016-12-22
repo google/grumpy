@@ -442,55 +442,55 @@ class MappingView(Sized):
         return '{0.__class__.__name__}({0._mapping!r})'.format(self)
 
 
-class KeysView(MappingView, Set):
-
-    @classmethod
-    def _from_iterable(self, it):
-        return set(it)
-
-    def __contains__(self, key):
-        return key in self._mapping
-
-    def __iter__(self):
-        for key in self._mapping:
-            yield key
-
-KeysView.register(type({}.viewkeys()))
-
-class ItemsView(MappingView, Set):
-
-    @classmethod
-    def _from_iterable(self, it):
-        return set(it)
-
-    def __contains__(self, item):
-        key, value = item
-        try:
-            v = self._mapping[key]
-        except KeyError:
-            return False
-        else:
-            return v == value
-
-    def __iter__(self):
-        for key in self._mapping:
-            yield (key, self._mapping[key])
-
-ItemsView.register(type({}.viewitems()))
-
-class ValuesView(MappingView):
-
-    def __contains__(self, value):
-        for key in self._mapping:
-            if value == self._mapping[key]:
-                return True
-        return False
-
-    def __iter__(self):
-        for key in self._mapping:
-            yield self._mapping[key]
-
-ValuesView.register(type({}.viewvalues()))
+#class KeysView(MappingView, Set):
+#
+#    @classmethod
+#    def _from_iterable(self, it):
+#        return set(it)
+#
+#    def __contains__(self, key):
+#        return key in self._mapping
+#
+#    def __iter__(self):
+#        for key in self._mapping:
+#            yield key
+#
+#KeysView.register(type({}.viewkeys()))
+#
+#class ItemsView(MappingView, Set):
+#
+#    @classmethod
+#    def _from_iterable(self, it):
+#        return set(it)
+#
+#    def __contains__(self, item):
+#        key, value = item
+#        try:
+#            v = self._mapping[key]
+#        except KeyError:
+#            return False
+#        else:
+#            return v == value
+#
+#    def __iter__(self):
+#        for key in self._mapping:
+#            yield (key, self._mapping[key])
+#
+#ItemsView.register(type({}.viewitems()))
+#
+#class ValuesView(MappingView):
+#
+#    def __contains__(self, value):
+#        for key in self._mapping:
+#            if value == self._mapping[key]:
+#                return True
+#        return False
+#
+#    def __iter__(self):
+#        for key in self._mapping:
+#            yield self._mapping[key]
+#
+#ValuesView.register(type({}.viewvalues()))
 
 class MutableMapping(Mapping):
 
@@ -635,7 +635,7 @@ class Sequence(Sized, Iterable, Container):
 
 Sequence.register(tuple)
 Sequence.register(basestring)
-Sequence.register(buffer)
+#Sequence.register(buffer)
 Sequence.register(xrange)
 
 
