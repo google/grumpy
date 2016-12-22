@@ -51,7 +51,7 @@ var basisTypes = map[reflect.Type]*Type{
 
 // newClass creates a Python type with the given name, base classes and type
 // dict. It is similar to the Python expression 'type(name, bases, dict)'.
-func newClass(f *Frame, name string, bases []*Type, dict *Dict) (*Type, *BaseException) {
+func newClass(f *Frame, meta *Type, name string, bases []*Type, dict *Dict) (*Type, *BaseException) {
 	numBases := len(bases)
 	if numBases == 0 {
 		return nil, f.RaiseType(TypeErrorType, "class must have base classes")
@@ -67,7 +67,7 @@ func newClass(f *Frame, name string, bases []*Type, dict *Dict) (*Type, *BaseExc
 	if basis == nil {
 		return nil, f.RaiseType(TypeErrorType, "class layout error")
 	}
-	t := newType(name, basis, bases, dict)
+	t := newType(meta, name, basis, bases, dict)
 	// Populate slots for any special methods overridden in dict.
 	slotsValue := reflect.ValueOf(&t.slots).Elem()
 	for i := 0; i < numSlots; i++ {
@@ -99,9 +99,9 @@ func newClass(f *Frame, name string, bases []*Type, dict *Dict) (*Type, *BaseExc
 	return t, nil
 }
 
-func newType(name string, basis reflect.Type, bases []*Type, dict *Dict) *Type {
+func newType(meta *Type, name string, basis reflect.Type, bases []*Type, dict *Dict) *Type {
 	return &Type{
-		Object: Object{typ: TypeType, dict: dict},
+		Object: Object{typ: meta, dict: dict},
 		name:   name,
 		basis:  basis,
 		bases:  bases,
@@ -128,7 +128,7 @@ func newBasisType(name string, basis reflect.Type, basisFunc interface{}, base *
 		basisFuncType.In(0) != reflect.PtrTo(objectBasis) || basisFuncType.Out(0) != reflect.PtrTo(basis) {
 		logFatal(fmt.Sprintf("expected basis func of type func(*Object) *%s", nativeTypeName(basis)))
 	}
-	t := newType(name, basis, []*Type{base}, nil)
+	t := newType(TypeType, name, basis, []*Type{base}, nil)
 	t.slots.Basis = &basisSlot{func(o *Object) reflect.Value {
 		return basisFuncValue.Call([]reflect.Value{reflect.ValueOf(o)})[0].Elem()
 	}}
@@ -137,7 +137,7 @@ func newBasisType(name string, basis reflect.Type, basisFunc interface{}, base *
 }
 
 func newSimpleType(name string, base *Type) *Type {
-	return newType(name, base.basis, []*Type{base}, nil)
+	return newType(TypeType, name, base.basis, []*Type{base}, nil)
 }
 
 // prepareBuiltinType initializes the builtin typ by populating dict with
@@ -395,7 +395,6 @@ func typeGetAttribute(f *Frame, o *Object, name *Str) (*Object, *BaseException) 
 }
 
 func typeNew(f *Frame, t *Type, args Args, kwargs KWArgs) (*Object, *BaseException) {
-	// TODO: Respect t as the metaclass if not specified in dict.
 	switch len(args) {
 	case 0:
 		return nil, f.RaiseType(TypeErrorType, "type() takes 1 or 3 arguments")
@@ -420,7 +419,7 @@ func typeNew(f *Frame, t *Type, args Args, kwargs KWArgs) (*Object, *BaseExcepti
 		}
 		baseTypes[i] = toTypeUnsafe(o)
 	}
-	ret, raised := newClass(f, name, baseTypes, dict)
+	ret, raised := newClass(f, t, name, baseTypes, dict)
 	if raised != nil {
 		return nil, raised
 	}

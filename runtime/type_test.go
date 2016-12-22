@@ -42,7 +42,7 @@ func TestNewClass(t *testing.T) {
 	}
 	for _, cas := range cases {
 		fun := wrapFuncForTest(func(f *Frame, bases []*Type) *BaseException {
-			cls, raised := newClass(f, "Foo", bases, NewDict())
+			cls, raised := newClass(f, TypeType, "Foo", bases, NewDict())
 			if raised != nil {
 				return raised
 			}
@@ -161,7 +161,7 @@ func TestPrepareType(t *testing.T) {
 }
 
 func makeTestType(name string, bases ...*Type) *Type {
-	return newType(name, nil, bases, NewDict())
+	return newType(TypeType, name, nil, bases, NewDict())
 }
 
 func TestMroCalc(t *testing.T) {
@@ -461,7 +461,7 @@ func TestTypeModule(t *testing.T) {
 }
 
 func newTestClass(name string, bases []*Type, dict *Dict) *Type {
-	t, raised := newClass(newFrame(nil), name, bases, dict)
+	t, raised := newClass(newFrame(nil), TypeType, name, bases, dict)
 	if raised != nil {
 		panic(raised)
 	}

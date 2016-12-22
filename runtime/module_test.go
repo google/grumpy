@@ -327,7 +327,7 @@ func runMainAndCaptureStderr(handle *ModuleHandle) (int, string, error) {
 var testModuleType *Type
 
 func init() {
-	testModuleType, _ = newClass(newFrame(nil), "testModule", []*Type{ModuleType}, newStringDict(map[string]*Object{
+	testModuleType, _ = newClass(newFrame(nil), TypeType, "testModule", []*Type{ModuleType}, newStringDict(map[string]*Object{
 		"__eq__": newBuiltinFunction("__eq__", func(f *Frame, args Args, kwargs KWArgs) (*Object, *BaseException) {
 			if raised := checkMethodArgs(f, "__eq__", args, ModuleType, ObjectType); raised != nil {
 				return nil, raised

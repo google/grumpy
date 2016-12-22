@@ -386,7 +386,7 @@ func TestObjectStrRepr(t *testing.T) {
 		return nil
 	})
 	type noReprMethodBasis struct{ Object }
-	noReprMethodType := newType("noReprMethod", reflect.TypeOf(noReprMethodBasis{}), []*Type{}, NewDict())
+	noReprMethodType := newType(TypeType, "noReprMethod", reflect.TypeOf(noReprMethodBasis{}), []*Type{}, NewDict())
 	noReprMethodType.mro = []*Type{noReprMethodType}
 	fooType := newTestClass("Foo", []*Type{ObjectType}, newTestDict("__module__", "foo.bar"))
 	cases := []invokeTestCase{
