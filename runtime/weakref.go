@@ -152,7 +152,6 @@ func weakRefRepr(f *Frame, o *Object) (*Object, *BaseException) {
 }
 
 func initWeakRefType(map[string]*Object) {
-	WeakRefType.flags &= ^typeFlagBasetype
 	WeakRefType.slots.Call = &callSlot{weakRefCall}
 	WeakRefType.slots.Hash = &unaryOpSlot{weakRefHash}
 	WeakRefType.slots.New = &newSlot{weakRefNew}
