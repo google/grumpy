@@ -1,6 +1,6 @@
 """A more or less complete user-defined wrapper around dictionary objects."""
 
-class UserDict:
+class UserDict(object):
     def __init__(*args, **kwargs):
         if not args:
             raise TypeError("descriptor '__init__' of 'UserDict' object "
@@ -117,7 +117,7 @@ import _abcoll
 _abcoll.MutableMapping.register(IterableUserDict)
 
 
-class DictMixin:
+class DictMixin(object):
     # Mixin defining all dictionary methods for classes that already have
     # a minimum dictionary interface including getitem, setitem, delitem,
     # and keys. Without knowledge of the subclass constructor, the mixin
