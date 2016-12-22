@@ -124,6 +124,7 @@ var builtinTypes = map[*Type]*builtinTypeInfo{
 	PendingDeprecationWarningType: {global: true},
 	PropertyType:                  {init: initPropertyType, global: true},
 	rangeIteratorType:             {init: initRangeIteratorType, global: true},
+	ReferenceErrorType:            {global: true},
 	RuntimeErrorType:              {global: true},
 	RuntimeWarningType:            {global: true},
 	seqIteratorType:               {init: initSeqIteratorType},
