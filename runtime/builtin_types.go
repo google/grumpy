@@ -135,6 +135,7 @@ var builtinTypes = map[*Type]*builtinTypeInfo{
 	StopIterationType:             {global: true},
 	StrType:                       {init: initStrType, global: true},
 	superType:                     {init: initSuperType, global: true},
+	SyntaxErrorType:               {global: true},
 	SyntaxWarningType:             {global: true},
 	SystemErrorType:               {global: true},
 	SystemExitType:                {global: true, init: initSystemExitType},

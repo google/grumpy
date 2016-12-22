@@ -65,6 +65,8 @@ var (
 	StandardErrorType = newSimpleType("StandardError", ExceptionType)
 	// StopIterationType corresponds to the Python type 'StopIteration'.
 	StopIterationType = newSimpleType("StopIteration", ExceptionType)
+	// SyntaxErrorType corresponds to the Python type 'SyntaxError'.
+	SyntaxErrorType = newSimpleType("SyntaxError", StandardErrorType)
 	// SyntaxWarningType corresponds to the Python type 'SyntaxWarning'.
 	SyntaxWarningType = newSimpleType("SyntaxWarning", WarningType)
 	// SystemErrorType corresponds to the Python type 'SystemError'.
