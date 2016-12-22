@@ -436,7 +436,9 @@ class ExprVisitor(ast.NodeVisitor):
           assert not func_block.is_generator
           self.writer.write('var πE *πg.BaseException\n_ = πE')
           self.writer.write_temp_decls(func_block)
-          self.writer.write(body)
+          # There's no goto labels so align with the rest of the function.
+          with self.writer.indent_block(-1):
+            self.writer.write(body)
           self.writer.write('return πg.None, nil')
       self.writer.write('}).ToObject()')
     return result
