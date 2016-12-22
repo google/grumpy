@@ -94,6 +94,7 @@ var builtinTypes = map[*Type]*builtinTypeInfo{
 	FileType:                      {init: initFileType, global: true},
 	FloatType:                     {init: initFloatType, global: true},
 	FrameType:                     {init: initFrameType},
+	FrozenSetType:                 {init: initFrozenSetType, global: true},
 	FunctionType:                  {init: initFunctionType},
 	FutureWarningType:             {global: true},
 	GeneratorType:                 {init: initGeneratorType},

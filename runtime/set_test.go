@@ -15,6 +15,7 @@
 package grumpy
 
 import (
+	"fmt"
 	"testing"
 )
 
@@ -43,15 +44,18 @@ func TestSetAdd(t *testing.T) {
 }
 
 func TestSetContains(t *testing.T) {
-	cases := []invokeTestCase{
-		{args: wrapArgs(NewSet(), "foo"), want: False.ToObject()},
-		{args: wrapArgs(newTestSet(1, 2), 2), want: True.ToObject()},
-		{args: wrapArgs(newTestSet(3, "foo"), 42), want: False.ToObject()},
-		{args: wrapArgs(NewSet(), NewList()), wantExc: mustCreateException(TypeErrorType, "unhashable type: 'list'")},
-	}
-	for _, cas := range cases {
-		if err := runInvokeMethodTestCase(SetType, "__contains__", &cas); err != "" {
-			t.Error(err)
+	f := newFrame(nil)
+	for _, typ := range []*Type{SetType, FrozenSetType} {
+		cases := []invokeTestCase{
+			{args: wrapArgs(mustNotRaise(typ.Call(f, nil, nil)), "foo"), want: False.ToObject()},
+			{args: wrapArgs(mustNotRaise(typ.Call(f, wrapArgs(newTestTuple(1, 2)), nil)), 2), want: True.ToObject()},
+			{args: wrapArgs(mustNotRaise(typ.Call(f, wrapArgs(newTestTuple(3, "foo")), nil)), 42), want: False.ToObject()},
+			{args: wrapArgs(mustNotRaise(typ.Call(f, nil, nil)), NewList()), wantExc: mustCreateException(TypeErrorType, "unhashable type: 'list'")},
+		}
+		for _, cas := range cases {
+			if err := runInvokeMethodTestCase(typ, "__contains__", &cas); err != "" {
+				t.Error(err)
+			}
 		}
 	}
 }
@@ -95,6 +99,13 @@ func TestSetCompare(t *testing.T) {
 		{args: wrapArgs(123, newTestSet("baz")), want: newTestTuple(true, true, false, true, false, false).ToObject()},
 		{args: wrapArgs(mustNotRaise(SetType.Call(newFrame(nil), wrapArgs(newTestRange(100)), nil)), mustNotRaise(SetType.Call(newFrame(nil), wrapArgs(newTestRange(100)), nil))), want: compareAllResultEq},
 		{args: wrapArgs(modifiedSet, newTestSet(newObject(modifiedType))), wantExc: mustCreateException(RuntimeErrorType, "set changed during iteration")},
+		{args: wrapArgs(newTestFrozenSet(), newTestFrozenSet("foo")), want: compareAllResultLT},
+		{args: wrapArgs(newTestFrozenSet(1, 2, 3), newTestFrozenSet(3, 2, 1)), want: compareAllResultEq},
+		{args: wrapArgs(newTestFrozenSet("foo", 3.14), newObject(ObjectType)), want: newTestTuple(true, true, false, true, false, false).ToObject()},
+		{args: wrapArgs(123, newTestFrozenSet("baz")), want: newTestTuple(false, false, false, true, true, true).ToObject()},
+		{args: wrapArgs(mustNotRaise(FrozenSetType.Call(newFrame(nil), wrapArgs(newTestRange(100)), nil)), mustNotRaise(FrozenSetType.Call(newFrame(nil), wrapArgs(newTestRange(100)), nil))), want: compareAllResultEq},
+		{args: wrapArgs(newTestFrozenSet(), NewSet()), want: newTestTuple(false, true, true, false, true, false).ToObject()},
+		{args: wrapArgs(newTestSet("foo", "bar"), newTestFrozenSet("foo", "bar")), want: newTestTuple(false, true, true, false, true, false).ToObject()},
 	}
 	for _, cas := range cases {
 		if err := runInvokeTestCase(compareAll, &cas); err != "" {
@@ -104,53 +115,64 @@ func TestSetCompare(t *testing.T) {
 }
 
 func TestSetIsSubset(t *testing.T) {
-	cases := []invokeTestCase{
-		{args: wrapArgs(NewSet(), newTestSet("foo")), want: True.ToObject()},
-		{args: wrapArgs(newTestSet(1, 2), newTestSet(2, 3)), want: False.ToObject()},
-		{args: wrapArgs(newTestSet("foo"), newTestTuple("bar")), want: False.ToObject()},
-		{args: wrapArgs(mustNotRaise(SetType.Call(newFrame(nil), wrapArgs(newTestRange(42)), nil)), newTestRange(42)), want: True.ToObject()},
-		{args: wrapArgs(NewSet(), 123), wantExc: mustCreateException(TypeErrorType, "'int' object is not iterable")},
-		{args: wrapArgs(NewSet(), "foo", "bar"), wantExc: mustCreateException(TypeErrorType, "'issubset' of 'set' requires 2 arguments")},
-	}
-	for _, cas := range cases {
-		if err := runInvokeMethodTestCase(SetType, "issubset", &cas); err != "" {
-			t.Error(err)
+	f := newFrame(nil)
+	for _, typ := range []*Type{SetType, FrozenSetType} {
+		cases := []invokeTestCase{
+			{args: wrapArgs(mustNotRaise(typ.Call(f, nil, nil)), newTestSet("foo")), want: True.ToObject()},
+			{args: wrapArgs(mustNotRaise(typ.Call(f, nil, nil)), newTestFrozenSet("foo")), want: True.ToObject()},
+			{args: wrapArgs(mustNotRaise(typ.Call(f, wrapArgs(newTestTuple(1, 2)), nil)), newTestSet(2, 3)), want: False.ToObject()},
+			{args: wrapArgs(mustNotRaise(typ.Call(f, wrapArgs(newTestTuple(1, 2)), nil)), newTestFrozenSet(2, 3)), want: False.ToObject()},
+			{args: wrapArgs(mustNotRaise(typ.Call(f, wrapArgs(newTestTuple("foo")), nil)), newTestTuple("bar")), want: False.ToObject()},
+			{args: wrapArgs(mustNotRaise(typ.Call(f, wrapArgs(newTestRange(42)), nil)), newTestRange(42)), want: True.ToObject()},
+			{args: wrapArgs(mustNotRaise(typ.Call(f, nil, nil)), 123), wantExc: mustCreateException(TypeErrorType, "'int' object is not iterable")},
+			{args: wrapArgs(mustNotRaise(typ.Call(f, nil, nil)), "foo", "bar"), wantExc: mustCreateException(TypeErrorType, fmt.Sprintf("'issubset' of '%s' requires 2 arguments", typ.Name()))},
+		}
+		for _, cas := range cases {
+			if err := runInvokeMethodTestCase(typ, "issubset", &cas); err != "" {
+				t.Error(err)
+			}
 		}
 	}
 }
 
 func TestSetIsSuperset(t *testing.T) {
-	cases := []invokeTestCase{
-		{args: wrapArgs(NewSet(), newTestSet("foo")), want: False.ToObject()},
-		{args: wrapArgs(newTestSet(1, 2), newTestSet(2, 3)), want: False.ToObject()},
-		{args: wrapArgs(newTestSet("foo"), newTestTuple("bar")), want: False.ToObject()},
-		{args: wrapArgs(mustNotRaise(SetType.Call(newFrame(nil), wrapArgs(newTestRange(42)), nil)), newTestRange(42)), want: True.ToObject()},
-		{args: wrapArgs(NewSet(), 123), wantExc: mustCreateException(TypeErrorType, "'int' object is not iterable")},
-		{args: wrapArgs(NewSet(), "foo", "bar"), wantExc: mustCreateException(TypeErrorType, "'issuperset' of 'set' requires 2 arguments")},
-	}
-	for _, cas := range cases {
-		if err := runInvokeMethodTestCase(SetType, "issuperset", &cas); err != "" {
-			t.Error(err)
+	f := newFrame(nil)
+	for _, typ := range []*Type{SetType, FrozenSetType} {
+		cases := []invokeTestCase{
+			{args: wrapArgs(mustNotRaise(typ.Call(f, nil, nil)), newTestSet("foo")), want: False.ToObject()},
+			{args: wrapArgs(mustNotRaise(typ.Call(f, wrapArgs(newTestTuple(1, 2)), nil)), newTestSet(2, 3)), want: False.ToObject()},
+			{args: wrapArgs(mustNotRaise(typ.Call(f, wrapArgs(newTestTuple("foo")), nil)), newTestTuple("bar")), want: False.ToObject()},
+			{args: wrapArgs(mustNotRaise(typ.Call(f, wrapArgs(newTestRange(42)), nil)), newTestRange(42)), want: True.ToObject()},
+			{args: wrapArgs(mustNotRaise(typ.Call(f, nil, nil)), 123), wantExc: mustCreateException(TypeErrorType, "'int' object is not iterable")},
+			{args: wrapArgs(mustNotRaise(typ.Call(f, nil, nil)), "foo", "bar"), wantExc: mustCreateException(TypeErrorType, fmt.Sprintf("'issuperset' of '%s' requires 2 arguments", typ.Name()))},
+		}
+		for _, cas := range cases {
+			if err := runInvokeMethodTestCase(typ, "issuperset", &cas); err != "" {
+				t.Error(err)
+			}
 		}
 	}
 }
 
 func TestSetIsTrue(t *testing.T) {
-	cases := []invokeTestCase{
-		{args: wrapArgs(NewSet()), want: False.ToObject()},
-		{args: wrapArgs(newTestSet("foo", None)), want: True.ToObject()},
-	}
-	for _, cas := range cases {
-		if err := runInvokeTestCase(wrapFuncForTest(IsTrue), &cas); err != "" {
-			t.Error(err)
+	f := newFrame(nil)
+	for _, typ := range []*Type{SetType, FrozenSetType} {
+		cases := []invokeTestCase{
+			{args: wrapArgs(mustNotRaise(typ.Call(f, nil, nil))), want: False.ToObject()},
+			{args: wrapArgs(mustNotRaise(typ.Call(f, wrapArgs(newTestTuple("foo", None)), nil))), want: True.ToObject()},
+		}
+		for _, cas := range cases {
+			if err := runInvokeTestCase(wrapFuncForTest(IsTrue), &cas); err != "" {
+				t.Error(err)
+			}
 		}
 	}
 }
 
 func TestSetIter(t *testing.T) {
-	fun := wrapFuncForTest(func(f *Frame, s *Set) (*Tuple, *BaseException) {
+	fun := wrapFuncForTest(func(f *Frame, s *Object) (*Tuple, *BaseException) {
 		var result *Tuple
-		raised := seqApply(f, s.ToObject(), func(elems []*Object, _ bool) *BaseException {
+		raised := seqApply(f, s, func(elems []*Object, _ bool) *BaseException {
 			result = NewTuple(elems...)
 			return nil
 		})
@@ -163,6 +185,9 @@ func TestSetIter(t *testing.T) {
 		{args: wrapArgs(NewSet()), want: NewTuple().ToObject()},
 		{args: wrapArgs(newTestSet(1, 2, 3)), want: newTestTuple(1, 2, 3).ToObject()},
 		{args: wrapArgs(newTestSet("foo", 3.14)), want: newTestTuple(3.14, "foo").ToObject()},
+		{args: wrapArgs(newTestFrozenSet()), want: NewTuple().ToObject()},
+		{args: wrapArgs(newTestFrozenSet(1, 2, 3)), want: newTestTuple(1, 2, 3).ToObject()},
+		{args: wrapArgs(newTestFrozenSet("foo", 3.14)), want: newTestTuple(3.14, "foo").ToObject()},
 	}
 	for _, cas := range cases {
 		if err := runInvokeTestCase(fun, &cas); err != "" {
@@ -172,28 +197,34 @@ func TestSetIter(t *testing.T) {
 }
 
 func TestSetLen(t *testing.T) {
-	cases := []invokeTestCase{
-		{args: wrapArgs(NewSet()), want: NewInt(0).ToObject()},
-		{args: wrapArgs(newTestSet(1, 2, 3)), want: NewInt(3).ToObject()},
-	}
-	for _, cas := range cases {
-		if err := runInvokeMethodTestCase(SetType, "__len__", &cas); err != "" {
-			t.Error(err)
+	f := newFrame(nil)
+	for _, typ := range []*Type{SetType, FrozenSetType} {
+		cases := []invokeTestCase{
+			{args: wrapArgs(mustNotRaise(typ.Call(f, nil, nil))), want: NewInt(0).ToObject()},
+			{args: wrapArgs(mustNotRaise(typ.Call(f, wrapArgs(newTestTuple(1, 2, 3)), nil))), want: NewInt(3).ToObject()},
+		}
+		for _, cas := range cases {
+			if err := runInvokeMethodTestCase(typ, "__len__", &cas); err != "" {
+				t.Error(err)
+			}
 		}
 	}
 }
 
 func TestSetNewInit(t *testing.T) {
-	cases := []invokeTestCase{
-		{want: NewSet().ToObject()},
-		{args: wrapArgs(newTestTuple("foo", "bar")), want: newTestSet("foo", "bar").ToObject()},
-		{args: wrapArgs("abba"), want: newTestSet("a", "b").ToObject()},
-		{args: wrapArgs(3.14), wantExc: mustCreateException(TypeErrorType, "'float' object is not iterable")},
-		{args: wrapArgs(NewTuple(), 123), wantExc: mustCreateException(TypeErrorType, "set expected at most 1 arguments, got 2")},
-	}
-	for _, cas := range cases {
-		if err := runInvokeTestCase(SetType.ToObject(), &cas); err != "" {
-			t.Error(err)
+	f := newFrame(nil)
+	for _, typ := range []*Type{SetType, FrozenSetType} {
+		cases := []invokeTestCase{
+			{want: NewSet().ToObject()},
+			{args: wrapArgs(newTestTuple("foo", "bar")), want: mustNotRaise(typ.Call(f, wrapArgs(newTestTuple("foo", "bar")), nil))},
+			{args: wrapArgs("abba"), want: mustNotRaise(typ.Call(f, wrapArgs(newTestTuple("a", "b")), nil))},
+			{args: wrapArgs(3.14), wantExc: mustCreateException(TypeErrorType, "'float' object is not iterable")},
+			{args: wrapArgs(NewTuple(), 1, 2, 3), wantExc: mustCreateException(TypeErrorType, fmt.Sprintf("%s expected at most 1 arguments, got 4", typ.Name()))},
+		}
+		for _, cas := range cases {
+			if err := runInvokeTestCase(typ.ToObject(), &cas); err != "" {
+				t.Error(err)
+			}
 		}
 	}
 }
@@ -228,6 +259,9 @@ func TestSetStrRepr(t *testing.T) {
 		{args: wrapArgs(NewSet()), want: NewStr("set([])").ToObject()},
 		{args: wrapArgs(newTestSet("foo")), want: NewStr("set(['foo'])").ToObject()},
 		{args: wrapArgs(newTestSet(TupleType, ExceptionType)), want: NewStr("set([<type 'tuple'>, <type 'Exception'>])").ToObject()},
+		{args: wrapArgs(newTestFrozenSet()), want: NewStr("frozenset([])").ToObject()},
+		{args: wrapArgs(newTestFrozenSet("foo")), want: NewStr("frozenset(['foo'])").ToObject()},
+		{args: wrapArgs(newTestFrozenSet(TupleType, ExceptionType)), want: NewStr("frozenset([<type 'tuple'>, <type 'Exception'>])").ToObject()},
 	}
 	for _, cas := range cases {
 		if err := runInvokeTestCase(wrapFuncForTest(ToStr), &cas); err != "" {
@@ -278,4 +312,19 @@ func newTestSet(elems ...interface{}) *Set {
 		}
 	}
 	return s
+}
+
+func newTestFrozenSet(elems ...interface{}) *FrozenSet {
+	f := newFrame(nil)
+	wrappedElems, raised := seqWrapEach(f, elems...)
+	if raised != nil {
+		panic(raised)
+	}
+	d := NewDict()
+	for _, elem := range wrappedElems {
+		if raised := d.SetItem(f, elem, None); raised != nil {
+			panic(raised)
+		}
+	}
+	return &FrozenSet{Object{typ: FrozenSetType}, d}
 }

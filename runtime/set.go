@@ -20,15 +20,55 @@ import (
 )
 
 var (
+	// FrozenSetType is the object representing the Python 'set' type.
+	FrozenSetType = newBasisType("frozenset", reflect.TypeOf(FrozenSet{}), toFrozenSetUnsafe, ObjectType)
 	// SetType is the object representing the Python 'set' type.
 	SetType = newBasisType("set", reflect.TypeOf(Set{}), toSetUnsafe, ObjectType)
 )
 
-// Set represents Python 'set' objects.
-type Set struct {
+type setBase struct {
 	Object
 	dict *Dict
 }
+
+func (s *setBase) contains(f *Frame, key *Object) (bool, *BaseException) {
+	item, raised := s.dict.GetItem(f, key)
+	if raised != nil {
+		return false, raised
+	}
+	return item != nil, nil
+}
+
+func (s *setBase) isSubset(f *Frame, o *Object) (*Object, *BaseException) {
+	s2, raised := setFromSeq(f, o)
+	if raised != nil {
+		return nil, raised
+	}
+	return setCompare(f, compareOpLE, s, &s2.Object)
+}
+
+func (s *setBase) isSuperset(f *Frame, o *Object) (*Object, *BaseException) {
+	s2, raised := setFromSeq(f, o)
+	if raised != nil {
+		return nil, raised
+	}
+	return setCompare(f, compareOpGE, s, &s2.Object)
+}
+
+func (s *setBase) repr(f *Frame) (*Object, *BaseException) {
+	if f.reprEnter(&s.Object) {
+		return NewStr(fmt.Sprintf("%s(...)", s.typ.Name())).ToObject(), nil
+	}
+	repr, raised := Repr(f, s.dict.Keys(f).ToObject())
+	f.reprLeave(&s.Object)
+	if raised != nil {
+		return nil, raised
+	}
+	return NewStr(fmt.Sprintf("%s(%s)", s.typ.Name(), repr.Value())).ToObject(), nil
+}
+
+// Set represents Python 'set' objects.
+type Set setBase
 
 // NewSet returns an empty Set.
 func NewSet() *Set {
@@ -46,11 +86,7 @@ func (s *Set) Add(f *Frame, key *Object) (bool, *BaseException) {
 
 // Contains returns true if key exists in s.
 func (s *Set) Contains(f *Frame, key *Object) (bool, *BaseException) {
-	item, raised := s.dict.GetItem(f, key)
-	if raised != nil {
-		return false, raised
-	}
-	return item != nil, nil
+	return (*setBase)(s).contains(f, key)
 }
 
 // Remove erases key from s. If key is not in s then raises KeyError.
@@ -103,21 +139,21 @@ func setDiscard(f *Frame, args Args, _ KWArgs) (*Object, *BaseException) {
 }
 
 func setEq(f *Frame, v, w *Object) (*Object, *BaseException) {
-	return setCompare(f, compareOpEq, toSetUnsafe(v), w)
+	return setCompare(f, compareOpEq, (*setBase)(toSetUnsafe(v)), w)
 }
 
 func setGE(f *Frame, v, w *Object) (*Object, *BaseException) {
-	return setCompare(f, compareOpGE, toSetUnsafe(v), w)
+	return setCompare(f, compareOpGE, (*setBase)(toSetUnsafe(v)), w)
 }
 
 func setGT(f *Frame, v, w *Object) (*Object, *BaseException) {
-	return setCompare(f, compareOpGT, toSetUnsafe(v), w)
+	return setCompare(f, compareOpGT, (*setBase)(toSetUnsafe(v)), w)
 }
 
 func setInit(f *Frame, o *Object, args Args, _ KWArgs) (*Object, *BaseException) {
 	argc := len(args)
 	if argc > 1 {
-		return nil, f.RaiseType(TypeErrorType, "set expected at most 1 arguments, got 2")
+		return nil, f.RaiseType(TypeErrorType, fmt.Sprintf("set expected at most 1 arguments, got %d", argc))
 	}
 	s := toSetUnsafe(o)
 	if argc == 1 {
@@ -132,22 +168,14 @@ func setIsSubset(f *Frame, args Args, _ KWArgs) (*Object, *BaseException) {
 	if raised := checkMethodArgs(f, "issubset", args, SetType, ObjectType); raised != nil {
 		return nil, raised
 	}
-	s, raised := setFromSeq(f, args[1])
-	if raised != nil {
-		return nil, raised
-	}
-	return setCompare(f, compareOpLE, toSetUnsafe(args[0]), s.ToObject())
+	return (*setBase)(toSetUnsafe(args[0])).isSubset(f, args[1])
 }
 
 func setIsSuperset(f *Frame, args Args, _ KWArgs) (*Object, *BaseException) {
 	if raised := checkMethodArgs(f, "issuperset", args, SetType, ObjectType); raised != nil {
 		return nil, raised
 	}
-	s, raised := setFromSeq(f, args[1])
-	if raised != nil {
-		return nil, raised
-	}
-	return setCompare(f, compareOpGE, toSetUnsafe(args[0]), s.ToObject())
+	return (*setBase)(toSetUnsafe(args[0])).isSuperset(f, args[1])
 }
 
 func setIter(f *Frame, o *Object) (*Object, *BaseException) {
@@ -159,7 +187,7 @@ func setIter(f *Frame, o *Object) (*Object, *BaseException) {
 }
 
 func setLE(f *Frame, v, w *Object) (*Object, *BaseException) {
-	return setCompare(f, compareOpLE, toSetUnsafe(v), w)
+	return setCompare(f, compareOpLE, (*setBase)(toSetUnsafe(v)), w)
 }
 
 func setLen(f *Frame, o *Object) (*Object, *BaseException) {
@@ -167,11 +195,11 @@ func setLen(f *Frame, o *Object) (*Object, *BaseException) {
 }
 
 func setLT(f *Frame, v, w *Object) (*Object, *BaseException) {
-	return setCompare(f, compareOpLT, toSetUnsafe(v), w)
+	return setCompare(f, compareOpLT, (*setBase)(toSetUnsafe(v)), w)
 }
 
 func setNE(f *Frame, v, w *Object) (*Object, *BaseException) {
-	return setCompare(f, compareOpNE, toSetUnsafe(v), w)
+	return setCompare(f, compareOpNE, (*setBase)(toSetUnsafe(v)), w)
 }
 
 func setNew(f *Frame, t *Type, _ Args, _ KWArgs) (*Object, *BaseException) {
@@ -194,16 +222,7 @@ func setRemove(f *Frame, args Args, _ KWArgs) (*Object, *BaseException) {
 }
 
 func setRepr(f *Frame, o *Object) (*Object, *BaseException) {
-	s := toSetUnsafe(o)
-	if f.reprEnter(s.ToObject()) {
-		return NewStr(fmt.Sprintf("%s(...)", s.typ.Name())).ToObject(), nil
-	}
-	repr, raised := Repr(f, s.dict.Keys(f).ToObject())
-	f.reprLeave(s.ToObject())
-	if raised != nil {
-		return nil, raised
-	}
-	return NewStr(fmt.Sprintf("%s(%s)", s.typ.Name(), repr.Value())).ToObject(), nil
+	return (*setBase)(toSetUnsafe(o)).repr(f)
 }
 
 func setUpdate(f *Frame, args Args, _ KWArgs) (*Object, *BaseException) {
@@ -238,11 +257,132 @@ func initSetType(dict map[string]*Object) {
 	SetType.slots.Repr = &unaryOpSlot{setRepr}
 }
 
-func setCompare(f *Frame, op compareOp, v *Set, w *Object) (*Object, *BaseException) {
-	if !w.isInstance(SetType) {
+// FrozenSet represents Python 'set' objects.
+type FrozenSet setBase
+
+func toFrozenSetUnsafe(o *Object) *FrozenSet {
+	return (*FrozenSet)(o.toPointer())
+}
+
+// Contains returns true if key exists in s.
+func (s *FrozenSet) Contains(f *Frame, key *Object) (bool, *BaseException) {
+	return (*setBase)(s).contains(f, key)
+}
+
+// ToObject upcasts s to an Object.
+func (s *FrozenSet) ToObject() *Object {
+	return &s.Object
+}
+
+func frozenSetContains(f *Frame, seq, value *Object) (*Object, *BaseException) {
+	contains, raised := toFrozenSetUnsafe(seq).Contains(f, value)
+	if raised != nil {
+		return nil, raised
+	}
+	return GetBool(contains).ToObject(), nil
+}
+
+func frozenSetEq(f *Frame, v, w *Object) (*Object, *BaseException) {
+	return setCompare(f, compareOpEq, (*setBase)(toFrozenSetUnsafe(v)), w)
+}
+
+func frozenSetGE(f *Frame, v, w *Object) (*Object, *BaseException) {
+	return setCompare(f, compareOpGE, (*setBase)(toFrozenSetUnsafe(v)), w)
+}
+
+func frozenSetGT(f *Frame, v, w *Object) (*Object, *BaseException) {
+	return setCompare(f, compareOpGT, (*setBase)(toFrozenSetUnsafe(v)), w)
+}
+
+func frozenSetIsSubset(f *Frame, args Args, _ KWArgs) (*Object, *BaseException) {
+	if raised := checkMethodArgs(f, "issubset", args, FrozenSetType, ObjectType); raised != nil {
+		return nil, raised
+	}
+	return (*setBase)(toFrozenSetUnsafe(args[0])).isSubset(f, args[1])
+}
+
+func frozenSetIsSuperset(f *Frame, args Args, _ KWArgs) (*Object, *BaseException) {
+	if raised := checkMethodArgs(f, "issuperset", args, FrozenSetType, ObjectType); raised != nil {
+		return nil, raised
+	}
+	return (*setBase)(toFrozenSetUnsafe(args[0])).isSuperset(f, args[1])
+}
+
+func frozenSetIter(f *Frame, o *Object) (*Object, *BaseException) {
+	s := toFrozenSetUnsafe(o)
+	s.dict.mutex.Lock(f)
+	iter := &newDictKeyIterator(s.dict).Object
+	s.dict.mutex.Unlock(f)
+	return iter, nil
+}
+
+func frozenSetLE(f *Frame, v, w *Object) (*Object, *BaseException) {
+	return setCompare(f, compareOpLE, (*setBase)(toFrozenSetUnsafe(v)), w)
+}
+
+func frozenSetLen(f *Frame, o *Object) (*Object, *BaseException) {
+	return NewInt(toFrozenSetUnsafe(o).dict.Len()).ToObject(), nil
+}
+
+func frozenSetLT(f *Frame, v, w *Object) (*Object, *BaseException) {
+	return setCompare(f, compareOpLT, (*setBase)(toFrozenSetUnsafe(v)), w)
+}
+
+func frozenSetNE(f *Frame, v, w *Object) (*Object, *BaseException) {
+	return setCompare(f, compareOpNE, (*setBase)(toFrozenSetUnsafe(v)), w)
+}
+
+func frozenSetNew(f *Frame, t *Type, args Args, _ KWArgs) (*Object, *BaseException) {
+	argc := len(args)
+	if argc > 1 {
+		format := "frozenset expected at most 1 arguments, got %d"
+		return nil, f.RaiseType(TypeErrorType, fmt.Sprintf(format, argc))
+	}
+	s := toFrozenSetUnsafe(newObject(t))
+	s.dict = NewDict()
+	if argc == 1 {
+		raised := seqForEach(f, args[0], func(o *Object) *BaseException {
+			return s.dict.SetItem(f, o, None)
+		})
+		if raised != nil {
+			return nil, raised
+		}
+	}
+	return s.ToObject(), nil
+}
+
+func frozenSetRepr(f *Frame, o *Object) (*Object, *BaseException) {
+	return (*setBase)(toFrozenSetUnsafe(o)).repr(f)
+}
+
+func initFrozenSetType(dict map[string]*Object) {
+	dict["issubset"] = newBuiltinFunction("issubset", frozenSetIsSubset).ToObject()
+	dict["issuperset"] = newBuiltinFunction("issuperset", frozenSetIsSuperset).ToObject()
+	FrozenSetType.slots.Contains = &binaryOpSlot{frozenSetContains}
+	FrozenSetType.slots.Eq = &binaryOpSlot{frozenSetEq}
+	FrozenSetType.slots.GE = &binaryOpSlot{frozenSetGE}
+	FrozenSetType.slots.GT = &binaryOpSlot{frozenSetGT}
+	// TODO: Implement hash for frozenset.
+	FrozenSetType.slots.Hash = &unaryOpSlot{hashNotImplemented}
+	FrozenSetType.slots.Iter = &unaryOpSlot{frozenSetIter}
+	FrozenSetType.slots.LE = &binaryOpSlot{frozenSetLE}
+	FrozenSetType.slots.Len = &unaryOpSlot{frozenSetLen}
+	FrozenSetType.slots.LT = &binaryOpSlot{frozenSetLT}
+	FrozenSetType.slots.NE = &binaryOpSlot{frozenSetNE}
+	FrozenSetType.slots.New = &newSlot{frozenSetNew}
+	FrozenSetType.slots.Repr = &unaryOpSlot{frozenSetRepr}
+}
+
+func setCompare(f *Frame, op compareOp, v *setBase, w *Object) (*Object, *BaseException) {
+	var s2 *setBase
+	switch {
+	case w.isInstance(SetType):
+		s2 = (*setBase)(toSetUnsafe(w))
+	case w.isInstance(FrozenSetType):
+		s2 = (*setBase)(toFrozenSetUnsafe(w))
+	default:
 		return NotImplemented, nil
 	}
-	s2 := toSetUnsafe(w)
 	if op == compareOpGE || op == compareOpGT {
 		op = op.swapped()
 		v, s2 = s2, v
@@ -272,7 +412,7 @@ func setCompare(f *Frame, op compareOp, v *Set, w *Object) (*Object, *BaseExcept
 		}
 	}
 	for entry := iter.next(); entry != nil; entry = iter.next() {
-		contains, raised := s2.Contains(f, entry.key)
+		contains, raised := s2.contains(f, entry.key)
 		if raised != nil {
 			return nil, raised
 		}
@@ -287,13 +427,16 @@ func setCompare(f *Frame, op compareOp, v *Set, w *Object) (*Object, *BaseExcept
 	return GetBool(result).ToObject(), nil
 }
 
-func setFromSeq(f *Frame, seq *Object) (*Set, *BaseException) {
-	if seq.isInstance(SetType) {
-		return toSetUnsafe(seq), nil
+func setFromSeq(f *Frame, seq *Object) (*setBase, *BaseException) {
+	switch {
+	case seq.isInstance(SetType):
+		return (*setBase)(toSetUnsafe(seq)), nil
+	case seq.isInstance(FrozenSetType):
+		return (*setBase)(toFrozenSetUnsafe(seq)), nil
 	}
 	o, raised := SetType.Call(f, Args{seq}, nil)
 	if raised != nil {
 		return nil, raised
 	}
-	return toSetUnsafe(o), nil
+	return (*setBase)(toSetUnsafe(o)), nil
 }
