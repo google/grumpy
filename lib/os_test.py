@@ -14,6 +14,7 @@
 
 import os
 import stat
+import time
 import tempfile
 
 import weetest
@@ -161,12 +162,16 @@ def TestRmDirFile():
 
 
 def TestStatFile():
+  t = time.time()
   fd, path = tempfile.mkstemp()
   os.close(fd)
-  mode = os.stat(path).st_mode
+  st = os.stat(path)
   os.remove(path)
-  assert not stat.S_ISDIR(mode)
-  assert stat.S_IMODE(mode) == 0o600
+  assert not stat.S_ISDIR(st.st_mode)
+  assert stat.S_IMODE(st.st_mode) == 0o600
+  assert st.st_size == 0
+  # System time and mtime may have different precision so give 10 sec leeway.
+  assert st.st_mtime + 10 > t
 
 
 def TestStatDir():

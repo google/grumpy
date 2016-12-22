@@ -22,6 +22,7 @@ from __go__.os import Chmod, Environ, Remove, Stat
 from __go__.path.filepath import Separator
 from __go__.grumpy import NewFileFromFD
 from __go__.syscall import Close, SYS_FCNTL, Syscall, F_GETFD
+from __go__.time import Second
 
 sep = chr(Separator)
 
@@ -70,13 +71,28 @@ def rmdir(filepath):
 
 class StatResult(object):
 
-  def __init__(self, mode):
-    self.st_mode = mode
+  def __init__(self, info):
+    self._info = info
+
+  def st_mode(self):
+    # TODO: This is an incomplete mode flag. It should include S_IFDIR, etc.
+    return self._info.Mode()
+  # TODO: Make this a decorator once they're implemented.
+  st_mode = property(st_mode)
+
+  def st_size(self):
+    return self._info.Size()
+  # TODO: Make this a decorator once they're implemented.
+  st_size = property(st_size)
+
+  def st_mtime(self):
+    return float(self._info.ModTime().UnixNano()) / Second
+  # TODO: Make this a decorator once they're implemented.
+  st_mtime = property(st_mtime)
 
 
 def stat(filepath):
   info, err = Stat(filepath)
   if err:
     raise OSError(err.Error())
-  # TODO: This is an incomplete mode flag. It should include S_IFDIR, etc.
-  return StatResult(info.Mode())
+  return StatResult(info)
