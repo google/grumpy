@@ -15,10 +15,14 @@
 package grumpy
 
 import (
+	"bufio"
+	"bytes"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"os"
 	"reflect"
+	"strings"
 	"sync"
 )
 
@@ -28,10 +32,13 @@ type File struct {
 	// mutex synchronizes the state of the File struct, not access to the
 	// underlying os.File. So, for example, when doing file reads and
 	// writes we only acquire a read lock.
-	mutex sync.RWMutex
-	mode  string
-	open  bool
-	file  *os.File
+	mutex       sync.Mutex
+	mode        string
+	open        bool
+	reader      *bufio.Reader
+	file        *os.File
+	skipNextLF  bool
+	univNewLine bool
 }
 
 // NewFileFromFD creates a file object from the given file descriptor fd.
@@ -47,6 +54,37 @@ func toFileUnsafe(o *Object) *File {
 // ToObject upcasts f to an Object.
 func (f *File) ToObject() *Object {
 	return &f.Object
+}
+
+func (f *File) readLine(maxBytes int) (string, error) {
+	var buf bytes.Buffer
+	numBytesRead := 0
+	for maxBytes < 0 || numBytesRead < maxBytes {
+		b, err := f.reader.ReadByte()
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			return "", err
+		}
+		if b == '\r' && f.univNewLine {
+			f.skipNextLF = true
+			buf.WriteByte('\n')
+			break
+		} else if b == '\n' {
+			if f.skipNextLF {
+				f.skipNextLF = false
+				continue // Do not increment numBytesRead.
+			} else {
+				buf.WriteByte(b)
+				break
+			}
+		} else {
+			buf.WriteByte(b)
+		}
+		numBytesRead++
+	}
+	return buf.String(), nil
 }
 
 // FileType is the object representing the Python 'file' type.
@@ -70,14 +108,14 @@ func fileInit(f *Frame, o *Object, args Args, _ KWArgs) (*Object, *BaseException
 	switch mode {
 	case "a", "ab":
 		flag = os.O_WRONLY | os.O_CREATE | os.O_APPEND
-	case "r", "rb":
+	case "r", "rb", "rU", "U":
 		flag = os.O_RDONLY
 	case "r+", "r+b":
 		flag = os.O_RDWR
 	case "w", "wb":
 		flag = os.O_WRONLY | os.O_CREATE | os.O_TRUNC
 	default:
-		return nil, f.RaiseType(ValueErrorType, "invalid mode string")
+		return nil, f.RaiseType(ValueErrorType, fmt.Sprintf("invalid mode string: %q", mode))
 	}
 	file := toFileUnsafe(o)
 	file.mutex.Lock()
@@ -89,6 +127,30 @@ func fileInit(f *Frame, o *Object, args Args, _ KWArgs) (*Object, *BaseException
 	file.mode = mode
 	file.open = true
 	file.file = osFile
+	file.reader = bufio.NewReader(osFile)
+	file.univNewLine = strings.HasSuffix(mode, "U")
+	return None, nil
+}
+
+func fileEnter(f *Frame, args Args, _ KWArgs) (*Object, *BaseException) {
+	if raised := checkMethodArgs(f, "__enter__", args, FileType); raised != nil {
+		return nil, raised
+	}
+	return args[0], nil
+}
+
+func fileExit(f *Frame, args Args, _ KWArgs) (*Object, *BaseException) {
+	if raised := checkMethodVarArgs(f, "__exit__", args, FileType); raised != nil {
+		return nil, raised
+	}
+	closeFunc, raised := GetAttr(f, args[0], NewStr("close"), nil)
+	if raised != nil {
+		return nil, raised
+	}
+	_, raised = closeFunc.Call(f, nil, nil)
+	if raised != nil {
+		return nil, raised
+	}
 	return None, nil
 }
 
@@ -108,22 +170,34 @@ func fileClose(f *Frame, args Args, _ KWArgs) (*Object, *BaseException) {
 	return None, nil
 }
 
-func fileRead(f *Frame, args Args, _ KWArgs) (*Object, *BaseException) {
-	expectedTypes := []*Type{FileType, IntType}
-	argc := len(args)
-	if argc == 1 {
-		expectedTypes = expectedTypes[:1]
+func fileIter(f *Frame, o *Object) (*Object, *BaseException) {
+	return o, nil
+}
+
+func fileNext(f *Frame, o *Object) (ret *Object, raised *BaseException) {
+	file := toFileUnsafe(o)
+	file.mutex.Lock()
+	defer file.mutex.Unlock()
+	if !file.open {
+		return nil, f.RaiseType(ValueErrorType, "I/O operation on closed file")
 	}
-	if raised := checkMethodArgs(f, "read", args, expectedTypes...); raised != nil {
+	line, err := file.readLine(-1)
+	if err != nil {
+		return nil, f.RaiseType(IOErrorType, err.Error())
+	}
+	if line == "" {
+		return nil, f.Raise(StopIterationType.ToObject(), nil, nil)
+	}
+	return NewStr(line).ToObject(), nil
+}
+
+func fileRead(f *Frame, args Args, _ KWArgs) (*Object, *BaseException) {
+	file, size, raised := fileParseReadArgs(f, "read", args)
+	if raised != nil {
 		return nil, raised
 	}
-	file := toFileUnsafe(args[0])
-	size := -1
-	if argc > 1 {
-		size = toIntUnsafe(args[1]).Value()
-	}
-	file.mutex.RLock()
-	defer file.mutex.RUnlock()
+	file.mutex.Lock()
+	defer file.mutex.Unlock()
 	if !file.open {
 		return nil, f.RaiseType(ValueErrorType, "I/O operation on closed file")
 	}
@@ -134,7 +208,7 @@ func fileRead(f *Frame, args Args, _ KWArgs) (*Object, *BaseException) {
 	} else {
 		data = make([]byte, size)
 		var n int
-		n, err = file.file.Read(data)
+		n, err = file.reader.Read(data)
 		data = data[:n]
 	}
 	if err != nil {
@@ -143,10 +217,58 @@ func fileRead(f *Frame, args Args, _ KWArgs) (*Object, *BaseException) {
 	return NewStr(string(data)).ToObject(), nil
 }
 
+func fileReadLine(f *Frame, args Args, _ KWArgs) (*Object, *BaseException) {
+	file, size, raised := fileParseReadArgs(f, "readline", args)
+	if raised != nil {
+		return nil, raised
+	}
+	file.mutex.Lock()
+	defer file.mutex.Unlock()
+	if !file.open {
+		return nil, f.RaiseType(ValueErrorType, "I/O operation on closed file")
+	}
+	line, err := file.readLine(size)
+	if err != nil {
+		return nil, f.RaiseType(IOErrorType, err.Error())
+	}
+	return NewStr(line).ToObject(), nil
+}
+
+func fileReadLines(f *Frame, args Args, _ KWArgs) (*Object, *BaseException) {
+	// NOTE: The size hint behavior here is slightly different than
+	// CPython. Here we read no more lines than necessary. In CPython a
+	// minimum of 8KB or more will be read.
+	file, size, raised := fileParseReadArgs(f, "readlines", args)
+	if raised != nil {
+		return nil, raised
+	}
+	file.mutex.Lock()
+	defer file.mutex.Unlock()
+	if !file.open {
+		return nil, f.RaiseType(ValueErrorType, "I/O operation on closed file")
+	}
+	var lines []*Object
+	numBytesRead := 0
+	for size < 0 || numBytesRead < size {
+		line, err := file.readLine(-1)
+		if err != nil {
+			return nil, f.RaiseType(IOErrorType, err.Error())
+		}
+		if line != "" {
+			lines = append(lines, NewStr(line).ToObject())
+		}
+		if !strings.HasSuffix(line, "\n") {
+			break
+		}
+		numBytesRead += len(line)
+	}
+	return NewList(lines...).ToObject(), nil
+}
+
 func fileRepr(f *Frame, o *Object) (*Object, *BaseException) {
 	file := toFileUnsafe(o)
-	file.mutex.RLock()
-	defer file.mutex.RUnlock()
+	file.mutex.Lock()
+	defer file.mutex.Unlock()
 	var openState string
 	if file.open {
 		openState = "open"
@@ -173,8 +295,8 @@ func fileWrite(f *Frame, args Args, _ KWArgs) (*Object, *BaseException) {
 		return nil, raised
 	}
 	file := toFileUnsafe(args[0])
-	file.mutex.RLock()
-	defer file.mutex.RUnlock()
+	file.mutex.Lock()
+	defer file.mutex.Unlock()
 	if !file.open {
 		return nil, f.RaiseType(ValueErrorType, "I/O operation on closed file")
 	}
@@ -185,9 +307,36 @@ func fileWrite(f *Frame, args Args, _ KWArgs) (*Object, *BaseException) {
 }
 
 func initFileType(dict map[string]*Object) {
+	// TODO: Make enter/exit into slots.
+	dict["__enter__"] = newBuiltinFunction("__enter__", fileEnter).ToObject()
+	dict["__exit__"] = newBuiltinFunction("__exit__", fileExit).ToObject()
 	dict["close"] = newBuiltinFunction("close", fileClose).ToObject()
 	dict["read"] = newBuiltinFunction("read", fileRead).ToObject()
+	dict["readline"] = newBuiltinFunction("readline", fileReadLine).ToObject()
+	dict["readlines"] = newBuiltinFunction("readlines", fileReadLines).ToObject()
 	dict["write"] = newBuiltinFunction("write", fileWrite).ToObject()
 	FileType.slots.Init = &initSlot{fileInit}
+	FileType.slots.Iter = &unaryOpSlot{fileIter}
+	FileType.slots.Next = &unaryOpSlot{fileNext}
 	FileType.slots.Repr = &unaryOpSlot{fileRepr}
+}
+
+func fileParseReadArgs(f *Frame, method string, args Args) (*File, int, *BaseException) {
+	expectedTypes := []*Type{FileType, ObjectType}
+	argc := len(args)
+	if argc == 1 {
+		expectedTypes = expectedTypes[:1]
+	}
+	if raised := checkMethodArgs(f, method, args, expectedTypes...); raised != nil {
+		return nil, 0, raised
+	}
+	size := -1
+	if argc > 1 {
+		o, raised := IntType.Call(f, args[1:], nil)
+		if raised != nil {
+			return nil, 0, raised
+		}
+		size = toIntUnsafe(o).Value()
+	}
+	return toFileUnsafe(args[0]), size, nil
 }
