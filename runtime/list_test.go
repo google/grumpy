@@ -246,6 +246,27 @@ func TestListNew(t *testing.T) {
 	}
 }
 
+func TestListReverse(t *testing.T) {
+	reverse := mustNotRaise(GetAttr(newFrame(nil), ListType.ToObject(), NewStr("reverse"), nil))
+	fun := wrapFuncForTest(func(f *Frame, o *Object, args ...*Object) (*Object, *BaseException) {
+		_, raised := reverse.Call(f, append(Args{o}, args...), nil)
+		if raised != nil {
+			return nil, raised
+		}
+		return o, nil
+	})
+	cases := []invokeTestCase{
+		{args: wrapArgs(NewList()), want: NewList().ToObject()},
+		{args: wrapArgs(newTestList(1, 2, 3)), want: newTestList(3, 2, 1).ToObject()},
+		{args: wrapArgs(NewList(), 123), wantExc: mustCreateException(TypeErrorType, "'reverse' of 'list' requires 1 arguments")},
+	}
+	for _, cas := range cases {
+		if err := runInvokeTestCase(fun, &cas); err != "" {
+			t.Error(err)
+		}
+	}
+}
+
 func TestListStrRepr(t *testing.T) {
 	recursiveList := newTestList("foo").ToObject()
 	listAppend(newFrame(nil), []*Object{recursiveList, recursiveList}, nil)

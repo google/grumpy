@@ -304,6 +304,21 @@ func listRepr(f *Frame, o *Object) (*Object, *BaseException) {
 	return NewStr(fmt.Sprintf("[%s]", repr)).ToObject(), nil
 }
 
+func listReverse(f *Frame, args Args, _ KWArgs) (*Object, *BaseException) {
+	if raised := checkMethodArgs(f, "reverse", args, ListType); raised != nil {
+		return nil, raised
+	}
+	l := toListUnsafe(args[0])
+	l.mutex.Lock()
+	halfLen := len(l.elems) / 2
+	for i := 0; i < halfLen; i++ {
+		j := len(l.elems) - i - 1
+		l.elems[i], l.elems[j] = l.elems[j], l.elems[i]
+	}
+	l.mutex.Unlock()
+	return None, nil
+}
+
 func listSetItem(f *Frame, o, key, value *Object) *BaseException {
 	l := toListUnsafe(o)
 	if key.typ.slots.Int != nil {
@@ -322,6 +337,7 @@ func listSetItem(f *Frame, o, key, value *Object) *BaseException {
 func initListType(dict map[string]*Object) {
 	dict["append"] = newBuiltinFunction("append", listAppend).ToObject()
 	dict["insert"] = newBuiltinFunction("insert", listInsert).ToObject()
+	dict["reverse"] = newBuiltinFunction("reverse", listReverse).ToObject()
 	ListType.slots.Add = &binaryOpSlot{listAdd}
 	ListType.slots.Contains = &binaryOpSlot{listContains}
 	ListType.slots.Eq = &binaryOpSlot{listEq}
