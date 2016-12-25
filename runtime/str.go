@@ -31,6 +31,7 @@ var (
 	// StrType is the object representing the Python 'str' type.
 	StrType                = newBasisType("str", reflect.TypeOf(Str{}), toStrUnsafe, BaseStringType)
 	whitespaceSplitRegexp  = regexp.MustCompile(`\s+`)
+	strASCIISpaces         = []byte(" \t\n\v\f\r")
 	strInterpolationRegexp = regexp.MustCompile(`^%([#0 +-]?)((\*|[0-9]+)?)((\.(\*|[0-9]+))?)[hlL]?([diouxXeEfFgGcrs%])`)
 	internedStrs           = map[string]*Str{}
 )
@@ -186,6 +187,10 @@ func strDecode(f *Frame, args Args, kwargs KWArgs) (*Object, *BaseException) {
 		return nil, raised
 	}
 	return s.ToObject(), nil
+}
+
+func strEndsWith(f *Frame, args Args, _ KWArgs) (*Object, *BaseException) {
+	return strStartsEndsWith(f, "endswith", args)
 }
 
 func strEq(f *Frame, v, w *Object) (*Object, *BaseException) {
@@ -426,52 +431,64 @@ func strSplit(f *Frame, args Args, kwargs KWArgs) (*Object, *BaseException) {
 	return NewList(results...).ToObject(), nil
 }
 
-func strStartsWith(f *Frame, args Args, kwargs KWArgs) (*Object, *BaseException) {
-	expectedTypes := []*Type{StrType, ObjectType, IntType, IntType}
+func strStrip(f *Frame, args Args, _ KWArgs) (*Object, *BaseException) {
+	expectedTypes := []*Type{StrType, ObjectType}
 	argc := len(args)
-	if argc == 2 || argc == 3 {
+	if argc == 1 {
 		expectedTypes = expectedTypes[:argc]
 	}
-	if raised := checkMethodArgs(f, "startswith", args, expectedTypes...); raised != nil {
+	if raised := checkMethodArgs(f, "strip", args, expectedTypes...); raised != nil {
 		return nil, raised
 	}
-	prefixArg := args[1]
-	var prefixes []*Object
+	s := toStrUnsafe(args[0])
+	charsArg := None
+	if argc > 1 {
+		charsArg = args[1]
+	}
+	var chars []byte
 	switch {
-	case prefixArg.isInstance(TupleType):
-		tup := toTupleUnsafe(prefixArg)
-		for _, o := range tup.elems {
-			if !o.isInstance(StrType) {
-				return nil, f.RaiseType(TypeErrorType, "expected a str")
+	case charsArg.isInstance(UnicodeType):
+		u, raised := s.Decode(f, EncodeDefault, EncodeStrict)
+		if raised != nil {
+			return nil, raised
+		}
+		return unicodeStrip(f, Args{u.ToObject(), charsArg}, nil)
+	case charsArg.isInstance(StrType):
+		chars = []byte(toStrUnsafe(charsArg).Value())
+	case charsArg == None:
+		chars = strASCIISpaces
+	default:
+		return nil, f.RaiseType(TypeErrorType, "strip arg must be None, str or unicode")
+	}
+	byteSlice := []byte(s.Value())
+	numBytes := len(byteSlice)
+	lindex := 0
+LeftStrip:
+	for ; lindex < numBytes; lindex++ {
+		b := byteSlice[lindex]
+		for _, c := range chars {
+			if b == c {
+				continue LeftStrip
 			}
 		}
-		prefixes = tup.elems
-	case prefixArg.isInstance(StrType):
-		prefixes = []*Object{prefixArg}
-	default:
-		msg := "startswith first arg must be str or tuple, not "
-		return nil, f.RaiseType(TypeErrorType, msg+prefixArg.typ.Name())
+		break
 	}
-	s := toStrUnsafe(args[0]).Value()
-	l := len(s)
-	start, end := 0, l
-	if argc >= 3 {
-		start = adjustIndex(toIntUnsafe(args[2]).Value(), l)
-	}
-	if argc == 4 {
-		end = adjustIndex(toIntUnsafe(args[3]).Value(), l)
-	}
-	if start > end {
-		// start == end may still return true when '' is a prefix.
-		return False.ToObject(), nil
-	}
-	s = s[start:end]
-	for _, prefix := range prefixes {
-		if strings.HasPrefix(s, toStrUnsafe(prefix).Value()) {
-			return True.ToObject(), nil
+	rindex := numBytes
+RightStrip:
+	for ; rindex > lindex; rindex-- {
+		b := byteSlice[rindex-1]
+		for _, c := range chars {
+			if b == c {
+				continue RightStrip
+			}
 		}
+		break
 	}
-	return False.ToObject(), nil
+	return NewStr(string(byteSlice[lindex:rindex])).ToObject(), nil
+}
+
+func strStartsWith(f *Frame, args Args, _ KWArgs) (*Object, *BaseException) {
+	return strStartsEndsWith(f, "startswith", args)
 }
 
 func strStr(_ *Frame, o *Object) (*Object, *BaseException) {
@@ -484,9 +501,11 @@ func strStr(_ *Frame, o *Object) (*Object, *BaseException) {
 func initStrType(dict map[string]*Object) {
 	dict["__getnewargs__"] = newBuiltinFunction("__getnewargs__", strGetNewArgs).ToObject()
 	dict["decode"] = newBuiltinFunction("decode", strDecode).ToObject()
+	dict["endswith"] = newBuiltinFunction("endswith", strEndsWith).ToObject()
 	dict["join"] = newBuiltinFunction("join", strJoin).ToObject()
 	dict["split"] = newBuiltinFunction("split", strSplit).ToObject()
 	dict["startswith"] = newBuiltinFunction("startswith", strStartsWith).ToObject()
+	dict["strip"] = newBuiltinFunction("strip", strStrip).ToObject()
 	StrType.slots.Add = &binaryOpSlot{strAdd}
 	StrType.slots.Contains = &binaryOpSlot{strContains}
 	StrType.slots.Eq = &binaryOpSlot{strEq}
@@ -568,6 +587,21 @@ func strInterpolate(f *Frame, format string, values *Tuple) (*Object, *BaseExcep
 			} else {
 				return nil, f.RaiseType(TypeErrorType, fmt.Sprintf("float argument required, not %s", o.typ.Name()))
 			}
+		case "d":
+			o := values.elems[valueIndex]
+			if o.typ.slots.Int == nil {
+				return nil, f.RaiseType(TypeErrorType, "%d format: a number is required, not "+o.typ.Name())
+			}
+			i, raised := intFromObject(f, values.elems[valueIndex])
+			if raised != nil {
+				return nil, raised
+			}
+			s, raised := ToStr(f, i)
+			if raised != nil {
+				return nil, raised
+			}
+			buf.WriteString(s.Value())
+			valueIndex++
 		case "%":
 			buf.WriteString("%")
 		default:
@@ -617,6 +651,67 @@ func adjustIndex(i, l int) int {
 		i = l
 	}
 	return i
+}
+
+func strStartsEndsWith(f *Frame, method string, args Args) (*Object, *BaseException) {
+	expectedTypes := []*Type{StrType, ObjectType, IntType, IntType}
+	argc := len(args)
+	if argc == 2 || argc == 3 {
+		expectedTypes = expectedTypes[:argc]
+	}
+	if raised := checkMethodArgs(f, method, args, expectedTypes...); raised != nil {
+		return nil, raised
+	}
+	matchesArg := args[1]
+	var matches []string
+	switch {
+	case matchesArg.isInstance(TupleType):
+		elems := toTupleUnsafe(matchesArg).elems
+		matches = make([]string, len(elems))
+		for i, o := range elems {
+			if !o.isInstance(BaseStringType) {
+				return nil, f.RaiseType(TypeErrorType, "expected a str")
+			}
+			s, raised := ToStr(f, o)
+			if raised != nil {
+				return nil, raised
+			}
+			matches[i] = s.Value()
+		}
+	case matchesArg.isInstance(BaseStringType):
+		s, raised := ToStr(f, matchesArg)
+		if raised != nil {
+			return nil, raised
+		}
+		matches = []string{s.Value()}
+	default:
+		msg := " first arg must be str, unicode, or tuple, not "
+		return nil, f.RaiseType(TypeErrorType, method+msg+matchesArg.typ.Name())
+	}
+	s := toStrUnsafe(args[0]).Value()
+	l := len(s)
+	start, end := 0, l
+	if argc >= 3 {
+		start = adjustIndex(toIntUnsafe(args[2]).Value(), l)
+	}
+	if argc == 4 {
+		end = adjustIndex(toIntUnsafe(args[3]).Value(), l)
+	}
+	if start > end {
+		// start == end may still return true when matching ''.
+		return False.ToObject(), nil
+	}
+	s = s[start:end]
+	matcher := strings.HasPrefix
+	if method == "endswith" {
+		matcher = strings.HasSuffix
+	}
+	for _, match := range matches {
+		if matcher(s, match) {
+			return True.ToObject(), nil
+		}
+	}
+	return False.ToObject(), nil
 }
 
 func init() {

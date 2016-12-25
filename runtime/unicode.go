@@ -344,10 +344,59 @@ func unicodeStr(f *Frame, o *Object) (*Object, *BaseException) {
 	return ret.ToObject(), nil
 }
 
+func unicodeStrip(f *Frame, args Args, _ KWArgs) (*Object, *BaseException) {
+	expectedTypes := []*Type{UnicodeType, ObjectType}
+	argc := len(args)
+	if argc == 1 {
+		expectedTypes = expectedTypes[:argc]
+	}
+	if raised := checkMethodArgs(f, "strip", args, expectedTypes...); raised != nil {
+		return nil, raised
+	}
+	s := toUnicodeUnsafe(args[0])
+	charsArg := None
+	if argc > 1 {
+		charsArg = args[1]
+	}
+	matchFunc := unicode.IsSpace
+	if charsArg != None {
+		chars, raised := unicodeCoerce(f, charsArg)
+		if raised != nil {
+			return nil, raised
+		}
+		matchFunc = func(r rune) bool {
+			for _, c := range chars.Value() {
+				if r == c {
+					return true
+				}
+			}
+			return false
+		}
+	}
+	runes := s.Value()
+	numRunes := len(runes)
+	lindex := 0
+	for ; lindex < numRunes; lindex++ {
+		if !matchFunc(runes[lindex]) {
+			break
+		}
+	}
+	rindex := numRunes
+	for ; rindex > lindex; rindex-- {
+		if !matchFunc(runes[rindex-1]) {
+			break
+		}
+	}
+	result := make([]rune, rindex-lindex)
+	copy(result, runes[lindex:rindex])
+	return NewUnicodeFromRunes(result).ToObject(), nil
+}
+
 func initUnicodeType(dict map[string]*Object) {
 	dict["__getnewargs__"] = newBuiltinFunction("__getnewargs__", unicodeGetNewArgs).ToObject()
 	dict["encode"] = newBuiltinFunction("encode", unicodeEncode).ToObject()
 	dict["join"] = newBuiltinFunction("join", unicodeJoin).ToObject()
+	dict["strip"] = newBuiltinFunction("strip", unicodeStrip).ToObject()
 	UnicodeType.slots.Add = &binaryOpSlot{unicodeAdd}
 	UnicodeType.slots.Contains = &binaryOpSlot{unicodeContains}
 	UnicodeType.slots.Eq = &binaryOpSlot{unicodeEq}

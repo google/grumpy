@@ -180,6 +180,14 @@ func TestUnicodeMethods(t *testing.T) {
 		{"join", wrapArgs(NewUnicode("nope"), NewTuple()), NewUnicode("").ToObject(), nil},
 		{"join", wrapArgs(NewUnicode("nope"), newTestTuple(NewUnicode("foo"))), NewUnicode("foo").ToObject(), nil},
 		{"join", wrapArgs(NewUnicode(","), newTestList("foo", "bar", 3.14)), nil, mustCreateException(TypeErrorType, "coercing to Unicode: need string, float found")},
+		{"strip", wrapArgs(NewUnicode("foo ")), NewStr("foo").ToObject(), nil},
+		{"strip", wrapArgs(NewUnicode(" foo bar ")), NewStr("foo bar").ToObject(), nil},
+		{"strip", wrapArgs(NewUnicode("foo foo"), "o"), NewStr("foo f").ToObject(), nil},
+		{"strip", wrapArgs(NewUnicode("foo bar"), "abr"), NewStr("foo ").ToObject(), nil},
+		{"strip", wrapArgs(NewUnicode("foo"), NewUnicode("o")), NewUnicode("f").ToObject(), nil},
+		{"strip", wrapArgs(NewUnicode("123"), 3), nil, mustCreateException(TypeErrorType, "coercing to Unicode: need string, int found")},
+		{"strip", wrapArgs(NewUnicode("foo"), "bar", "baz"), nil, mustCreateException(TypeErrorType, "'strip' of 'unicode' requires 2 arguments")},
+		{"strip", wrapArgs(NewUnicode("foo"), NewUnicode("o")), NewUnicode("f").ToObject(), nil},
 	}
 	for _, cas := range cases {
 		testCase := invokeTestCase{args: cas.args, want: cas.want, wantExc: cas.wantExc}
