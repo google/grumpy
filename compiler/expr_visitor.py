@@ -405,18 +405,19 @@ class ExprVisitor(ast.NodeVisitor):
           tmpl = '$args[$i] = πg.FunctionArg{Name: $name, Def: $default}'
           self.writer.write_tmpl(tmpl, args=func_args.expr, i=i,
                                  name=util.go_str(a.id), default=default.expr)
-
-      vararg = args.vararg if args.vararg else ''
-      kwarg = args.kwarg if args.kwarg else ''
-
+      flags = []
+      if args.vararg:
+        flags.append('πg.CodeFlagVarArg')
+      if args.kwarg:
+        flags.append('πg.CodeFlagKWArg')
       # The function object gets written to a temporary writer because we need
       # it as an expression that we subsequently bind to some variable.
       self.writer.write_tmpl(
           '$result = πg.NewFunction('
-          '$name, $args, $vararg, $kwarg, func('
+          '$name, πg.NewCode($name, $args, $flags, func('
           'πF *πg.Frame, πArgs []*πg.Object) (*πg.Object, *πg.BaseException) {',
           result=result.name, name=util.go_str(node.name), args=func_args.expr,
-          vararg=util.go_str(vararg), kwarg=util.go_str(kwarg))
+          flags=' | '.join(flags) if flags else 0)
       with self.writer.indent_block():
         # Declare the local variables used in this function.
         for var in func_block.vars.values():
@@ -440,7 +441,7 @@ class ExprVisitor(ast.NodeVisitor):
           with self.writer.indent_block(-1):
             self.writer.write(body)
           self.writer.write('return πg.None, nil')
-      self.writer.write('}).ToObject()')
+      self.writer.write('})).ToObject()')
     return result
 
   def _visit_seq_elts(self, elts):

@@ -76,7 +76,7 @@ type Function struct {
 	Object
 	fn   Func
 	name string `attr:"__name__"`
-	spec *functionSpec
+	code *Code  `attr:"func_code"`
 }
 
 // FunctionArg describes a parameter to a Python function.
@@ -88,61 +88,19 @@ type FunctionArg struct {
 	Def *Object
 }
 
-// functionSpec describes a Python user function.
-type functionSpec struct {
-	args        []FunctionArg
-	fn          func(*Frame, []*Object) (*Object, *BaseException)
-	specArgc    int
-	numBodyArgs int
-	varArgIndex int
-	kwArgIndex  int
-	minArgc     int
-}
-
 // NewFunction creates a function object corresponding to a Python function
-// described by spec. When called, the arguments are validated before calling
-// spec.Fn. This includes checking that an appropriate number of arguments are
-// provided, populating *args and **kwargs if necessary, etc.
-func NewFunction(name string, args []FunctionArg, vararg string, kwarg string, fn func(*Frame, []*Object) (*Object, *BaseException)) *Function {
-	specArgc := len(args)
-	numBodyArgs := specArgc
-	varArgIndex, kwArgIndex := -1, -1
-	if vararg != "" {
-		varArgIndex = numBodyArgs
-		numBodyArgs++
-	}
-	if kwarg != "" {
-		kwArgIndex = numBodyArgs
-		numBodyArgs++
-	}
-	minArgc := 0
-	for ; minArgc < specArgc; minArgc++ {
-		if args[minArgc].Def != nil {
-			break
-		}
-	}
-	for i := minArgc; i < specArgc; i++ {
-		if args[i].Def == nil {
-			format := "%s() non-keyword arg %s after keyword arg"
-			logFatal(fmt.Sprintf(format, name, args[i].Name))
-		}
-	}
-	spec := &functionSpec{
-		args:        args,
-		fn:          fn,
-		specArgc:    specArgc,
-		numBodyArgs: numBodyArgs,
-		varArgIndex: varArgIndex,
-		kwArgIndex:  kwArgIndex,
-		minArgc:     minArgc,
-	}
-	return &Function{Object{typ: FunctionType, dict: NewDict()}, nil, name, spec}
+// taking the given args, vararg and kwarg. When called, the arguments are
+// validated before calling fn. This includes checking that an appropriate
+// number of arguments are provided, populating *args and **kwargs if
+// necessary, etc.
+func NewFunction(name string, c *Code) *Function {
+	return &Function{Object{typ: FunctionType, dict: NewDict()}, nil, name, c}
 }
 
 // newBuiltinFunction returns a function object with the given name that
 // invokes fn when called.
-func newBuiltinFunction(name string, fn func(f *Frame, args Args, kwargs KWArgs) (*Object, *BaseException)) *Function {
-	return &Function{Object{typ: FunctionType, dict: NewDict()}, fn, name, nil}
+func newBuiltinFunction(name string, fn Func) *Function {
+	return &Function{Object: Object{typ: FunctionType, dict: NewDict()}, fn: fn, name: name}
 }
 
 func toFunctionUnsafe(o *Object) *Function {
@@ -161,64 +119,11 @@ func (f *Function) Name() string {
 
 func functionCall(f *Frame, callable *Object, args Args, kwargs KWArgs) (*Object, *BaseException) {
 	fun := toFunctionUnsafe(callable)
-	spec := fun.spec
-	if spec == nil {
+	code := fun.code
+	if code == nil {
 		return fun.fn(f, args, kwargs)
 	}
-	argc := len(args)
-	if argc > spec.specArgc && spec.varArgIndex == -1 {
-		format := "%s() takes %d arguments (%d given)"
-		return nil, f.RaiseType(TypeErrorType, fmt.Sprintf(format, fun.name, spec.specArgc, argc))
-	}
-	bodyArgs := f.MakeArgs(spec.numBodyArgs)
-	i := 0
-	for ; i < argc && i < spec.specArgc; i++ {
-		bodyArgs[i] = args[i]
-	}
-	if spec.varArgIndex != -1 {
-		bodyArgs[spec.varArgIndex] = NewTuple(args[i:].makeCopy()...).ToObject()
-	}
-	var kwargDict *Dict
-	if spec.kwArgIndex != -1 {
-		kwargDict = NewDict()
-		bodyArgs[spec.kwArgIndex] = kwargDict.ToObject()
-	}
-	for _, kw := range kwargs {
-		name := kw.Name
-		j := 0
-		for ; j < spec.specArgc; j++ {
-			if spec.args[j].Name == name {
-				if bodyArgs[j] != nil {
-					format := "%s() got multiple values for keyword argument '%s'"
-					return nil, f.RaiseType(TypeErrorType, fmt.Sprintf(format, fun.name, name))
-				}
-				bodyArgs[j] = kw.Value
-				break
-			}
-		}
-		if j == spec.specArgc {
-			if kwargDict == nil {
-				format := "%s() got an unexpected keyword argument '%s'"
-				return nil, f.RaiseType(TypeErrorType, fmt.Sprintf(format, fun.name, name))
-			}
-			if raised := kwargDict.SetItemString(f, name, kw.Value); raised != nil {
-				return nil, raised
-			}
-		}
-	}
-	for ; i < spec.specArgc; i++ {
-		arg := spec.args[i]
-		if bodyArgs[i] == nil {
-			if arg.Def == nil {
-				format := "%s() takes at least %d arguments (%d given)"
-				return nil, f.RaiseType(TypeErrorType, fmt.Sprintf(format, fun.name, spec.minArgc, argc))
-			}
-			bodyArgs[i] = arg.Def
-		}
-	}
-	ret, raised := spec.fn(f, bodyArgs)
-	f.FreeArgs(bodyArgs)
-	return ret, raised
+	return code.call(f, args, kwargs)
 }
 
 func functionGet(_ *Frame, desc, instance *Object, owner *Type) (*Object, *BaseException) {
