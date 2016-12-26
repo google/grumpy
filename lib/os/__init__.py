@@ -80,15 +80,15 @@ class StatResult(object):
   # TODO: Make this a decorator once they're implemented.
   st_mode = property(st_mode)
 
-  def st_size(self):
-    return self._info.Size()
-  # TODO: Make this a decorator once they're implemented.
-  st_size = property(st_size)
-
   def st_mtime(self):
     return float(self._info.ModTime().UnixNano()) / Second
   # TODO: Make this a decorator once they're implemented.
   st_mtime = property(st_mtime)
+
+  def st_size(self):
+    return self._info.Size()
+  # TODO: Make this a decorator once they're implemented.
+  st_size = property(st_size)
 
 
 def stat(filepath):

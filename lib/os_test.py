@@ -169,9 +169,9 @@ def TestStatFile():
   os.remove(path)
   assert not stat.S_ISDIR(st.st_mode)
   assert stat.S_IMODE(st.st_mode) == 0o600
-  assert st.st_size == 0
   # System time and mtime may have different precision so give 10 sec leeway.
   assert st.st_mtime + 10 > t
+  assert st.st_size == 0
 
 
 def TestStatDir():
