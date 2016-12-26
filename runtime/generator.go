@@ -46,7 +46,6 @@ type Generator struct {
 func NewGenerator(b *Block, globals *Dict) *Generator {
 	f := newFrame(nil)
 	f.globals = globals
-	f.block = b
 	return &Generator{Object: Object{typ: GeneratorType}, block: b, frame: f}
 }
 

@@ -35,7 +35,6 @@ func NewBlock(name, filename string, fn func(*Frame, *Object) (*Object, *BaseExc
 func (b *Block) Exec(back *Frame, globals *Dict) (*Object, *BaseException) {
 	f := newFrame(back)
 	f.globals = globals
-	f.block = b
 	return b.execInternal(f, nil)
 }
 

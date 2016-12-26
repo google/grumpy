@@ -36,9 +36,8 @@ type Frame struct {
 	// include exception handlers and finally blocks.
 	checkpoints []RunState
 	state       RunState
-	globals     *Dict  `attr:"f_globals"`
-	lineno      int    `attr:"f_lineno"`
-	block       *Block `attr:"f_code"`
+	globals     *Dict `attr:"f_globals"`
+	lineno      int   `attr:"f_lineno"`
 }
 
 // newFrame creates a new Frame whose parent frame is back.
