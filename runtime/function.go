@@ -93,8 +93,8 @@ type FunctionArg struct {
 // validated before calling fn. This includes checking that an appropriate
 // number of arguments are provided, populating *args and **kwargs if
 // necessary, etc.
-func NewFunction(name string, c *Code) *Function {
-	return &Function{Object{typ: FunctionType, dict: NewDict()}, nil, name, c}
+func NewFunction(c *Code) *Function {
+	return &Function{Object{typ: FunctionType, dict: NewDict()}, nil, c.name, c}
 }
 
 // newBuiltinFunction returns a function object with the given name that

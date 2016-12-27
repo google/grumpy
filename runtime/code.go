@@ -17,7 +17,8 @@ const (
 
 type Code struct {
 	Object
-	name string
+	name     string
+	filename string
 	// argc is the number of positional arguments.
 	argc int `attr:"co_argcount"`
 	// minArgc is the number of positional non-keyword arguments (i.e. the
@@ -28,7 +29,7 @@ type Code struct {
 	fn      func(*Frame, []*Object) (*Object, *BaseException)
 }
 
-func NewCode(name string, args []FunctionArg, flags CodeFlag, fn func(*Frame, []*Object) (*Object, *BaseException)) *Code {
+func NewCode(name, filename string, args []FunctionArg, flags CodeFlag, fn func(*Frame, []*Object) (*Object, *BaseException)) *Code {
 	argc := len(args)
 	minArgc := 0
 	for ; minArgc < argc; minArgc++ {
@@ -42,7 +43,7 @@ func NewCode(name string, args []FunctionArg, flags CodeFlag, fn func(*Frame, []
 			logFatal(fmt.Sprintf(format, name, arg.Name))
 		}
 	}
-	return &Code{Object{typ: CodeType}, name, argc, minArgc, flags, args, fn}
+	return &Code{Object{typ: CodeType}, name, filename, argc, minArgc, flags, args, fn}
 }
 
 func toCodeUnsafe(o *Object) *Code {

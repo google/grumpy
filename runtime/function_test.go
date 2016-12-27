@@ -23,7 +23,7 @@ func TestFunctionCall(t *testing.T) {
 	foo := newBuiltinFunction("foo", func(f *Frame, args Args, kwargs KWArgs) (*Object, *BaseException) {
 		return newTestTuple(NewTuple(args.makeCopy()...), kwargs.makeDict()).ToObject(), nil
 	}).ToObject()
-	bar := NewFunction("bar", NewCode("bar", nil, CodeFlagVarArg, func(f *Frame, args []*Object) (*Object, *BaseException) {
+	bar := NewFunction(NewCode("bar", "bar.py", nil, CodeFlagVarArg, func(f *Frame, args []*Object) (*Object, *BaseException) {
 		return args[0], nil
 	}))
 	cases := []invokeTestCase{

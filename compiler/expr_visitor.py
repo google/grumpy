@@ -413,10 +413,11 @@ class ExprVisitor(ast.NodeVisitor):
       # The function object gets written to a temporary writer because we need
       # it as an expression that we subsequently bind to some variable.
       self.writer.write_tmpl(
-          '$result = πg.NewFunction('
-          '$name, πg.NewCode($name, $args, $flags, func('
-          'πF *πg.Frame, πArgs []*πg.Object) (*πg.Object, *πg.BaseException) {',
-          result=result.name, name=util.go_str(node.name), args=func_args.expr,
+          '$result = πg.NewFunction(πg.NewCode($name, $filename, $args, '
+          '$flags, func(πF *πg.Frame, πArgs []*πg.Object) '
+          '(*πg.Object, *πg.BaseException) {',
+          result=result.name, name=util.go_str(node.name),
+          filename=util.go_str(self.block.filename), args=func_args.expr,
           flags=' | '.join(flags) if flags else 0)
       with self.writer.indent_block():
         # Declare the local variables used in this function.
