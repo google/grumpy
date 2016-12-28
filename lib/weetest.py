@@ -103,7 +103,7 @@ def _RunOneBenchmark(name, test_func):
   except Exception as e:  # pylint: disable=broad-except
     result.status = 'error'
     print 'ERROR'
-    traceback.print_exc(e)
+    traceback.print_exc()
   else:
     result.status = 'passed'
     ops_per_sec = b.N / b.duration
@@ -123,11 +123,11 @@ def _RunOneTest(name, test_func):
   except AssertionError as e:
     result.status = 'failed'
     print name, 'FAILED'
-    traceback.print_exc(e)
+    traceback.print_exc()
   except Exception as e:  # pylint: disable=broad-except
     result.status = 'error'
     print name, 'ERROR'
-    traceback.print_exc(e)
+    traceback.print_exc()
   else:
     result.status = 'passed'
   finally:
