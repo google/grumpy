@@ -74,9 +74,10 @@ type Func func(f *Frame, args Args, kwargs KWArgs) (*Object, *BaseException)
 // Function represents Python 'function' objects.
 type Function struct {
 	Object
-	fn   Func
-	name string `attr:"__name__"`
-	code *Code  `attr:"func_code"`
+	fn      Func
+	name    string `attr:"__name__"`
+	code    *Code  `attr:"func_code"`
+	globals *Dict  `attr:"func_globals"`
 }
 
 // FunctionArg describes a parameter to a Python function.
@@ -93,8 +94,8 @@ type FunctionArg struct {
 // validated before calling fn. This includes checking that an appropriate
 // number of arguments are provided, populating *args and **kwargs if
 // necessary, etc.
-func NewFunction(c *Code) *Function {
-	return &Function{Object{typ: FunctionType, dict: NewDict()}, nil, c.name, c}
+func NewFunction(c *Code, globals *Dict) *Function {
+	return &Function{Object{typ: FunctionType, dict: NewDict()}, nil, c.name, c, globals}
 }
 
 // newBuiltinFunction returns a function object with the given name that
@@ -123,7 +124,7 @@ func functionCall(f *Frame, callable *Object, args Args, kwargs KWArgs) (*Object
 	if code == nil {
 		return fun.fn(f, args, kwargs)
 	}
-	return code.call(f, args, kwargs)
+	return code.Eval(f, fun.globals, args, kwargs)
 }
 
 func functionGet(_ *Frame, desc, instance *Object, owner *Type) (*Object, *BaseException) {

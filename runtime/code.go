@@ -50,7 +50,7 @@ func toCodeUnsafe(o *Object) *Code {
 	return (*Code)(o.toPointer())
 }
 
-func (c *Code) call(f *Frame, args Args, kwargs KWArgs) (*Object, *BaseException) {
+func (c *Code) Eval(f *Frame, globals *Dict, args Args, kwargs KWArgs) (*Object, *BaseException) {
 	argc := len(args)
 	if argc > c.argc && c.flags&CodeFlagVarArg == 0 {
 		format := "%s() takes %d arguments (%d given)"
@@ -112,7 +112,9 @@ func (c *Code) call(f *Frame, args Args, kwargs KWArgs) (*Object, *BaseException
 			bodyArgs[i] = arg.Def
 		}
 	}
-	ret, raised := c.fn(f, bodyArgs)
+	next := newFrame(f)
+	next.globals = globals
+	ret, raised := c.fn(next, bodyArgs)
 	f.FreeArgs(bodyArgs)
 	return ret, raised
 }

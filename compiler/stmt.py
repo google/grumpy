@@ -95,32 +95,35 @@ class StatementVisitor(ast.NodeVisitor):
       body_visitor._visit_each(node.body)  # pylint: disable=protected-access
 
     self._write_py_context(node.lineno)
-    with self.block.alloc_temp('*πg.Dict') as cls,\
-        self.block.alloc_temp('[]*πg.Object') as bases,\
+    with self.block.alloc_temp('*πg.Dict') as cls, \
+        self.block.alloc_temp() as mod_name, \
+        self.block.alloc_temp('[]*πg.Object') as bases, \
         self.block.alloc_temp() as meta:
       self.writer.write('{} = make([]*πg.Object, {})'.format(
           bases.expr, len(node.bases)))
       for i, b in enumerate(node.bases):
         with self.expr_visitor.visit(b) as b:
           self.writer.write('{}[{}] = {}'.format(bases.expr, i, b.expr))
-
-      self.writer.write_tmpl(textwrap.dedent("""\
-          $cls, πE = func() (*πg.Dict, *πg.BaseException) {
-          \tπClass := πg.NewDict()"""), cls=cls.expr)
+      self.writer.write('{} = πg.NewDict()'.format(cls.name))
+      self.writer.write_checked_call2(
+          mod_name, 'πGlobals.GetItem(πF, {}.ToObject())',
+          self.block.intern('__name__'))
+      self.writer.write_checked_call1(
+          '{}.SetItem(πF, {}.ToObject(), {})',
+          cls.expr, self.block.intern('__module__'), mod_name.expr)
+      tmpl = textwrap.dedent("""
+          _, πE = πg.NewCode($name, $filename, nil, 0, func(πF *πg.Frame, _ []*πg.Object) (*πg.Object, *πg.BaseException) {
+          \tπClass := $cls
+          \t_ = πClass""")
+      self.writer.write_tmpl(tmpl, name=util.go_str(node.name),
+                             filename=util.go_str(self.block.filename),
+                             cls=cls.expr)
       with self.writer.indent_block():
-        with self.block.alloc_temp('*πg.Str') as mod_name:
-          self.writer.write_checked_call2(mod_name, 'πModule.GetName(πF)')
-          self.writer.write_checked_call1(
-              'πClass.SetItem(πF, {}.ToObject(), {}.ToObject())',
-              self.block.intern('__module__'), mod_name.expr)
         self.writer.write_block(body_visitor.block,
                                 body_visitor.writer.out.getvalue())
       tmpl = textwrap.dedent("""\
-          \tif _, raised := πBlock.Exec(πF, πGlobals); raised != nil {
-          \t\treturn nil, raised
-          \t}
-          \treturn πClass, nil
-          }()
+          \treturn πBlock.Exec(πF, πGlobals)
+          }).Eval(πF, πGlobals, nil, nil)
           if πE != nil {
           \treturn nil, πE
           }
@@ -562,17 +565,17 @@ class StatementVisitor(ast.NodeVisitor):
       A Go expression evaluating to an *Object (upcast from a *Module.)
     """
     parts = name.split('.')
-    handles = []
+    code_objs = []
     for i in xrange(len(parts)):
       package_name = '/'.join(parts[:i + 1])
       if package_name != self.block.full_package_name:
         package = self.block.add_import(package_name)
-        handles.append('{}.Handle'.format(package.alias))
+        code_objs.append('{}.Code'.format(package.alias))
       else:
-        handles.append('Handle')
+        code_objs.append('Code')
     mod = self.block.alloc_temp()
     with self.block.alloc_temp('[]*πg.Object') as mod_slice:
-      handles_expr = '[]*πg.ModuleHandle{' + ', '.join(handles) + '}'
+      handles_expr = '[]*πg.Code{' + ', '.join(code_objs) + '}'
       self.writer.write_checked_call2(
           mod_slice, 'πg.ImportModule(πF, {}, {})',
           util.go_str(name), handles_expr)

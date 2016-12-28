@@ -61,6 +61,11 @@ func toFrameUnsafe(o *Object) *Frame {
 	return (*Frame)(o.toPointer())
 }
 
+// Globals returns the globals dict for this frame.
+func (f *Frame) Globals() *Dict {
+	return f.globals
+}
+
 // ToObject upcasts f to an Object.
 func (f *Frame) ToObject() *Object {
 	return &f.Object

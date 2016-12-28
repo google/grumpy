@@ -75,30 +75,29 @@ def main(args):
   writer.write_import_block(imports)
 
   writer.write('func initModule(πF *πg.Frame, '
-               'πModule *πg.Module) *πg.BaseException {')
+               '_ []*πg.Object) (*πg.Object, *πg.BaseException) {')
   with writer.indent_block():
     for s in sorted(mod_block.strings):
       writer.write('ß{} := πg.InternStr({})'.format(s, util.go_str(s)))
     writer.write(textwrap.dedent("""\
-        πGlobals := πModule.Dict()
+        πGlobals := πF.Globals()
         _ = πGlobals"""))  # Suppress possible Go "declared and not used" error.
     writer.write_block(mod_block, visitor.writer.out.getvalue())
   writer.write(textwrap.dedent("""\
-      \t_, πE = πBlock.Exec(πF, πGlobals)
-      \treturn πE
+      \treturn πBlock.Exec(πF, πGlobals)
       }
-      var Handle *πg.ModuleHandle"""))
+      var Code *πg.Code"""))
 
   if has_main:
     writer.write_tmpl(textwrap.dedent("""\
       func main() {
-      \tHandle = πg.NewModuleHandle($filename, initModule)
-      \tπ_os.Exit(πg.RunMain(Handle))
+      \tCode = πg.NewCode("<module>", $filename, nil, 0, initModule)
+      \tπ_os.Exit(πg.RunMain(Code))
       }"""), filename=util.go_str(args.filename))
   else:
     writer.write_tmpl(textwrap.dedent("""\
       func init() {
-      \tHandle = πg.NewModuleHandle($filename, initModule)
+      \tCode = πg.NewCode("<module>", $filename, nil, 0, initModule)
       }"""), filename=util.go_str(args.filename))
   return 0
 

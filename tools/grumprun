@@ -39,7 +39,7 @@ import (
 \t"grumpy/lib/$package"
 )
 func main() {
-\tos.Exit(grumpy.RunMain($alias.Handle))
+\tos.Exit(grumpy.RunMain($alias.Code))
 }
 """)
 

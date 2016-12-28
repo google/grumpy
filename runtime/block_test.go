@@ -44,7 +44,7 @@ func TestBlockExecTryExcept(t *testing.T) {
 		args = append(args, blockArgs{f, e})
 		return None, nil
 	})
-	b.Exec(nil, NewDict())
+	b.Exec(newFrame(nil), NewDict())
 	wantExc := mustCreateException(RuntimeErrorType, "foo")
 	if len(args) != 2 {
 		t.Errorf("called %d times, want 2", len(args))
@@ -68,13 +68,13 @@ func TestBlockExecRaises(t *testing.T) {
 		f2 = f
 		return b1.Exec(f, globals)
 	})
-	b2.Exec(nil, NewDict())
+	b2.Exec(newFrame(nil), NewDict())
 	e, tb := f1.ExcInfo()
 	wantExc := mustCreateException(ValueErrorType, "bar")
 	if !exceptionsAreEquivalent(e, wantExc) {
 		t.Errorf("raised %v, want %v", e, wantExc)
 	}
-	wantTraceback := newTraceback(f2, newTraceback(f1, nil))
+	wantTraceback := newTraceback(f1, nil)
 	if !reflect.DeepEqual(tb, wantTraceback) {
 		t.Errorf("exception traceback was %+v, want %+v", tb, wantTraceback)
 	}
@@ -104,7 +104,7 @@ func TestBlockExecRestoreExc(t *testing.T) {
 		ranB2 = true
 		return None, nil
 	})
-	b2.Exec(nil, globals)
+	b2.Exec(newFrame(nil), globals)
 	if !ranB1 {
 		t.Error("b1 did not run")
 	}

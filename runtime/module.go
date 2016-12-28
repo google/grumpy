@@ -50,33 +50,17 @@ type Module struct {
 // top level code for that module.
 type ModuleInit func(f *Frame, m *Module) *BaseException
 
-// ModuleHandle objects are the sole public symbol exposed by Grumpy modules and
-// are used to import them. To be compatible with grumpc, the exposed variable
-// must be called "Handle".
-type ModuleHandle struct {
-	// filename is the path of the Python source file that generated this
-	// module.
-	filename string
-	init     ModuleInit
-}
-
-// NewModuleHandle creates a ModuleHandle for a Grumpy module. The returned
-// handle can be exposed by a Grumpy module so that clients can import it.
-func NewModuleHandle(filename string, init ModuleInit) *ModuleHandle {
-	return &ModuleHandle{filename: filename, init: init}
-}
-
 // ImportModule takes a fully qualified module name (e.g. a.b.c) and a slice of
-// module handles where the name of the i'th module is the prefix of name
+// code objects where the name of the i'th module is the prefix of name
 // ending in the i'th dot. The number of dot delimited parts of name must be the
-// same as the number of handles. For each successive prefix, ImportModule
+// same as the number of code objects. For each successive prefix, ImportModule
 // looks in sys.modules for an existing module with that name and if not
 // present creates a new module object, adds it to sys.modules and initializes
-// it with the corresponding handle. If the module was already present in
+// it with the corresponding code object. If the module was already present in
 // sys.modules, it is not re-initialized. The returned slice contains each
 // package and module initialized in this way in order.
 //
-// For example, ImportModule(f, "a.b", []ModuleHandle{a.Handle, b.Handle})
+// For example, ImportModule(f, "a.b", []*Code{a.Code, b.Code})
 // causes the initialization and entry into sys.modules of Grumpy module a and
 // then Grumpy module b. The two initialized modules are returned.
 //
@@ -84,10 +68,10 @@ func NewModuleHandle(filename string, init ModuleInit) *ModuleHandle {
 // module, both invocations will produce the same module object and the module
 // is guaranteed to only be initialized once. The second invocation will not
 // return the module until it is fully initialized.
-func ImportModule(f *Frame, name string, handles []*ModuleHandle) ([]*Object, *BaseException) {
+func ImportModule(f *Frame, name string, codeObjs []*Code) ([]*Object, *BaseException) {
 	parts := strings.Split(name, ".")
 	numParts := len(parts)
-	if numParts != len(handles) {
+	if numParts != len(codeObjs) {
 		return nil, f.RaiseType(SystemErrorType, fmt.Sprintf("invalid import: %s", name))
 	}
 	result := make([]*Object, numParts)
@@ -99,7 +83,7 @@ func ImportModule(f *Frame, name string, handles []*ModuleHandle) ([]*Object, *B
 		importMutex.Lock()
 		o, raised := SysModules.GetItemString(f, name)
 		if raised == nil && o == nil {
-			o = newModule(name, handles[i].filename).ToObject()
+			o = newModule(name, codeObjs[i].filename).ToObject()
 			raised = SysModules.SetItemString(f, name, o)
 		}
 		importMutex.Unlock()
@@ -112,7 +96,7 @@ func ImportModule(f *Frame, name string, handles []*ModuleHandle) ([]*Object, *B
 			m.mutex.Lock(f)
 			if m.state == moduleStateNew {
 				m.state = moduleStateInitializing
-				if raised = handles[i].init(f, m); raised == nil {
+				if _, raised = codeObjs[i].Eval(f, m.Dict(), nil, nil); raised == nil {
 					m.state = moduleStateReady
 				} else {
 					// If the module failed to initialize
@@ -284,13 +268,13 @@ func initModuleType(map[string]*Object) {
 	ModuleType.slots.Repr = &unaryOpSlot{moduleRepr}
 }
 
-// RunMain imports the module referenced by handle under the name "__main__".
+// RunMain execs the given code object as a module under the name "__main__".
 // It handles any exceptions raised during module execution. If no exceptions
 // were raised then the return value is zero. If a SystemExit was raised then
 // the return value depends on its code attribute: None -> zero, integer values
 // are returned as-is. Other code values and exception types produce a return
 // value of 1.
-func RunMain(handle *ModuleHandle) int {
+func RunMain(code *Code) int {
 	if file := os.Getenv("GRUMPY_PROFILE"); file != "" {
 		f, err := os.Create(file)
 		if err != nil {
@@ -301,43 +285,37 @@ func RunMain(handle *ModuleHandle) int {
 		}
 		defer pprof.StopCPUProfile()
 	}
-	m := newModule("__main__", handle.filename)
+	m := newModule("__main__", code.filename)
 	m.state = moduleStateInitializing
-	b := NewBlock("<module>", handle.filename, func(f *Frame, _ *Object) (*Object, *BaseException) {
-		if raised := SysModules.SetItemString(f, "__main__", m.ToObject()); raised != nil {
-			return nil, raised
-		}
-		e := handle.init(f, m)
-		if e == nil {
-			return NewInt(0).ToObject(), nil
-		}
-		if !e.isInstance(SystemExitType) {
-			s, raised := FormatException(f, e)
-			if raised != nil {
-				s = e.String()
-			}
-			fmt.Fprint(os.Stderr, s)
-			return NewInt(1).ToObject(), nil
-		}
-		f.RestoreExc(nil, nil)
-		o, raised := GetAttr(f, e.ToObject(), NewStr("code"), nil)
+	f := newFrame(nil)
+	if raised := SysModules.SetItemString(f, "__main__", m.ToObject()); raised != nil {
+		fmt.Fprint(os.Stderr, raised.String())
+	}
+	_, e := code.Eval(f, m.Dict(), nil, nil)
+	if e == nil {
+		return 0
+	}
+	if !e.isInstance(SystemExitType) {
+		s, raised := FormatException(f, e)
 		if raised != nil {
-			return NewInt(1).ToObject(), nil
+			s = e.String()
 		}
-		if o.isInstance(IntType) {
-			return o, nil
-		}
-		if o == None {
-			return NewInt(0).ToObject(), nil
-		}
-		if s, raised := ToStr(f, o); raised == nil {
-			fmt.Fprintln(os.Stderr, s.Value())
-		}
-		return NewInt(1).ToObject(), nil
-	})
-	result, raised := b.Exec(nil, m.dict)
+		fmt.Fprint(os.Stderr, s)
+		return 1
+	}
+	f.RestoreExc(nil, nil)
+	o, raised := GetAttr(f, e.ToObject(), NewStr("code"), nil)
 	if raised != nil {
 		return 1
 	}
-	return toIntUnsafe(result).Value()
+	if o.isInstance(IntType) {
+		return toIntUnsafe(o).Value()
+	}
+	if o == None {
+		return 0
+	}
+	if s, raised := ToStr(f, o); raised == nil {
+		fmt.Fprintln(os.Stderr, s.Value())
+	}
+	return 1
 }

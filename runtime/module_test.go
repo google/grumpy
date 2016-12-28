@@ -27,27 +27,30 @@ func TestImportModule(t *testing.T) {
 	bar := newTestModule("foo.bar", "foo/bar/__init__.py")
 	baz := newTestModule("foo.bar.baz", "foo/bar/baz/__init__.py")
 	qux := newTestModule("foo.qux", "foo/qux/__init__.py")
-	fooHandle := NewModuleHandle("foo/__init__.py", func(*Frame, *Module) *BaseException { return nil })
-	barHandle := NewModuleHandle("foo/bar/__init__.py", func(*Frame, *Module) *BaseException { return nil })
-	bazHandle := NewModuleHandle("foo/bar/baz/__init__.py", func(*Frame, *Module) *BaseException { return nil })
-	quxHandle := NewModuleHandle("foo/qux/__init__.py", func(*Frame, *Module) *BaseException { return nil })
-	raisesHandle := NewModuleHandle("raises.py", func(f *Frame, m *Module) *BaseException {
-		return f.RaiseType(ValueErrorType, "uh oh")
+	fooCode := NewCode("<module>", "foo/__init__.py", nil, 0, func(*Frame, []*Object) (*Object, *BaseException) { return None, nil })
+	barCode := NewCode("<module>", "foo/bar/__init__.py", nil, 0, func(*Frame, []*Object) (*Object, *BaseException) { return None, nil })
+	bazCode := NewCode("<module>", "foo/bar/baz/__init__.py", nil, 0, func(*Frame, []*Object) (*Object, *BaseException) { return None, nil })
+	quxCode := NewCode("<module>", "foo/qux/__init__.py", nil, 0, func(*Frame, []*Object) (*Object, *BaseException) { return None, nil })
+	raisesCode := NewCode("<module", "raises.py", nil, 0, func(f *Frame, _ []*Object) (*Object, *BaseException) {
+		return nil, f.RaiseType(ValueErrorType, "uh oh")
 	})
-	var circular *Module
-	var circularHandle *ModuleHandle
-	circularHandle = NewModuleHandle("circular.py", func(f *Frame, m *Module) *BaseException {
-		if circular != nil {
-			return f.RaiseType(AssertionErrorType, "circular imported recursively")
+	circularImported := false
+	circularCode := NewCode("<module>", "circular.py", nil, 0, func(f *Frame, _ []*Object) (*Object, *BaseException) {
+		if circularImported {
+			return nil, f.RaiseType(AssertionErrorType, "circular imported recursively")
 		}
-		circular = m
-		_, raised := ImportModule(f, "circular", []*ModuleHandle{fooHandle})
-		return raised
+		circularImported = true
+		if _, raised := ImportModule(f, "circular", []*Code{fooCode}); raised != nil {
+			return nil, raised
+		}
+		return None, nil
 	})
 	circularTestModule := newTestModule("circular", "circular.py").ToObject()
-	clearHandle := NewModuleHandle("clear.py", func(f *Frame, m *Module) *BaseException {
-		_, raised := SysModules.DelItemString(f, "clear")
-		return raised
+	clearCode := NewCode("<module>", "clear.py", nil, 0, func(f *Frame, _ []*Object) (*Object, *BaseException) {
+		if _, raised := SysModules.DelItemString(f, "clear"); raised != nil {
+			return nil, raised
+		}
+		return None, nil
 	})
 	// NOTE: This test progressively evolves sys.modules, checking after
 	// each test case that it's populated appropriately.
@@ -58,35 +61,35 @@ func TestImportModule(t *testing.T) {
 	SysModules = newStringDict(map[string]*Object{"invalid": invalidModule})
 	cases := []struct {
 		name           string
-		handles        []*ModuleHandle
+		codeObjs       []*Code
 		want           *Object
 		wantExc        *BaseException
 		wantSysModules *Dict
 	}{
 		{
 			"foo.bar",
-			[]*ModuleHandle{},
+			[]*Code{},
 			nil,
 			mustCreateException(SystemErrorType, "invalid import: foo.bar"),
 			newStringDict(map[string]*Object{"invalid": invalidModule}),
 		},
 		{
 			"invalid",
-			[]*ModuleHandle{fooHandle},
+			[]*Code{fooCode},
 			NewTuple(invalidModule).ToObject(),
 			nil,
 			newStringDict(map[string]*Object{"invalid": invalidModule}),
 		},
 		{
 			"raises",
-			[]*ModuleHandle{raisesHandle},
+			[]*Code{raisesCode},
 			nil,
 			mustCreateException(ValueErrorType, "uh oh"),
 			newStringDict(map[string]*Object{"invalid": invalidModule}),
 		},
 		{
 			"foo",
-			[]*ModuleHandle{fooHandle},
+			[]*Code{fooCode},
 			NewTuple(foo.ToObject()).ToObject(),
 			nil,
 			newStringDict(map[string]*Object{
@@ -96,7 +99,7 @@ func TestImportModule(t *testing.T) {
 		},
 		{
 			"foo",
-			[]*ModuleHandle{fooHandle},
+			[]*Code{fooCode},
 			NewTuple(foo.ToObject()).ToObject(),
 			nil,
 			newStringDict(map[string]*Object{
@@ -106,7 +109,7 @@ func TestImportModule(t *testing.T) {
 		},
 		{
 			"foo.qux",
-			[]*ModuleHandle{fooHandle, quxHandle},
+			[]*Code{fooCode, quxCode},
 			NewTuple(foo.ToObject(), qux.ToObject()).ToObject(),
 			nil,
 			newStringDict(map[string]*Object{
@@ -117,7 +120,7 @@ func TestImportModule(t *testing.T) {
 		},
 		{
 			"foo.bar.baz",
-			[]*ModuleHandle{fooHandle, barHandle, bazHandle},
+			[]*Code{fooCode, barCode, bazCode},
 			NewTuple(foo.ToObject(), bar.ToObject(), baz.ToObject()).ToObject(),
 			nil,
 			newStringDict(map[string]*Object{
@@ -130,7 +133,7 @@ func TestImportModule(t *testing.T) {
 		},
 		{
 			"circular",
-			[]*ModuleHandle{circularHandle},
+			[]*Code{circularCode},
 			NewTuple(circularTestModule).ToObject(),
 			nil,
 			newStringDict(map[string]*Object{
@@ -144,7 +147,7 @@ func TestImportModule(t *testing.T) {
 		},
 		{
 			"clear",
-			[]*ModuleHandle{clearHandle},
+			[]*Code{clearCode},
 			nil,
 			mustCreateException(ImportErrorType, "Loaded module clear not found in sys.modules"),
 			newStringDict(map[string]*Object{
@@ -158,7 +161,7 @@ func TestImportModule(t *testing.T) {
 		},
 	}
 	for _, cas := range cases {
-		mods, raised := ImportModule(f, cas.name, cas.handles)
+		mods, raised := ImportModule(f, cas.name, cas.codeObjs)
 		var got *Object
 		if raised == nil {
 			got = NewTuple(mods...).ToObject()
@@ -277,21 +280,23 @@ func TestRunMain(t *testing.T) {
 		SysModules = oldSysModules
 	}()
 	cases := []struct {
-		handle     *ModuleHandle
+		code       *Code
 		wantCode   int
 		wantOutput string
 	}{
-		{NewModuleHandle("<test>", func(*Frame, *Module) *BaseException { return nil }), 0, ""},
-		{NewModuleHandle("<test>", func(f *Frame, _ *Module) *BaseException { return f.Raise(SystemExitType.ToObject(), None, nil) }), 0, ""},
-		{NewModuleHandle("<test>", func(f *Frame, _ *Module) *BaseException { return f.RaiseType(TypeErrorType, "foo") }), 1, "TypeError: foo\n"},
-		{NewModuleHandle("<test>", func(f *Frame, _ *Module) *BaseException { return f.RaiseType(SystemExitType, "foo") }), 1, "foo\n"},
-		{NewModuleHandle("<test>", func(f *Frame, _ *Module) *BaseException {
-			return f.Raise(SystemExitType.ToObject(), NewInt(12).ToObject(), nil)
+		{NewCode("<test>", "test.py", nil, 0, func(*Frame, []*Object) (*Object, *BaseException) { return None, nil }), 0, ""},
+		{NewCode("<test>", "test.py", nil, 0, func(f *Frame, _ []*Object) (*Object, *BaseException) {
+			return nil, f.Raise(SystemExitType.ToObject(), None, nil)
+		}), 0, ""},
+		{NewCode("<test>", "test.py", nil, 0, func(f *Frame, _ []*Object) (*Object, *BaseException) { return nil, f.RaiseType(TypeErrorType, "foo") }), 1, "TypeError: foo\n"},
+		{NewCode("<test>", "test.py", nil, 0, func(f *Frame, _ []*Object) (*Object, *BaseException) { return nil, f.RaiseType(SystemExitType, "foo") }), 1, "foo\n"},
+		{NewCode("<test>", "test.py", nil, 0, func(f *Frame, _ []*Object) (*Object, *BaseException) {
+			return nil, f.Raise(SystemExitType.ToObject(), NewInt(12).ToObject(), nil)
 		}), 12, ""},
 	}
 	for _, cas := range cases {
 		SysModules = NewDict()
-		if gotCode, gotOutput, err := runMainAndCaptureStderr(cas.handle); err != nil {
+		if gotCode, gotOutput, err := runMainAndCaptureStderr(cas.code); err != nil {
 			t.Errorf("runMainRedirectStderr() failed: %v", err)
 		} else if gotCode != cas.wantCode {
 			t.Errorf("RunMain() = %v, want %v", gotCode, cas.wantCode)
@@ -301,7 +306,7 @@ func TestRunMain(t *testing.T) {
 	}
 }
 
-func runMainAndCaptureStderr(handle *ModuleHandle) (int, string, error) {
+func runMainAndCaptureStderr(code *Code) (int, string, error) {
 	oldStderr := os.Stderr
 	defer func() {
 		os.Stderr = oldStderr
@@ -314,7 +319,7 @@ func runMainAndCaptureStderr(handle *ModuleHandle) (int, string, error) {
 	c := make(chan int)
 	go func() {
 		defer w.Close()
-		c <- RunMain(handle)
+		c <- RunMain(code)
 	}()
 	result := <-c
 	data, err := ioutil.ReadAll(r)

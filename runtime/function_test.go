@@ -25,7 +25,7 @@ func TestFunctionCall(t *testing.T) {
 	}).ToObject()
 	bar := NewFunction(NewCode("bar", "bar.py", nil, CodeFlagVarArg, func(f *Frame, args []*Object) (*Object, *BaseException) {
 		return args[0], nil
-	}))
+	}), nil)
 	cases := []invokeTestCase{
 		{args: wrapArgs(foo, 123, "abc"), kwargs: wrapKWArgs("b", "bear"), want: newTestTuple(newTestTuple(123, "abc"), newTestDict("b", "bear")).ToObject()},
 		{args: wrapArgs(bar, "bar", "baz"), want: newTestTuple("bar", "baz").ToObject()},

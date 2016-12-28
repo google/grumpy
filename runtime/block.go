@@ -32,9 +32,7 @@ func NewBlock(name, filename string, fn func(*Frame, *Object) (*Object, *BaseExc
 }
 
 // Exec runs b in the context of a new child frame of back.
-func (b *Block) Exec(back *Frame, globals *Dict) (*Object, *BaseException) {
-	f := newFrame(back)
-	f.globals = globals
+func (b *Block) Exec(f *Frame, globals *Dict) (*Object, *BaseException) {
 	return b.execInternal(f, nil)
 }
 

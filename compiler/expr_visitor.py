@@ -442,7 +442,7 @@ class ExprVisitor(ast.NodeVisitor):
           with self.writer.indent_block(-1):
             self.writer.write(body)
           self.writer.write('return πg.None, nil')
-      self.writer.write('})).ToObject()')
+      self.writer.write('}), πGlobals).ToObject()')
     return result
 
   def _visit_seq_elts(self, elts):

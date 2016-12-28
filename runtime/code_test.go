@@ -25,7 +25,7 @@ func TestNewCode(t *testing.T) {
 		if raised := checkFunctionVarArgs(f, "TestNewCode", args, CodeType); raised != nil {
 			return nil, raised
 		}
-		return toCodeUnsafe(args[0]).call(f, args[1:], kwargs)
+		return toCodeUnsafe(args[0]).Eval(f, nil, args[1:], kwargs)
 	})
 	fn := func(f *Frame, args []*Object) (*Object, *BaseException) {
 		return NewTuple(Args(args).makeCopy()...).ToObject(), nil
