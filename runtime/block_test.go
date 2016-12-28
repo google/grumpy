@@ -79,36 +79,3 @@ func TestBlockExecRaises(t *testing.T) {
 		t.Errorf("exception traceback was %+v, want %+v", tb, wantTraceback)
 	}
 }
-
-func TestBlockExecRestoreExc(t *testing.T) {
-	e := mustCreateException(RuntimeErrorType, "uh oh")
-	ranB1, ranB2 := false, false
-	globals := NewDict()
-	b1 := NewBlock("<b1>", "foo.py", func(f *Frame, _ *Object) (*Object, *BaseException) {
-		if got, _ := f.ExcInfo(); got != e {
-			t.Errorf("ExcInfo() = %v, want %v", got, e)
-		}
-		f.RestoreExc(nil, nil)
-		ranB1 = true
-		return None, nil
-	})
-	b2 := NewBlock("<b2>", "foo.py", func(f *Frame, _ *Object) (*Object, *BaseException) {
-		f.RestoreExc(e, newTraceback(f, nil))
-		b1.Exec(f, globals)
-		// The exception was cleared by b1 but when returning to b2, it
-		// should have been restored.
-		if got, _ := f.ExcInfo(); got != e {
-			t.Errorf("ExcInfo() = %v, want <nil>", got)
-		}
-		f.RestoreExc(nil, nil)
-		ranB2 = true
-		return None, nil
-	})
-	b2.Exec(newFrame(nil), globals)
-	if !ranB1 {
-		t.Error("b1 did not run")
-	}
-	if !ranB2 {
-		t.Error("b2 did not run")
-	}
-}

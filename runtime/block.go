@@ -37,18 +37,11 @@ func (b *Block) Exec(f *Frame, globals *Dict) (*Object, *BaseException) {
 }
 
 func (b *Block) execInternal(f *Frame, sendValue *Object) (*Object, *BaseException) {
-	oldExc, oldTraceback := f.ExcInfo()
 	// Re-enter function body while we have checkpoint handlers left.
 	for {
 		ret, raised := b.fn(f, sendValue)
-		if raised == nil {
-			// Restore exc_info to what it was when we left
-			// the previous frame.
-			f.RestoreExc(oldExc, oldTraceback)
-			return ret, nil
-		}
-		if len(f.checkpoints) == 0 {
-			return nil, raised
+		if raised == nil || len(f.checkpoints) == 0 {
+			return ret, raised
 		}
 		f.state = f.PopCheckpoint()
 	}

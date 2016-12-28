@@ -56,3 +56,36 @@ func TestNewCode(t *testing.T) {
 		}
 	}
 }
+
+func TestCodeEvalRestoreExc(t *testing.T) {
+	e := mustCreateException(RuntimeErrorType, "uh oh")
+	ranC1, ranC2 := false, false
+	globals := NewDict()
+	c1 := NewCode("<c1>", "foo.py", nil, 0, func(f *Frame, _ []*Object) (*Object, *BaseException) {
+		if got, _ := f.ExcInfo(); got != e {
+			t.Errorf("ExcInfo() = %v, want %v", got, e)
+		}
+		f.RestoreExc(nil, nil)
+		ranC1 = true
+		return None, nil
+	})
+	c2 := NewCode("<c2>", "foo.py", nil, 0, func(f *Frame, _ []*Object) (*Object, *BaseException) {
+		f.RestoreExc(e, newTraceback(f, nil))
+		c1.Eval(f, globals, nil, nil)
+		// The exception was cleared by c1 but when returning to c2, it
+		// should have been restored.
+		if got, _ := f.ExcInfo(); got != e {
+			t.Errorf("ExcInfo() = %v, want <nil>", got)
+		}
+		f.RestoreExc(nil, nil)
+		ranC2 = true
+		return None, nil
+	})
+	c2.Eval(newFrame(nil), globals, nil, nil)
+	if !ranC1 {
+		t.Error("c1 did not run")
+	}
+	if !ranC2 {
+		t.Error("c2 did not run")
+	}
+}
