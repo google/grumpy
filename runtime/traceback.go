@@ -21,9 +21,9 @@ import (
 // Traceback represents Python 'traceback' objects.
 type Traceback struct {
 	Object
-	frame  *Frame `attr:"tb_frame"`
-	next   *Traceback
-	lineno int `attr:"tb_lineno"`
+	frame  *Frame     `attr:"tb_frame"`
+	next   *Traceback `attr:"tb_next"`
+	lineno int        `attr:"tb_lineno"`
 }
 
 func newTraceback(f *Frame, next *Traceback) *Traceback {

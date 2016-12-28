@@ -17,8 +17,8 @@ const (
 
 type Code struct {
 	Object
-	name     string
-	filename string
+	name     string `attr:"co_name"`
+	filename string `attr:"co_filename"`
 	// argc is the number of positional arguments.
 	argc int `attr:"co_argcount"`
 	// minArgc is the number of positional non-keyword arguments (i.e. the
@@ -112,9 +112,20 @@ func (c *Code) Eval(f *Frame, globals *Dict, args Args, kwargs KWArgs) (*Object,
 			bodyArgs[i] = arg.Def
 		}
 	}
+	oldExc, oldTraceback := f.ExcInfo()
 	next := newFrame(f)
+	next.code = c
 	next.globals = globals
 	ret, raised := c.fn(next, bodyArgs)
 	f.FreeArgs(bodyArgs)
+	if raised == nil {
+		// Restore exc_info to what it was when we left the previous
+		// frame.
+		f.RestoreExc(oldExc, oldTraceback)
+	} else {
+		_, tb := f.ExcInfo()
+		tb = newTraceback(f, tb)
+		f.RestoreExc(raised, tb)
+	}
 	return ret, raised
 }

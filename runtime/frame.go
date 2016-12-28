@@ -38,6 +38,7 @@ type Frame struct {
 	state       RunState
 	globals     *Dict `attr:"f_globals"`
 	lineno      int   `attr:"f_lineno"`
+	code        *Code `attr:"f_code"`
 }
 
 // newFrame creates a new Frame whose parent frame is back.

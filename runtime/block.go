@@ -48,18 +48,6 @@ func (b *Block) execInternal(f *Frame, sendValue *Object) (*Object, *BaseExcepti
 			return ret, nil
 		}
 		if len(f.checkpoints) == 0 {
-			if f.back != nil {
-				e, tb := f.ExcInfo()
-				if e != raised {
-					// This is likely due to a programming
-					// error. Prefer raised and start
-					// propagating from here.
-					tb = newTraceback(f, nil)
-				} else {
-					tb = newTraceback(f.back, tb)
-				}
-				f.RestoreExc(raised, tb)
-			}
 			return nil, raised
 		}
 		f.state = f.PopCheckpoint()
