@@ -195,7 +195,7 @@ class Block(object):
   def _resolve_global(self, writer, name):
     result = self.alloc_temp()
     writer.write_checked_call2(
-        result, 'πg.ResolveGlobal(πF, πGlobals, {})', self.intern(name))
+        result, 'πg.ResolveGlobal(πF, πF.Globals(), {})', self.intern(name))
     return result
 
 
@@ -218,11 +218,12 @@ class ModuleBlock(Block):
 
   def bind_var(self, writer, name, value):
     writer.write_checked_call1(
-        'πGlobals.SetItem(πF, {}.ToObject(), {})',
+        'πF.Globals().SetItem(πF, {}.ToObject(), {})',
         self.intern(name), value)
 
   def del_var(self, writer, name):
-    writer.write_checked_call1('πg.DelVar(πF, πGlobals, {})', self.intern(name))
+    writer.write_checked_call1('πg.DelVar(πF, πF.Globals(), {})',
+                               self.intern(name))
 
   def resolve_name(self, writer, name):
     return self._resolve_global(writer, name)
@@ -263,7 +264,7 @@ class ClassBlock(Block):
         block = block.parent_block
     result = self.alloc_temp()
     writer.write_checked_call2(
-        result, 'πg.ResolveClass(πF, πClass, {}, πGlobals, {})',
+        result, 'πg.ResolveClass(πF, πClass, {}, πF.Globals(), {})',
         local, self.intern(name))
     return result
 

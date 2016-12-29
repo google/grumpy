@@ -106,7 +106,7 @@ class StatementVisitor(ast.NodeVisitor):
           self.writer.write('{}[{}] = {}'.format(bases.expr, i, b.expr))
       self.writer.write('{} = πg.NewDict()'.format(cls.name))
       self.writer.write_checked_call2(
-          mod_name, 'πGlobals.GetItem(πF, {}.ToObject())',
+          mod_name, 'πF.Globals().GetItem(πF, {}.ToObject())',
           self.block.intern('__name__'))
       self.writer.write_checked_call1(
           '{}.SetItem(πF, {}.ToObject(), {})',
@@ -123,7 +123,7 @@ class StatementVisitor(ast.NodeVisitor):
                                 body_visitor.writer.out.getvalue())
       tmpl = textwrap.dedent("""\
           \treturn πBlock.Exec(πF)
-          }).Eval(πF, πGlobals, nil, nil)
+          }).Eval(πF, πF.Globals(), nil, nil)
           if πE != nil {
           \treturn nil, πE
           }

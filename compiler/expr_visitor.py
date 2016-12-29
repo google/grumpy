@@ -431,7 +431,7 @@ class ExprVisitor(ast.NodeVisitor):
           self.writer.write_block(func_block, body)
           if func_block.is_generator:
             self.writer.write('return πg.NewGenerator('
-                              'πBlock, πGlobals).ToObject(), nil')
+                              'πBlock, πF.Globals()).ToObject(), nil')
           else:
             self.writer.write('return πBlock.Exec(πF)')
         else:
@@ -442,7 +442,7 @@ class ExprVisitor(ast.NodeVisitor):
           with self.writer.indent_block(-1):
             self.writer.write(body)
           self.writer.write('return πg.None, nil')
-      self.writer.write('}), πGlobals).ToObject()')
+      self.writer.write('}), πF.Globals()).ToObject()')
     return result
 
   def _visit_seq_elts(self, elts):
