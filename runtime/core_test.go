@@ -740,7 +740,8 @@ func TestResolveClass(t *testing.T) {
 		{NewDict(), nil, NewDict(), "foo", nil, mustCreateException(NameErrorType, "name 'foo' is not defined")},
 	}
 	for _, cas := range cases {
-		got, raised := ResolveClass(f, cas.class, cas.local, cas.globals, NewStr(cas.name))
+		f.globals = cas.globals
+		got, raised := ResolveClass(f, cas.class, cas.local, NewStr(cas.name))
 		switch checkResult(got, cas.want, raised, cas.wantExc) {
 		case checkInvokeResultExceptionMismatch:
 			t.Errorf("ResolveClass(%v, %q) raised %v, want %v", cas.globals, cas.name, raised, cas.wantExc)
@@ -751,13 +752,17 @@ func TestResolveClass(t *testing.T) {
 }
 
 func TestResolveGlobal(t *testing.T) {
+	fun := wrapFuncForTest(func(f *Frame, globals *Dict, name *Str) (*Object, *BaseException) {
+		f.globals = globals
+		return ResolveGlobal(f, name)
+	})
 	cases := []invokeTestCase{
 		{args: wrapArgs(newStringDict(map[string]*Object{"foo": NewStr("bar").ToObject()}), "foo"), want: NewStr("bar").ToObject()},
 		{args: wrapArgs(NewDict(), "str"), want: StrType.ToObject()},
 		{args: wrapArgs(NewDict(), "foo"), wantExc: mustCreateException(NameErrorType, "name 'foo' is not defined")},
 	}
 	for _, cas := range cases {
-		if err := runInvokeTestCase(wrapFuncForTest(ResolveGlobal), &cas); err != "" {
+		if err := runInvokeTestCase(fun, &cas); err != "" {
 			t.Error(err)
 		}
 	}

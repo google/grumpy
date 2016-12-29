@@ -195,7 +195,7 @@ class Block(object):
   def _resolve_global(self, writer, name):
     result = self.alloc_temp()
     writer.write_checked_call2(
-        result, 'πg.ResolveGlobal(πF, πF.Globals(), {})', self.intern(name))
+        result, 'πg.ResolveGlobal(πF, {})', self.intern(name))
     return result
 
 
@@ -264,7 +264,7 @@ class ClassBlock(Block):
         block = block.parent_block
     result = self.alloc_temp()
     writer.write_checked_call2(
-        result, 'πg.ResolveClass(πF, πClass, {}, πF.Globals(), {})',
+        result, 'πg.ResolveClass(πF, πClass, {}, {})',
         local, self.intern(name))
     return result
 

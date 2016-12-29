@@ -599,7 +599,7 @@ func Repr(f *Frame, o *Object) (*Str, *BaseException) {
 // definition. If the class definition occurs in a closure in which a local of
 // the given name is present then local will be non-nil, otherwise it will be
 // nil.
-func ResolveClass(f *Frame, class *Dict, local *Object, globals *Dict, name *Str) (*Object, *BaseException) {
+func ResolveClass(f *Frame, class *Dict, local *Object, name *Str) (*Object, *BaseException) {
 	if value, raised := class.GetItem(f, name.ToObject()); raised != nil || value != nil {
 		return value, raised
 	}
@@ -609,13 +609,13 @@ func ResolveClass(f *Frame, class *Dict, local *Object, globals *Dict, name *Str
 		}
 		return local, nil
 	}
-	return ResolveGlobal(f, globals, name)
+	return ResolveGlobal(f, name)
 }
 
-// ResolveGlobal looks up name in the given dict of global variables or in
+// ResolveGlobal looks up name in the frame's dict of global variables or in
 // the Builtins dict if absent. It raises NameError when absent from both.
-func ResolveGlobal(f *Frame, globals *Dict, name *Str) (*Object, *BaseException) {
-	if value, raised := globals.GetItem(f, name.ToObject()); raised != nil || value != nil {
+func ResolveGlobal(f *Frame, name *Str) (*Object, *BaseException) {
+	if value, raised := f.Globals().GetItem(f, name.ToObject()); raised != nil || value != nil {
 		return value, raised
 	}
 	value, raised := Builtins.GetItem(f, name.ToObject())
