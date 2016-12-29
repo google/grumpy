@@ -68,6 +68,7 @@ func TestFramePopCheckpoint(t *testing.T) {
 		want    RunState
 		wantTop RunState
 	}{
+		{nil, testRunStateInvalid, testRunStateInvalid},
 		{[]RunState{testRunStateDone}, testRunStateDone, testRunStateInvalid},
 		{[]RunState{testRunStateDone, testRunStateStart}, testRunStateStart, testRunStateDone},
 	}
@@ -76,7 +77,8 @@ func TestFramePopCheckpoint(t *testing.T) {
 		for _, state := range cas.states {
 			f.PushCheckpoint(state)
 		}
-		if got := f.PopCheckpoint(); got != cas.want {
+		f.PopCheckpoint()
+		if got := f.State(); got != cas.want {
 			t.Errorf("%#v.Pop() = %v, want %v", f, got, cas.want)
 		} else if numCheckpoints := len(f.checkpoints); numCheckpoints == 0 && cas.wantTop != testRunStateInvalid {
 			t.Errorf("%#v.Pop() left checkpoint stack empty, wanted top to be %v", f, cas.wantTop)

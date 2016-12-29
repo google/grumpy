@@ -62,11 +62,8 @@ class Writer(object):
       block_: The Block object representing the code block.
       body: String containing Go code making up the body of the code block.
     """
-    self.write('var πE *πg.BaseException\n_ = πE')
-    self.write_temp_decls(block_)
-    # Write the function body.
-    self.write('πBlock := πg.NewBlock(func(πF *πg.Frame, πSent *πg.Object) '
-               '(*πg.Object, *πg.BaseException) {')
+    self.write('var πE *πg.BaseException; _ = πE')
+    self.write('for ; πF.State() >= 0; πF.PopCheckpoint() {')
     with self.indent_block():
       self.write('switch πF.State() {')
       self.write('case 0:')
@@ -74,12 +71,12 @@ class Writer(object):
         self.write_tmpl('case $state: goto Label$state', state=checkpoint)
       self.write('default: panic("unexpected function state")')
       self.write('}')
-    # Assume that body is aligned with goto labels.
-    self.write(body)
-    with self.indent_block():
-      self.write('return {}, nil'.format(
-          'nil' if block_.is_generator else 'πg.None'))
-    self.write('})')
+      # Assume that body is aligned with goto labels.
+      with self.indent_block(-1):
+        self.write(body)
+      self.write('return nil, nil')
+    self.write('}')
+    self.write('return nil, πE')
 
   def write_import_block(self, imports):
     if not imports:
@@ -103,13 +100,13 @@ class Writer(object):
   def write_checked_call2(self, result, call, *args, **kwargs):
     return self.write_tmpl(textwrap.dedent("""\
         if $result, πE = $call; πE != nil {
-        \treturn nil, πE
+        \tcontinue
         }"""), result=result.name, call=call.format(*args, **kwargs))
 
   def write_checked_call1(self, call, *args, **kwargs):
     return self.write_tmpl(textwrap.dedent("""\
         if raised := $call; raised != nil {
-        \treturn nil, raised
+        \tcontinue
         }"""), call=call.format(*args, **kwargs))
 
   def write_temp_decls(self, block_):

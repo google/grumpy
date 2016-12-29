@@ -79,11 +79,10 @@ def main(args):
   with writer.indent_block():
     for s in sorted(mod_block.strings):
       writer.write('ß{} := πg.InternStr({})'.format(s, util.go_str(s)))
+    writer.write_temp_decls(mod_block)
     writer.write_block(mod_block, visitor.writer.out.getvalue())
-  writer.write(textwrap.dedent("""\
-      \treturn πBlock.Exec(πF)
-      }
-      var Code *πg.Code"""))
+  writer.write('}')
+  writer.write('var Code *πg.Code')
 
   if has_main:
     writer.write_tmpl(textwrap.dedent("""\

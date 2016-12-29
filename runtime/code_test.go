@@ -30,6 +30,9 @@ func TestNewCode(t *testing.T) {
 	fn := func(f *Frame, args []*Object) (*Object, *BaseException) {
 		return NewTuple(Args(args).makeCopy()...).ToObject(), nil
 	}
+	nilFn := func(*Frame, []*Object) (*Object, *BaseException) {
+		return nil, nil
+	}
 	cases := []invokeTestCase{
 		invokeTestCase{args: wrapArgs(NewCode("f1", "foo.py", nil, 0, fn)), want: NewTuple().ToObject()},
 		invokeTestCase{args: wrapArgs(NewCode("f2", "foo.py", []FunctionArg{{"a", nil}}, 0, fn), 123), want: newTestTuple(123).ToObject()},
@@ -49,6 +52,7 @@ func TestNewCode(t *testing.T) {
 		invokeTestCase{args: wrapArgs(NewCode("f6", "foo.py", []FunctionArg{{"a", nil}}, CodeFlagKWArg, fn), "bar"), want: newTestTuple("bar", NewDict()).ToObject()},
 		invokeTestCase{args: wrapArgs(NewCode("f6", "foo.py", []FunctionArg{{"a", nil}}, CodeFlagKWArg, fn)), kwargs: wrapKWArgs("a", "apple", "b", "bear"), want: newTestTuple("apple", newTestDict("b", "bear")).ToObject()},
 		invokeTestCase{args: wrapArgs(NewCode("f6", "foo.py", []FunctionArg{{"a", nil}}, CodeFlagKWArg, fn), "bar"), kwargs: wrapKWArgs("b", "baz", "c", "qux"), want: newTestTuple("bar", newTestDict("b", "baz", "c", "qux")).ToObject()},
+		invokeTestCase{args: wrapArgs(NewCode("f7", "foo.py", nil, 0, nilFn)), want: None},
 	}
 	for _, cas := range cases {
 		if err := runInvokeTestCase(testFunc.ToObject(), &cas); err != "" {

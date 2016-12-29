@@ -122,6 +122,9 @@ func (c *Code) Eval(f *Frame, globals *Dict, args Args, kwargs KWArgs) (*Object,
 		// Restore exc_info to what it was when we left the previous
 		// frame.
 		f.RestoreExc(oldExc, oldTraceback)
+		if ret == nil {
+			ret = None
+		}
 	} else {
 		_, tb := f.ExcInfo()
 		tb = newTraceback(f, tb)

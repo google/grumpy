@@ -89,11 +89,14 @@ func (f *Frame) PushCheckpoint(state RunState) {
 
 // PopCheckpoint removes the last element of f's checkpoint stack and returns
 // it.
-func (f *Frame) PopCheckpoint() RunState {
-	last := len(f.checkpoints) - 1
-	ret := f.checkpoints[last]
-	f.checkpoints = f.checkpoints[:last]
-	return ret
+func (f *Frame) PopCheckpoint() {
+	numCheckpoints := len(f.checkpoints)
+	if numCheckpoints == 0 {
+		f.state = -1
+	} else {
+		f.state = f.checkpoints[numCheckpoints-1]
+		f.checkpoints = f.checkpoints[:numCheckpoints-1]
+	}
 }
 
 // Raise creates an exception and sets the exc info indicator in a way that is

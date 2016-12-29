@@ -420,28 +420,20 @@ class ExprVisitor(ast.NodeVisitor):
           filename=util.go_str(self.block.filename), args=func_args.expr,
           flags=' | '.join(flags) if flags else 0)
       with self.writer.indent_block():
-        # Declare the local variables used in this function.
         for var in func_block.vars.values():
           if var.type != block.Var.TYPE_GLOBAL:
             fmt = 'var {0} *πg.Object = {1}; _ = {0}'
             self.writer.write(fmt.format(
                 util.adjust_local_name(var.name), var.init_expr))
-        body = visitor.writer.out.getvalue()
-        if func_block.checkpoints:
-          self.writer.write_block(func_block, body)
-          if func_block.is_generator:
-            self.writer.write('return πg.NewGenerator('
-                              'πBlock, πF.Globals()).ToObject(), nil')
-          else:
-            self.writer.write('return πBlock.Exec(πF)')
+        self.writer.write_temp_decls(func_block)
+        if func_block.is_generator:
+          self.writer.write('return πg.NewGenerator(πF, func(πSent *πg.Object) '
+                            '(*πg.Object, *πg.BaseException) {')
+          with self.writer.indent_block():
+            self.writer.write_block(func_block, visitor.writer.out.getvalue())
+          self.writer.write('}).ToObject(), nil')
         else:
-          assert not func_block.is_generator
-          self.writer.write('var πE *πg.BaseException\n_ = πE')
-          self.writer.write_temp_decls(func_block)
-          # There's no goto labels so align with the rest of the function.
-          with self.writer.indent_block(-1):
-            self.writer.write(body)
-          self.writer.write('return πg.None, nil')
+          self.writer.write_block(func_block, visitor.writer.out.getvalue())
       self.writer.write('}), πF.Globals()).ToObject()')
     return result
 

@@ -38,15 +38,13 @@ type Generator struct {
 	Object
 	mutex sync.Mutex
 	state generatorState
-	block *Block
 	frame *Frame
+	fn    func(*Object) (*Object, *BaseException)
 }
 
 // NewGenerator returns a new Generator object that runs the given Block b.
-func NewGenerator(b *Block, globals *Dict) *Generator {
-	f := newFrame(nil)
-	f.globals = globals
-	return &Generator{Object: Object{typ: GeneratorType}, block: b, frame: f}
+func NewGenerator(f *Frame, fn func(*Object) (*Object, *BaseException)) *Generator {
+	return &Generator{Object: Object{typ: GeneratorType}, frame: f, fn: fn}
 }
 
 func toGeneratorUnsafe(o *Object) *Generator {
@@ -79,17 +77,13 @@ func (g *Generator) resume(f *Frame, sendValue *Object) (*Object, *BaseException
 		return nil, raised
 	}
 	g.frame.pushFrame(f)
-	// Yield statements push a checkpoint but upon first entry into the
-	// generator, the stack will be empty so don't pop in that case.
-	if oldState != generatorStateCreated {
-		g.frame.state = g.frame.PopCheckpoint()
-	}
-	result, raised := g.block.execInternal(g.frame, sendValue)
+	result, raised := g.fn(sendValue)
 	g.mutex.Lock()
 	if result == nil && raised == nil {
 		raised = f.Raise(StopIterationType.ToObject(), nil, nil)
 	}
 	if raised == nil {
+		g.frame.PopCheckpoint()
 		g.state = generatorStateReady
 	} else {
 		g.state = generatorStateDone
