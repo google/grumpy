@@ -86,6 +86,9 @@ func (g *Generator) resume(f *Frame, sendValue *Object) (*Object, *BaseException
 	}
 	result, raised := g.block.execInternal(g.frame, sendValue)
 	g.mutex.Lock()
+	if result == nil && raised == nil {
+		raised = f.Raise(StopIterationType.ToObject(), nil, nil)
+	}
 	if raised == nil {
 		g.state = generatorStateReady
 	} else {

@@ -77,11 +77,8 @@ class Writer(object):
     # Assume that body is aligned with goto labels.
     self.write(body)
     with self.indent_block():
-      if block_.is_generator:
-        self.write('return nil, πF.Raise('
-                   'πg.StopIterationType.ToObject(), nil, nil)')
-      else:
-        self.write('return πg.None, nil')
+      self.write('return {}, nil'.format(
+          'nil' if block_.is_generator else 'πg.None'))
     self.write('})')
 
   def write_import_block(self, imports):

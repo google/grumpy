@@ -29,7 +29,7 @@ func TestGeneratorNext(t *testing.T) {
 	})
 	recursive = NewGenerator(recursiveBlock, NewDict()).ToObject()
 	empty := NewBlock(func(f *Frame, _ *Object) (*Object, *BaseException) {
-		return nil, f.Raise(StopIterationType.ToObject(), nil, nil)
+		return nil, nil
 	})
 	exhausted := NewGenerator(empty, NewDict()).ToObject()
 	mustNotRaise(ListType.Call(newFrame(nil), Args{exhausted}, nil))
@@ -46,7 +46,7 @@ func TestGeneratorNext(t *testing.T) {
 
 func TestGeneratorSend(t *testing.T) {
 	empty := NewBlock(func(f *Frame, _ *Object) (*Object, *BaseException) {
-		return nil, f.Raise(StopIterationType.ToObject(), nil, nil)
+		return nil, nil
 	})
 	cases := []invokeTestCase{
 		invokeTestCase{args: wrapArgs(NewGenerator(empty, NewDict()), 123), wantExc: mustCreateException(TypeErrorType, "can't send non-None value to a just-started generator")},
@@ -78,7 +78,7 @@ func TestGeneratorSimple(t *testing.T) {
 		f.PushCheckpoint(2)
 		return NewStr("bar").ToObject(), nil
 	Yield2:
-		return nil, f.Raise(StopIterationType.ToObject(), nil, nil)
+		return nil, nil
 	})
 	cas := &invokeTestCase{
 		args: wrapArgs(NewGenerator(b, NewDict())),
