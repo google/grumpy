@@ -17,18 +17,14 @@ package grumpy
 // Block is a handle to code that runs in a new scope such as a function, class
 // or module.
 type Block struct {
-	// name is the name of the compiled function or class, or "<module>".
-	name string
-	// filename is the path of the file where the Python code originated.
-	filename string
 	// fn is a closure that executes the body of the code block. It may be
 	// re-entered multiple times, e.g. for exception handling.
 	fn func(*Frame, *Object) (*Object, *BaseException)
 }
 
 // NewBlock creates a Block object.
-func NewBlock(name, filename string, fn func(*Frame, *Object) (*Object, *BaseException)) *Block {
-	return &Block{name, filename, fn}
+func NewBlock(fn func(*Frame, *Object) (*Object, *BaseException)) *Block {
+	return &Block{fn}
 }
 
 // Exec runs b in the context of a new child frame of back.

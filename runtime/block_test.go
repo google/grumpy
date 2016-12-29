@@ -25,7 +25,7 @@ func TestBlockExecTryExcept(t *testing.T) {
 		e *BaseException
 	}
 	args := []blockArgs{}
-	b := NewBlock("<test>", "foo.py", func(f *Frame, _ *Object) (*Object, *BaseException) {
+	b := NewBlock(func(f *Frame, _ *Object) (*Object, *BaseException) {
 		e, _ := f.ExcInfo()
 		switch f.State() {
 		case 0:
@@ -60,11 +60,11 @@ func TestBlockExecTryExcept(t *testing.T) {
 func TestBlockExecRaises(t *testing.T) {
 	var f1, f2 *Frame
 	globals := NewDict()
-	b1 := NewBlock("<b1>", "foo.py", func(f *Frame, _ *Object) (*Object, *BaseException) {
+	b1 := NewBlock(func(f *Frame, _ *Object) (*Object, *BaseException) {
 		f1 = f
 		return nil, f.RaiseType(ValueErrorType, "bar")
 	})
-	b2 := NewBlock("<b2>", "foo.py", func(f *Frame, _ *Object) (*Object, *BaseException) {
+	b2 := NewBlock(func(f *Frame, _ *Object) (*Object, *BaseException) {
 		f2 = f
 		return b1.Exec(f, globals)
 	})

@@ -20,7 +20,7 @@ import (
 
 func TestGeneratorNext(t *testing.T) {
 	var recursive *Object
-	recursiveBlock := NewBlock("<test>", "test.py", func(f *Frame, _ *Object) (*Object, *BaseException) {
+	recursiveBlock := NewBlock(func(f *Frame, _ *Object) (*Object, *BaseException) {
 		next, raised := GetAttr(f, recursive, NewStr("next"), nil)
 		if raised != nil {
 			return nil, raised
@@ -28,7 +28,7 @@ func TestGeneratorNext(t *testing.T) {
 		return next.Call(f, nil, nil)
 	})
 	recursive = NewGenerator(recursiveBlock, NewDict()).ToObject()
-	empty := NewBlock("<test>", "test.py", func(f *Frame, _ *Object) (*Object, *BaseException) {
+	empty := NewBlock(func(f *Frame, _ *Object) (*Object, *BaseException) {
 		return nil, f.Raise(StopIterationType.ToObject(), nil, nil)
 	})
 	exhausted := NewGenerator(empty, NewDict()).ToObject()
@@ -45,7 +45,7 @@ func TestGeneratorNext(t *testing.T) {
 }
 
 func TestGeneratorSend(t *testing.T) {
-	empty := NewBlock("<test>", "test.py", func(f *Frame, _ *Object) (*Object, *BaseException) {
+	empty := NewBlock(func(f *Frame, _ *Object) (*Object, *BaseException) {
 		return nil, f.Raise(StopIterationType.ToObject(), nil, nil)
 	})
 	cases := []invokeTestCase{
@@ -60,7 +60,7 @@ func TestGeneratorSend(t *testing.T) {
 }
 
 func TestGeneratorSimple(t *testing.T) {
-	b := NewBlock("<test>", "test.py", func(f *Frame, _ *Object) (*Object, *BaseException) {
+	b := NewBlock(func(f *Frame, _ *Object) (*Object, *BaseException) {
 		switch f.State() {
 		case 0:
 			goto Start

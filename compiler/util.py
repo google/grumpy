@@ -65,11 +65,8 @@ class Writer(object):
     self.write('var πE *πg.BaseException\n_ = πE')
     self.write_temp_decls(block_)
     # Write the function body.
-    self.write_tmpl('πBlock := πg.NewBlock($name, $filename, '
-                    'func(πF *πg.Frame, πSent *πg.Object) '
-                    '(*πg.Object, *πg.BaseException) {',
-                    name=go_str(block_.name),
-                    filename=go_str(block_.filename))
+    self.write('πBlock := πg.NewBlock(func(πF *πg.Frame, πSent *πg.Object) '
+               '(*πg.Object, *πg.BaseException) {')
     with self.indent_block():
       self.write('switch πF.State() {')
       self.write('case 0:')
