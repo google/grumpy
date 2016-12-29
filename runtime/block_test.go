@@ -44,7 +44,7 @@ func TestBlockExecTryExcept(t *testing.T) {
 		args = append(args, blockArgs{f, e})
 		return None, nil
 	})
-	b.Exec(newFrame(nil), NewDict())
+	b.Exec(newFrame(nil))
 	wantExc := mustCreateException(RuntimeErrorType, "foo")
 	if len(args) != 2 {
 		t.Errorf("called %d times, want 2", len(args))
@@ -59,16 +59,15 @@ func TestBlockExecTryExcept(t *testing.T) {
 
 func TestBlockExecRaises(t *testing.T) {
 	var f1, f2 *Frame
-	globals := NewDict()
 	b1 := NewBlock(func(f *Frame, _ *Object) (*Object, *BaseException) {
 		f1 = f
 		return nil, f.RaiseType(ValueErrorType, "bar")
 	})
 	b2 := NewBlock(func(f *Frame, _ *Object) (*Object, *BaseException) {
 		f2 = f
-		return b1.Exec(f, globals)
+		return b1.Exec(f)
 	})
-	b2.Exec(newFrame(nil), NewDict())
+	b2.Exec(newFrame(nil))
 	e, tb := f1.ExcInfo()
 	wantExc := mustCreateException(ValueErrorType, "bar")
 	if !exceptionsAreEquivalent(e, wantExc) {

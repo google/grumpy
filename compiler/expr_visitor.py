@@ -433,7 +433,7 @@ class ExprVisitor(ast.NodeVisitor):
             self.writer.write('return πg.NewGenerator('
                               'πBlock, πGlobals).ToObject(), nil')
           else:
-            self.writer.write('return πBlock.Exec(πF, πGlobals)')
+            self.writer.write('return πBlock.Exec(πF)')
         else:
           assert not func_block.is_generator
           self.writer.write('var πE *πg.BaseException\n_ = πE')

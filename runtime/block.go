@@ -28,7 +28,7 @@ func NewBlock(fn func(*Frame, *Object) (*Object, *BaseException)) *Block {
 }
 
 // Exec runs b in the context of a new child frame of back.
-func (b *Block) Exec(f *Frame, globals *Dict) (*Object, *BaseException) {
+func (b *Block) Exec(f *Frame) (*Object, *BaseException) {
 	return b.execInternal(f, nil)
 }
 

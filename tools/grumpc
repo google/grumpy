@@ -84,7 +84,7 @@ def main(args):
         _ = πGlobals"""))  # Suppress possible Go "declared and not used" error.
     writer.write_block(mod_block, visitor.writer.out.getvalue())
   writer.write(textwrap.dedent("""\
-      \treturn πBlock.Exec(πF, πGlobals)
+      \treturn πBlock.Exec(πF)
       }
       var Code *πg.Code"""))
 

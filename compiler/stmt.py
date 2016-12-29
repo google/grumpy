@@ -122,7 +122,7 @@ class StatementVisitor(ast.NodeVisitor):
         self.writer.write_block(body_visitor.block,
                                 body_visitor.writer.out.getvalue())
       tmpl = textwrap.dedent("""\
-          \treturn πBlock.Exec(πF, πGlobals)
+          \treturn πBlock.Exec(πF)
           }).Eval(πF, πGlobals, nil, nil)
           if πE != nil {
           \treturn nil, πE
