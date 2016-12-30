@@ -8,13 +8,17 @@ import (
 // CodeType is the object representing the Python 'code' type.
 var CodeType = newBasisType("code", reflect.TypeOf(Code{}), toCodeUnsafe, ObjectType)
 
+// CodeFlag is a switch controlling the behavior of a Code object.
 type CodeFlag int
 
 const (
+	// CodeFlagVarArg means a Code object accepts *arg parameters.
 	CodeFlagVarArg CodeFlag = 4
-	CodeFlagKWArg  CodeFlag = 8
+	// CodeFlagKWArg means a Code object accepts **kwarg parameters.
+	CodeFlagKWArg CodeFlag = 8
 )
 
+// Code represents Python 'code' objects.
 type Code struct {
 	Object
 	name     string `attr:"co_name"`
@@ -29,6 +33,7 @@ type Code struct {
 	fn      func(*Frame, []*Object) (*Object, *BaseException)
 }
 
+// NewCode creates a new Code object that executes the given fn.
 func NewCode(name, filename string, args []FunctionArg, flags CodeFlag, fn func(*Frame, []*Object) (*Object, *BaseException)) *Code {
 	argc := len(args)
 	minArgc := 0
@@ -50,7 +55,9 @@ func toCodeUnsafe(o *Object) *Code {
 	return (*Code)(o.toPointer())
 }
 
+// Eval runs the code object c in the context of the given globals.
 func (c *Code) Eval(f *Frame, globals *Dict, args Args, kwargs KWArgs) (*Object, *BaseException) {
+	// Validate parameters.
 	argc := len(args)
 	if argc > c.argc && c.flags&CodeFlagVarArg == 0 {
 		format := "%s() takes %d arguments (%d given)"

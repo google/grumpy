@@ -81,7 +81,7 @@ watch:
 	-@$(MAKE) test
 	@while inotifywait -q -e modify --exclude '^\./(build|\.git)/' --recursive .; do sleep 0.2; $(MAKE) test; done
 
-.PHONY: all benchmarks clean cover run test watch
+.PHONY: all benchmarks clean cover lint run test watch
 
 # ------------------------------------------------------------------------------
 # grumpc compiler
@@ -139,6 +139,12 @@ $(RUNTIME_COVER_FILE): $(RUNTIME) $(filter %_test.go,$(RUNTIME_SRCS))
 
 cover: $(RUNTIME_COVER_FILE) $(TOOL_BINS)
 	@bash -c 'comm -12 <(coverparse $< | sed "s/^grumpy/runtime/" | sort) <(git diff --dst-prefix= $(DIFF_COMMIT) | diffrange | sort)' | sort -t':' -k1,1 -k2n,2 | sed 's/$$/: missing coverage/' | tee errors.err
+
+build/bin/golint:
+	@go get -u github.com/golang/lint/golint
+
+lint: build/bin/golint
+	@golint runtime
 
 # ------------------------------------------------------------------------------
 # Standard library
