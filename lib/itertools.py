@@ -14,26 +14,71 @@
 
 """Utilities for iterating over containers."""
 
+import _collections
 import sys
 
 
-class islice(object):  # pylint: disable=invalid-name
-  """Iterator that returns sliced elements from the iterable."""
+def chain(*iterables):
+  for it in iterables:
+    for element in it:
+      yield element
 
-  def __init__(self, iterable, *args):
-    s = slice(*args)
-    self._range = iter(xrange(s.start or 0, s.stop or sys.maxint, s.step or 1))
-    self._iter = iter(iterable)
-    self._i = 0
 
-  def __iter__(self):
-    return self
+def count(start=0, step=1):
+  n = start
+  while True:
+    yield n
+    n += step
 
-  def next(self):
-    nexti = next(self._range)
+
+def imap(function, *iterables):
+  iterables = map(iter, iterables)
+  while True:
+    args = [next(it) for it in iterables]
+    if function is None:
+      yield tuple(args)
+    else:
+      yield function(*args)
+
+
+def islice(iterable, *args):
+  s = slice(*args)
+  it = iter(xrange(s.start or 0, s.stop or sys.maxint, s.step or 1))
+  nexti = next(it)
+  for i, element in enumerate(iterable):
+    if i == nexti:
+      yield element
+      nexti = next(it)
+
+
+def izip(*iterables):
+  iterators = map(iter, iterables)
+  while iterators:
+    yield tuple(map(next, iterators))
+
+
+def repeat(object, times=None):
+  if times is None:
     while True:
-      el = next(self._iter)
-      i = self._i
-      self._i += 1
-      if i == nexti:
-        return el
+      yield object
+  else:
+    for i in xrange(times):
+      yield object
+
+
+def starmap(function, iterable):
+  for args in iterable:
+    yield function(*args)
+
+
+def tee(iterable, n=2):
+  it = iter(iterable)
+  deques = [_collections.deque() for i in range(n)]
+  def gen(mydeque):
+    while True:
+      if not mydeque:
+        newval = next(it)
+        for d in deques:
+          d.append(newval)
+      yield mydeque.popleft()
+  return tuple(gen(d) for d in deques)
