@@ -209,7 +209,7 @@ class ExprVisitorTest(unittest.TestCase):
 
   def testUnaryOpNotImplemented(self):
     self.assertRaisesRegexp(util.ParseError, 'unary op not implemented',
-                            _ParseAndVisitExpr, '-foo')
+                            _ParseAndVisitExpr, '+foo')
 
 
 def _MakeModuleBlock():
