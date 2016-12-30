@@ -17,7 +17,7 @@ __all__ = ["Hashable", "Iterable", "Iterator",
            "Sized", "Container", "Callable",
            "Set", "MutableSet",
            "Mapping", "MutableMapping",
-           "MappingView", "KeysView", "ItemsView", "ValuesView",
+           "MappingView", #"KeysView", "ItemsView", "ValuesView",
            "Sequence", "MutableSequence",
            ]
 
