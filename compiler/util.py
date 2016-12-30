@@ -23,7 +23,7 @@ import textwrap
 
 
 _SIMPLE_CHARS = set(string.digits + string.letters + string.punctuation)
-_ESCAPES = {'\0': r'\0', '\t': r'\t', '\r': r'\r', '\n': r'\n', '"': r'\"'}
+_ESCAPES = {'\t': r'\t', '\r': r'\r', '\n': r'\n', '"': r'\"'}
 
 
 class ParseError(Exception):
