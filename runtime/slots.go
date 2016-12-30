@@ -408,6 +408,7 @@ type typeSlots struct {
 	Mul          *binaryOpSlot
 	Native       *nativeSlot
 	NE           *binaryOpSlot
+	Neg          *unaryOpSlot
 	New          *newSlot
 	Next         *unaryOpSlot
 	NonZero      *unaryOpSlot

@@ -759,6 +759,16 @@ func ToStr(f *Frame, o *Object) (*Str, *BaseException) {
 	return toStrUnsafe(result), nil
 }
 
+// Neg returns the result of o.__neg__ and is equivalent to the Python
+// expression "-o".
+func Neg(f *Frame, o *Object) (*Object, *BaseException) {
+	neg := o.typ.slots.Neg
+	if neg == nil {
+		return nil, f.RaiseType(TypeErrorType, fmt.Sprintf("bad operand type for unary ~: '%s'", o.typ.Name()))
+	}
+	return neg.Fn(f, o)
+}
+
 // Xor returns the result of the bitwise xor operator v ^ w according to
 // __xor/rxor__.
 func Xor(f *Frame, v, w *Object) (*Object, *BaseException) {

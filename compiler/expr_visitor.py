@@ -371,6 +371,7 @@ class ExprVisitor(ast.NodeVisitor):
 
   _UNARY_OP_TEMPLATES = {
       ast.Invert: 'πg.Invert(πF, {operand})',
+      ast.USub: 'πg.Neg(πF, {operand})',
   }
 
   def visit_function_inline(self, node):
