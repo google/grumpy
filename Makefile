@@ -76,12 +76,7 @@ run: $(RUNNER)
 
 test: $(ACCEPT_PASS_FILES) $(COMPILER_PASS_FILES) $(COMPILER_EXPR_VISITOR_PASS_FILES) $(COMPILER_STMT_PASS_FILES) $(RUNTIME_PASS_FILE) $(STDLIB_PASS_FILES)
 
-# Run 'make test' whenever the the source code changes.
-watch:
-	-@$(MAKE) test
-	@while inotifywait -q -e modify --exclude '^\./(build|\.git)/' --recursive .; do sleep 0.2; $(MAKE) test; done
-
-.PHONY: all benchmarks clean cover lint run test watch
+.PHONY: all benchmarks clean cover lint run test
 
 # ------------------------------------------------------------------------------
 # grumpc compiler
