@@ -63,6 +63,8 @@ BENCHMARK_BINS := $(patsubst %,build/%_benchmark,$(BENCHMARKS))
 
 TOOL_BINS = $(patsubst %,build/bin/%,benchcmp coverparse diffrange)
 
+GOLINT_BIN = build/bin/golint
+
 all: $(COMPILER) $(RUNTIME) $(STDLIB) $(TOOL_BINS)
 
 benchmarks: $(BENCHMARK_BINS)
@@ -72,16 +74,13 @@ clean:
 
 # Convenient wrapper around grumprun that avoids having to set up PATH, etc.
 run: $(RUNNER)
-	@grumprun
+	@$(RUNNER_BIN)
 
 test: $(ACCEPT_PASS_FILES) $(COMPILER_PASS_FILES) $(COMPILER_EXPR_VISITOR_PASS_FILES) $(COMPILER_STMT_PASS_FILES) $(RUNTIME_PASS_FILE) $(STDLIB_PASS_FILES)
 
-# Run 'make test' whenever the the source code changes.
-watch:
-	-@$(MAKE) test
-	@while inotifywait -q -e modify --exclude '^\./(build|\.git)/' --recursive .; do sleep 0.2; $(MAKE) test; done
+precommit: cover lint test
 
-.PHONY: all benchmarks clean cover lint run test watch
+.PHONY: all benchmarks clean cover lint precommit run test
 
 # ------------------------------------------------------------------------------
 # grumpc compiler
@@ -139,26 +138,27 @@ $(RUNTIME_COVER_FILE): $(RUNTIME) $(filter %_test.go,$(RUNTIME_SRCS))
 
 cover: $(RUNTIME_COVER_FILE) $(TOOL_BINS)
 	@bash -c 'comm -12 <(coverparse $< | sed "s/^grumpy/runtime/" | sort) <(git diff --dst-prefix= $(DIFF_COMMIT) | diffrange | sort)' | sort -t':' -k1,1 -k2n,2 | sed 's/$$/: missing coverage/' | tee errors.err
+	@test ! -s errors.err
 
-build/bin/golint:
+$(GOLINT_BIN):
 	@go get -u github.com/golang/lint/golint
 
-lint: build/bin/golint
-	@golint runtime
+lint: $(GOLINT_BIN)
+	@$(GOLINT_BIN) -set_exit_status runtime
 
 # ------------------------------------------------------------------------------
 # Standard library
 # ------------------------------------------------------------------------------
 
 $(STDLIB_PASS_FILES): $(PKG_DIR)/grumpy/lib/%.pass: $(PKG_DIR)/grumpy/lib/%.a
-	@grumprun -m `echo $* | tr / .`
+	@$(RUNNER_BIN) -m `echo $* | tr / .`
 	@touch $@
 	@echo 'lib/$* PASS'
 
 define GRUMPY_STDLIB
 build/src/grumpy/lib/$(2)/module.go: $(1) $(COMPILER)
 	@mkdir -p build/src/grumpy/lib/$(2)
-	@grumpc -modname=$(notdir $(2)) $(1) > $$@
+	@$(COMPILER_BIN) -modname=$(notdir $(2)) $(1) > $$@
 
 build/src/grumpy/lib/$(2)/module.d: $(1)
 	@mkdir -p build/src/grumpy/lib/$(2)
@@ -180,7 +180,7 @@ $(eval $(foreach x,$(shell seq $(words $(STDLIB_SRCS))),$(call GRUMPY_STDLIB,$(w
 
 $(patsubst %_test,build/%.go,$(ACCEPT_TESTS)): build/%.go: %_test.py $(COMPILER)
 	@mkdir -p $(@D)
-	@grumpc $< > $@
+	@$(COMPILER_BIN) $< > $@
 
 # TODO: These should not depend on stdlibs and should instead build a .d file.
 $(patsubst %,build/%,$(ACCEPT_TESTS)): build/%_test: build/%.go $(RUNTIME) $(STDLIB)
@@ -194,7 +194,7 @@ $(ACCEPT_PASS_FILES): build/%_test.pass: build/%_test
 
 $(patsubst %,build/%.go,$(BENCHMARKS)): build/%.go: %.py $(COMPILER)
 	@mkdir -p $(@D)
-	@grumpc $< > $@
+	@$(COMPILER_BIN) $< > $@
 
 $(BENCHMARK_BINS): build/benchmarks/%_benchmark: build/benchmarks/%.go $(RUNTIME) $(STDLIB)
 	@mkdir -p $(@D)
