@@ -1,0 +1,22 @@
+[BASIC]
+argument-rgx=^[a-z][a-z0-9_]*$
+attr-rgx=^_{0,2}[a-z][a-z0-9_]*$
+const-rgx=^(_?[A-Z][A-Z0-9_]*|__[a-z0-9_]+__|_?[a-z][a-z0-9_]*)$
+docstring-min-length=10
+function-rgx=^(?:(?P<camel_case>_?[A-Z][a-zA-Z0-9]*)|(?P<snake_case>_?[a-z][a-z0-9_]*))$
+good-names=main,_
+method-rgx=^(?:(?P<exempt>__[a-z0-9_]+__|next|test[A-Z_][A-Za-z0-9_]*)|(?P<camel_case>_{0,2}[A-Z][a-zA-Z0-9]*)|(?P<snake_case>_{0,2}[a-z][a-z0-9_]*))$
+no-docstring-rgx=(__.*__|main|test[A-Z_][A-Za-z0-9_]*|[A-Z][A-Za-z0-9]*Test)
+variable-rgx=^[a-z][a-z0-9_]*$
+
+[FORMAT]
+indent-string='  '
+max-line-length=80
+
+[MESSAGES CONTROL]
+# TODO: Remove cyclic-import once expr_visitor.py -> stmt.py is resolved.
+disable=design,similarities,no-self-use,attribute-defined-outside-init,locally-disabled,star-args,pointless-except,bad-option-value,global-statement,fixme,suppressed-message,useless-suppression,locally-enabled,file-ignored,cyclic-import
+
+[REPORTS]
+msg-template={path}:{line}: {msg} ({symbol})
+reports=no

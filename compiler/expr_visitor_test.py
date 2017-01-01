@@ -43,6 +43,7 @@ def _MakeLiteralTest(lit):
 
 
 def _MakeSliceTest(subscript, want):
+  """Define a test function that evaluates a slice expression."""
   def Test(self):
     code = textwrap.dedent("""\
         class Slicer(object):

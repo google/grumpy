@@ -423,7 +423,7 @@ class StatementVisitorTest(unittest.TestCase):
     visitor = stmt.StatementVisitor(_MakeModuleBlock())
     handlers = [ast.ExceptHandler(type=ast.Name(id='foo')),
                 ast.ExceptHandler(type=None)]
-    self.assertEqual(visitor._write_except_dispatcher(
+    self.assertEqual(visitor._write_except_dispatcher(  # pylint: disable=protected-access
         'exc', 'tb', handlers), [1, 2])
     expected = re.compile(r'ResolveGlobal\(.*foo.*\bIsInstance\(.*'
                           r'goto Label1.*goto Label2', re.DOTALL)
@@ -434,14 +434,14 @@ class StatementVisitorTest(unittest.TestCase):
     handlers = [ast.ExceptHandler(type=None),
                 ast.ExceptHandler(type=ast.Name(id='foo'))]
     self.assertRaisesRegexp(util.ParseError, r"default 'except:' must be last",
-                            visitor._write_except_dispatcher,
+                            visitor._write_except_dispatcher,  # pylint: disable=protected-access
                             'exc', 'tb', handlers)
 
   def testWriteExceptDispatcherMultipleExcept(self):
     visitor = stmt.StatementVisitor(_MakeModuleBlock())
     handlers = [ast.ExceptHandler(type=ast.Name(id='foo')),
                 ast.ExceptHandler(type=ast.Name(id='bar'))]
-    self.assertEqual(visitor._write_except_dispatcher(
+    self.assertEqual(visitor._write_except_dispatcher(  # pylint: disable=protected-access
         'exc', 'tb', handlers), [1, 2])
     expected = re.compile(
         r'ResolveGlobal\(.*foo.*\bif .*\bIsInstance\(.*\{.*goto Label1.*'

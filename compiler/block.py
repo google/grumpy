@@ -53,6 +53,16 @@ class Block(object):
 
   __metaclass__ = abc.ABCMeta
 
+  # These are ModuleBlock attributes. Avoid pylint errors for accessing them on
+  # Block objects by defining them here.
+  _filename = None
+  _full_package_name = None
+  _libroot = None
+  _lines = None
+  _runtime = None
+  _strings = None
+  imports = None
+
   def __init__(self, parent_block, name):
     self.parent_block = parent_block
     self.name = name

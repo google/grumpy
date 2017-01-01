@@ -21,7 +21,7 @@ GOOS ?= $(word 1,$(GO_ENV))
 GOARCH ?= $(word 2,$(GO_ENV))
 ROOT_DIR := $(realpath .)
 PKG_DIR := build/pkg/$(GOOS)_$(GOARCH)
-PY_DIR := build/site-packages
+PY_DIR := build/lib/python2.7/site-packages
 
 export GOPATH := $(ROOT_DIR)/build
 export PYTHONPATH := $(ROOT_DIR)/$(PY_DIR)
@@ -31,10 +31,10 @@ COMPILER_BIN := build/bin/grumpc
 COMPILER_SRCS := $(addprefix $(PY_DIR)/grumpy/compiler/,$(notdir $(shell find compiler -name '*.py' -not -name '*_test.py'))) $(PY_DIR)/grumpy/__init__.py
 COMPILER_TESTS := $(patsubst %.py,grumpy/%,$(filter-out compiler/expr_visitor_test.py compiler/stmt_test.py,$(wildcard compiler/*_test.py)))
 COMPILER_TEST_SRCS := $(patsubst %,$(PY_DIR)/%.py,$(COMPILER_TESTS))
-COMPILER_SHARDED_TEST_SRCS := $(patsubst %,build/site-packages/grumpy/compiler/%,expr_visitor_test.py stmt_test.py)
+COMPILER_SHARDED_TEST_SRCS := $(patsubst %,$(PY_DIR)/grumpy/compiler/%,expr_visitor_test.py stmt_test.py)
 COMPILER_PASS_FILES := $(patsubst %,$(PY_DIR)/%.pass,$(COMPILER_TESTS))
-COMPILER_EXPR_VISITOR_PASS_FILES := $(patsubst %,build/site-packages/grumpy/compiler/expr_visitor_test.%of32.pass,$(shell seq 32))
-COMPILER_STMT_PASS_FILES := $(patsubst %,build/site-packages/grumpy/compiler/stmt_test.%of16.pass,$(shell seq 16))
+COMPILER_EXPR_VISITOR_PASS_FILES := $(patsubst %,$(PY_DIR)/grumpy/compiler/expr_visitor_test.%of32.pass,$(shell seq 32))
+COMPILER_STMT_PASS_FILES := $(patsubst %,$(PY_DIR)/grumpy/compiler/stmt_test.%of16.pass,$(shell seq 16))
 COMPILER_D_FILES := $(patsubst %,$(PY_DIR)/%.d,$(COMPILER_TESTS))
 COMPILER := $(COMPILER_BIN) $(COMPILER_SRCS)
 
@@ -64,6 +64,7 @@ BENCHMARK_BINS := $(patsubst %,build/%_benchmark,$(BENCHMARKS))
 TOOL_BINS = $(patsubst %,build/bin/%,benchcmp coverparse diffrange)
 
 GOLINT_BIN = build/bin/golint
+PYLINT_BIN = build/bin/pylint
 
 all: $(COMPILER) $(RUNTIME) $(STDLIB) $(TOOL_BINS)
 
@@ -80,7 +81,7 @@ test: $(ACCEPT_PASS_FILES) $(COMPILER_PASS_FILES) $(COMPILER_EXPR_VISITOR_PASS_F
 
 precommit: cover lint test
 
-.PHONY: all benchmarks clean cover lint precommit run test
+.PHONY: all benchmarks clean cover golint lint precommit pylint run test
 
 # ------------------------------------------------------------------------------
 # grumpc compiler
@@ -105,13 +106,13 @@ $(COMPILER_D_FILES): $(PY_DIR)/%.d: $(PY_DIR)/%.py $(COMPILER_SRCS)
 -include $(COMPILER_D_FILES)
 
 # Does not depend on stdlibs since it makes minimal use of them.
-$(COMPILER_EXPR_VISITOR_PASS_FILES): build/site-packages/grumpy/compiler/expr_visitor_test.%.pass: build/site-packages/grumpy/compiler/expr_visitor_test.py $(RUNNER_BIN) $(COMPILER) $(RUNTIME)
+$(COMPILER_EXPR_VISITOR_PASS_FILES): $(PY_DIR)/grumpy/compiler/expr_visitor_test.%.pass: $(PY_DIR)/grumpy/compiler/expr_visitor_test.py $(RUNNER_BIN) $(COMPILER) $(RUNTIME)
 	@python $< --shard=$*
 	@touch $@
 	@echo 'compiler/expr_visitor_test $* PASS'
 
 # Does not depend on stdlibs since it makes minimal use of them.
-$(COMPILER_STMT_PASS_FILES): build/site-packages/grumpy/compiler/stmt_test.%.pass: build/site-packages/grumpy/compiler/stmt_test.py $(RUNNER_BIN) $(COMPILER) $(RUNTIME)
+$(COMPILER_STMT_PASS_FILES): $(PY_DIR)/grumpy/compiler/stmt_test.%.pass: $(PY_DIR)/grumpy/compiler/stmt_test.py $(RUNNER_BIN) $(COMPILER) $(RUNTIME)
 	@python $< --shard=$*
 	@touch $@
 	@echo 'compiler/stmt_test $* PASS'
@@ -143,8 +144,16 @@ cover: $(RUNTIME_COVER_FILE) $(TOOL_BINS)
 $(GOLINT_BIN):
 	@go get -u github.com/golang/lint/golint
 
-lint: $(GOLINT_BIN)
+golint: $(GOLINT_BIN) $(PYLINT_BIN)
 	@$(GOLINT_BIN) -set_exit_status runtime
+
+$(PYLINT_BIN):
+	@pip install --prefix=$(ROOT_DIR)/build pylint
+
+pylint: $(PYLINT_BIN)
+	@$(PYLINT_BIN) compiler/*.py tools/{benchcmp,coverparse,diffrange,grumpc,grumprun}
+
+lint: golint pylint
 
 # ------------------------------------------------------------------------------
 # Standard library

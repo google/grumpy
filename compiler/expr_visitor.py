@@ -202,7 +202,7 @@ class ExprVisitor(ast.NodeVisitor):
     body = ast.Expr(value=ast.Yield(node.elt), lineno=None)
     for comp_node in reversed(node.generators):
       for if_node in reversed(comp_node.ifs):
-        body = ast.If(test=if_node, body=[body], orelse=[], lineno=None)
+        body = ast.If(test=if_node, body=[body], orelse=[], lineno=None)  # pylint: disable=redefined-variable-type
       body = ast.For(target=comp_node.target, iter=comp_node.iter,
                      body=[body], orelse=[], lineno=None)
 
