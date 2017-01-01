@@ -78,7 +78,9 @@ run: $(RUNNER)
 
 test: $(ACCEPT_PASS_FILES) $(COMPILER_PASS_FILES) $(COMPILER_EXPR_VISITOR_PASS_FILES) $(COMPILER_STMT_PASS_FILES) $(RUNTIME_PASS_FILE) $(STDLIB_PASS_FILES)
 
-.PHONY: all benchmarks clean cover lint run test
+precommit: cover lint test
+
+.PHONY: all benchmarks clean cover lint precommit run test
 
 # ------------------------------------------------------------------------------
 # grumpc compiler
@@ -136,12 +138,13 @@ $(RUNTIME_COVER_FILE): $(RUNTIME) $(filter %_test.go,$(RUNTIME_SRCS))
 
 cover: $(RUNTIME_COVER_FILE) $(TOOL_BINS)
 	@bash -c 'comm -12 <(coverparse $< | sed "s/^grumpy/runtime/" | sort) <(git diff --dst-prefix= $(DIFF_COMMIT) | diffrange | sort)' | sort -t':' -k1,1 -k2n,2 | sed 's/$$/: missing coverage/' | tee errors.err
+	@test ! -s errors.err
 
 $(GOLINT_BIN):
 	@go get -u github.com/golang/lint/golint
 
 lint: $(GOLINT_BIN)
-	@$(GOLINT_BIN) runtime
+	@$(GOLINT_BIN) -set_exit_status runtime
 
 # ------------------------------------------------------------------------------
 # Standard library
