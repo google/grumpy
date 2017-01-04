@@ -287,11 +287,21 @@ class StatementVisitorTest(unittest.TestCase):
         from __go__.time import type_Duration as Duration
         print Duration""")))
 
-  def testPrint(self):
+  def testPrintStatement(self):
     self.assertEqual((0, 'abc 123\nfoo bar\n'), _GrumpRun(textwrap.dedent("""\
         print 'abc',
         print '123'
         print 'foo', 'bar'""")))
+
+  def testFutureFeaturePrintFunction(self):
+    want = "abc\n123\nabc 123\nabcx123\nabc 123 "
+    self.assertEqual((0, want), _GrumpRun(textwrap.dedent("""\
+        from __future__ import print_function
+        print('abc')
+        print(123)
+        print('abc', 123)
+        print('abc', 123, sep='x')
+        print('abc', 123, end=' ')""")))
 
   def testRaiseExitStatus(self):
     self.assertEqual(1, _GrumpRun('raise Exception')[0])

@@ -32,6 +32,28 @@ _NATIVE_TYPE_PREFIX = 'type_'
 _nil_expr = expr.nil_expr
 
 
+# Parser flags, set on 'from __future__ import *', see parser_flags on
+# StatementVisitor below. Note these have the same values as CPython.
+FUTURE_DIVISION         =  0x2000
+FUTURE_ABSOLUTE_IMPORT  =  0x4000
+FUTURE_PRINT_FUNCTION   = 0x10000
+FUTURE_UNICODE_LITERALS = 0x20000
+
+# Names for future features in 'from __future__ import *'. Map from name in the
+# import statement to a tuple of the flag for parser, and whether we've (grumpy)
+# implemented the feature yet.
+future_features = {
+  "division"         : (FUTURE_DIVISION, False),
+  "absolute_import"  : (FUTURE_ABSOLUTE_IMPORT, False),
+  "print_function"   : (FUTURE_PRINT_FUNCTION, True),
+  "unicode_literals" : (FUTURE_UNICODE_LITERALS, False),
+}
+
+# These future features are already in the language proper as of 2.6, so
+# importing them via __future__ has no effect.
+redundant_future_features = ["generators", "with_statement", "nested_scopes"]
+
+
 class StatementVisitor(ast.NodeVisitor):
   """Outputs Go statements to a Writer for the given Python nodes."""
 
@@ -41,6 +63,7 @@ class StatementVisitor(ast.NodeVisitor):
     self.block = block_
     self.writer = util.Writer()
     self.expr_visitor = expr_visitor.ExprVisitor(self.block, self.writer)
+    self.parser_flags = 0
 
   def generic_visit(self, node):
     msg = 'node not yet implemented: {}'.format(type(node).__name__)
@@ -286,6 +309,21 @@ class StatementVisitor(ast.NodeVisitor):
                 mod.expr, self.block.intern(name))
             self.block.bind_var(
                 self.writer, alias.asname or alias.name, member.expr)
+    elif node.module == '__future__':
+      for alias in node.names:
+        name = alias.name
+        if name in future_features:
+          (flag, implemented) = future_features[name]
+          if not implemented:
+            msg = 'future feature {} not yet implemented by grumpy'.format(name)
+            raise util.ParseError(msg)
+          self.parser_flags |= flag
+        elif name in redundant_future_features:
+          # no-op
+          pass
+        else:
+          msg = 'future feature {} is not defined'.format(name)
+          raise util.ParseError(node, msg)
     else:
       # NOTE: Assume that the names being imported are all modules within a
       # package. E.g. "from a.b import c" is importing the module c from package
@@ -305,6 +343,9 @@ class StatementVisitor(ast.NodeVisitor):
     self._write_py_context(node.lineno)
 
   def visit_Print(self, node):
+    if self.parser_flags & FUTURE_PRINT_FUNCTION:
+      raise util.ParseError(
+        node, 'syntax error (print is not a keyword)')
     self._write_py_context(node.lineno)
     with self.block.alloc_temp('[]*πg.Object') as args:
       self.writer.write('{} = make([]*πg.Object, {})'.format(
