@@ -105,7 +105,7 @@ class Writer(object):
 
   def write_checked_call1(self, call, *args, **kwargs):
     return self.write_tmpl(textwrap.dedent("""\
-        if raised := $call; raised != nil {
+        if πE = $call; πE != nil {
         \tcontinue
         }"""), call=call.format(*args, **kwargs))
 

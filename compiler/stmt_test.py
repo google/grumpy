@@ -45,6 +45,20 @@ class StatementVisitorTest(unittest.TestCase):
         except AssertionError as e:
           print repr(e)""")))
 
+  def testBareAssert(self):
+    # Assertion errors at the top level of a block should raise:
+    # https://github.com/google/grumpy/issues/18
+    want = (0, 'ok\n')
+    self.assertEqual(want, _GrumpRun(textwrap.dedent("""\
+        def foo():
+         assert False
+        try:
+         foo()
+        except AssertionError:
+         print 'ok'
+        else:
+         print 'bad'""")))
+
   def testAssignAttribute(self):
     self.assertEqual((0, '123\n'), _GrumpRun(textwrap.dedent("""\
         e = Exception()
