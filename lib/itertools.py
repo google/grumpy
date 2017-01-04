@@ -17,7 +17,6 @@
 import _collections
 import sys
 
-
 def chain(*iterables):
   for it in iterables:
     for element in it:
@@ -78,7 +77,6 @@ def imap(function, *iterables):
     else:
       yield function(*args)
 
-
 def islice(iterable, *args):
   s = slice(*args)
   it = iter(xrange(s.start or 0, s.stop or sys.maxint, s.step or 1))
@@ -88,12 +86,10 @@ def islice(iterable, *args):
       yield element
       nexti = next(it)
 
-
 def izip(*iterables):
   iterators = map(iter, iterables)
   while iterators:
     yield tuple(map(next, iterators))
-
 
 def repeat(object, times=None):
   if times is None:
@@ -102,7 +98,6 @@ def repeat(object, times=None):
   else:
     for i in xrange(times):
       yield object
-
 
 def starmap(function, iterable):
   for args in iterable:
