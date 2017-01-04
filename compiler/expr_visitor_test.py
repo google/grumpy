@@ -151,6 +151,12 @@ class ExprVisitorTest(unittest.TestCase):
   testIfExprNested = _MakeExprTest(
       '"foo" if "" else "bar" if 0 else "baz"')
 
+  testLambda = _MakeExprTest('(lambda: 123)()')
+  testLambda = _MakeExprTest('(lambda a, b: (a, b))("foo", "bar")')
+  testLambda = _MakeExprTest('(lambda a, b=3: (a, b))("foo")')
+  testLambda = _MakeExprTest('(lambda *args: args)(1, 2, 3)')
+  testLambda = _MakeExprTest('(lambda **kwargs: kwargs)(x="foo", y="bar")')
+
   testListEmpty = _MakeLiteralTest([])
   testListNonEmpty = _MakeLiteralTest([1, 2])
 

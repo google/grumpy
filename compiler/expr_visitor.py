@@ -239,6 +239,12 @@ class ExprVisitor(ast.NodeVisitor):
       self.writer.write('{} = {}'.format(result.name, v.expr))
     return result
 
+  def visit_Lambda(self, node):
+    ret = ast.Return(node.body, lineno=node.lineno)
+    func_node = ast.FunctionDef(
+        name='<lambda>', args=node.args, body=[ret])
+    return self.visit_function_inline(func_node)
+
   def visit_List(self, node):
     with self._visit_seq_elts(node.elts) as elems:
       result = self.block.alloc_temp()
@@ -451,5 +457,4 @@ class ExprVisitor(ast.NodeVisitor):
     msg = 'node not yet implemented: ' + type(node).__name__
     raise util.ParseError(node, msg)
 
-  visit_Lambda = _node_not_implemented
   visit_SetComp = _node_not_implemented
