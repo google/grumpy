@@ -48,7 +48,7 @@ tools/grumpc hello.py > hello.go
 go build -o hello hello.go
 ```
 
-Now execute The `./hello` binary to your heart's content.
+Now execute the `./hello` binary to your heart's content.
 
 ## Developing Grumpy
 
