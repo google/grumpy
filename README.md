@@ -93,3 +93,7 @@ available in Python.
 - `runtime`: Go source code for the Grumpy runtime library.
 - `third_party/stdlib`: Pure Python standard libraries copied from CPython.
 - `tools`: Transcompilation and utility binaries.
+
+## Contact
+
+Questions? Comments? Drop us a line at [grumpy-users@googlegroups.com](https://groups.google.com/forum/#!forum/grumpy-users).
