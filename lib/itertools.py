@@ -23,6 +23,8 @@ def chain(*iterables):
     for element in it:
       yield element
 
+def compress(data, selectors):
+  return (d for d,s in izip(data, selectors) if s)
 
 def count(start=0, step=1):
   n = start
@@ -30,6 +32,42 @@ def count(start=0, step=1):
     yield n
     n += step
 
+def cycle(iterable):
+  saved = []
+  for element in iterable:
+    yield element
+    saved.append(element)
+  while saved:
+    for element in saved:
+      yield element
+
+def dropwhile(predicate, iterable):
+  iterable = iter(iterable)
+  for x in iterable:
+    if not predicate(x):
+      yield x
+      break
+  for x in iterable:
+    yield x
+
+def from_iterable(iterables):
+  for it in iterables:
+    for element in it:
+      yield element
+
+def ifilter(predicate, iterable):
+  if predicate is None:
+    predicate = bool
+  for x in iterable:
+    if predicate(x):
+       yield x
+
+def ifilterfalse(predicate, iterable):
+  if predicate is None:
+    predicate = bool
+  for x in iterable:
+    if not predicate(x):
+       yield x
 
 def imap(function, *iterables):
   iterables = map(iter, iterables)
@@ -70,6 +108,12 @@ def starmap(function, iterable):
   for args in iterable:
     yield function(*args)
 
+def takewhile(predicate, iterable):
+  for x in iterable:
+    if predicate(x):
+      yield x
+    else:
+      break
 
 def tee(iterable, n=2):
   it = iter(iterable)
