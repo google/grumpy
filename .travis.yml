@@ -1,2 +1,3 @@
 language: go
+
 script: make build/runtime.pass
