@@ -1,5 +1,7 @@
 # Grumpy: Go running Python
 
+[![Build Status](https://travis-ci.org/google/grumpy.svg?branch=master)](https://travis-ci.org/google/grumpy)
+
 ## Overview
 
 Grumpy is a Python to Go source code transcompiler and runtime that is intended
