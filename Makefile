@@ -41,7 +41,7 @@ COMPILER := $(COMPILER_BIN) $(COMPILER_SRCS)
 RUNNER_BIN := build/bin/grumprun
 RUNTIME_SRCS := $(addprefix build/src/grumpy/,$(notdir $(wildcard runtime/*.go)))
 RUNTIME := $(PKG_DIR)/grumpy.a
-RUNTIME_PASS_FILE := $(PKG_DIR)/grumpy.pass
+RUNTIME_PASS_FILE := build/runtime.pass
 RUNTIME_COVER_FILE := $(PKG_DIR)/grumpy.cover
 RUNNER = $(RUNNER_BIN) $(COMPILER) $(RUNTIME) $(STDLIB)
 
@@ -153,9 +153,9 @@ $(GOLINT_BIN):
 golint: $(GOLINT_BIN) $(PYLINT_BIN)
 	@$(GOLINT_BIN) -set_exit_status runtime
 
+# Old versions of pip don't support the --prefix param so specify the bin dir
+# (--install-scripts) and the Python dir (--target) separately.
 $(PYLINT_BIN):
-	# Old versions of pip don't support the --prefix param so specify the bin dir
-	# (--install-scripts) and the Python dir (--target) separately.
 	@pip install --install-option=--install-scripts='$(ROOT_DIR)/build/bin' --target '$(PY_DIR)' pylint
 
 pylint: $(PYLINT_BIN)
