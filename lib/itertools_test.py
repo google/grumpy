@@ -14,7 +14,7 @@
 
 import itertools
 
-#import weetest
+import weetest
 
 def TestCycle():
   want = []
