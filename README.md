@@ -1,7 +1,5 @@
 # Grumpy: Go running Python
 
-[TOC]
-
 ## Overview
 
 Grumpy is a Python to Go source code transcompiler and runtime that is intended
@@ -40,7 +38,7 @@ toolchain work:
 ```
 make
 export GOPATH=$PWD/build
-export PYTHONPATH=$PWD/build/site-packages
+export PYTHONPATH=$PWD/build/lib/python2.7/site-packages
 ```
 
 Finally, compile the Python script and build a binary from it:
