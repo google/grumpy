@@ -3,6 +3,16 @@ import random
 import weetest
 
 
+def TestSeed():
+  random.seed()
+  try:
+    random.seed("wrongtype")
+  except TypeError:
+    pass
+  else:
+    raise AssertionError("TypeError not raised")
+
+
 def TestRandom():
   a = random.random()
   b = random.random()
@@ -49,6 +59,7 @@ def TestRandomChoice():
     pass
   else:
     raise AssertionError("IndexError not raised")
+
 
 if __name__ == '__main__':
   weetest.RunTests()
