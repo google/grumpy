@@ -49,5 +49,10 @@ def TestNormPath():
   assert path.normpath('x/y/./z') == 'x/y/z'
 
 
+def TestDirname():
+  assert path.dirname('/a/b/c') == '/a/b'
+  assert path.dirname('/a/b/c/') == '/a/b/c'
+
+
 if __name__ == '__main__':
   weetest.RunTests()

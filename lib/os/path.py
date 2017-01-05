@@ -14,7 +14,7 @@
 
 """"Utilities for manipulating and inspecting OS paths."""
 
-from __go__.path.filepath import Clean as normpath, IsAbs as isabs, Join  # pylint: disable=g-multiple-import,unused-import
+from __go__.path.filepath import Clean as normpath, IsAbs as isabs, Join, Dir as dirname  # pylint: disable=g-multiple-import,unused-import
 
 
 # NOTE(compatibility): This method uses Go's filepath.Join() method which
