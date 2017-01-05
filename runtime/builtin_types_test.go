@@ -84,7 +84,7 @@ func TestBuiltinFuncs(t *testing.T) {
 		{f: "hash", args: wrapArgs(123), want: NewInt(123).ToObject()},
 		{f: "hash", args: wrapArgs("foo"), want: hashFoo},
 		{f: "hash", args: wrapArgs(NewList()), wantExc: mustCreateException(TypeErrorType, "unhashable type: 'list'")},
-		{f: "hex", args: wrapArgs(0xd3adbeef), want: NewStr("0xd3adbeef").ToObject()},
+		{f: "hex", args: wrapArgs(0x63adbeef), want: NewStr("0x63adbeef").ToObject()},
 		{f: "hex", args: wrapArgs(0), want: NewStr("0x0").ToObject()},
 		{f: "hex", args: wrapArgs(1), want: NewStr("0x1").ToObject()},
 		{f: "hex", args: wrapArgs(-1), want: NewStr("-0x1").ToObject()},

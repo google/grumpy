@@ -142,10 +142,11 @@ func TestUnicodeGetItem(t *testing.T) {
 }
 
 func TestUnicodeHash(t *testing.T) {
+	truncateInt := func(i int64) int { return int(i) } // Support for 32bit systems.
 	cases := []invokeTestCase{
-		{args: wrapArgs(NewUnicode("foo")), want: NewInt(-4177197833195190597).ToObject()},
-		{args: wrapArgs(NewUnicode("bar")), want: NewInt(327024216814240868).ToObject()},
-		{args: wrapArgs(NewUnicode("baz")), want: NewInt(327024216814240876).ToObject()},
+		{args: wrapArgs(NewUnicode("foo")), want: NewInt(truncateInt(-4177197833195190597)).ToObject()},
+		{args: wrapArgs(NewUnicode("bar")), want: NewInt(truncateInt(327024216814240868)).ToObject()},
+		{args: wrapArgs(NewUnicode("baz")), want: NewInt(truncateInt(327024216814240876)).ToObject()},
 		{args: wrapArgs(NewUnicode("")), want: NewInt(0).ToObject()},
 	}
 	for _, cas := range cases {

@@ -152,7 +152,7 @@ func TestLongBinaryOps(t *testing.T) {
 		{Mod, MinInt, 1, NewLong(big.NewInt(0)).ToObject(), nil},
 		{Mul, 1, 3, NewLong(big.NewInt(3)).ToObject(), nil},
 		{Mul, newObject(ObjectType), 101, nil, mustCreateException(TypeErrorType, "unsupported operand type(s) for *: 'object' and 'long'")},
-		{Mul, 4294967295, 2147483649, NewLong(new(big.Int).Mul(big.NewInt(4294967295), big.NewInt(2147483649))).ToObject(), nil},
+		{Mul, int64(4294967295), int64(2147483649), NewLong(new(big.Int).Mul(big.NewInt(4294967295), big.NewInt(2147483649))).ToObject(), nil},
 		{Or, -100, 50, NewLong(big.NewInt(-66)).ToObject(), nil},
 		{Or, MaxInt, MinInt, NewLong(big.NewInt(-1)).ToObject(), nil},
 		{Or, newObject(ObjectType), 100, nil, mustCreateException(TypeErrorType, "unsupported operand type(s) for |: 'object' and 'long'")},
@@ -168,23 +168,29 @@ func TestLongBinaryOps(t *testing.T) {
 		switch casv := cas.v.(type) {
 		case int:
 			v = NewLong(big.NewInt(int64(casv))).ToObject()
+		case int64:
+			v = NewLong(big.NewInt(casv)).ToObject()
 		case *big.Int:
 			v = NewLong(casv).ToObject()
 		case *Object:
 			v = casv
 		default:
-			panic("invalid test case")
+			t.Errorf("invalid test case: %T", casv)
+			continue
 		}
 		w := (*Object)(nil)
 		switch casw := cas.w.(type) {
 		case int:
 			w = NewLong(big.NewInt(int64(casw))).ToObject()
+		case int64:
+			w = NewLong(big.NewInt(casw)).ToObject()
 		case *big.Int:
 			w = NewLong(casw).ToObject()
 		case *Object:
 			w = casw
 		default:
-			panic("invalid test case")
+			t.Errorf("invalid test case: %T", casw)
+			continue
 		}
 		testCase := invokeTestCase{args: wrapArgs(v, w), want: cas.want, wantExc: cas.wantExc}
 		if err := runInvokeTestCase(wrapFuncForTest(cas.fun), &testCase); err != "" {

@@ -119,7 +119,7 @@ func TestFloatCompare(t *testing.T) {
 
 func TestFloatInt(t *testing.T) {
 	cases := []invokeTestCase{
-		{args: wrapArgs(IntType, -3209539058.2), want: NewInt(-3209539058).ToObject()},
+		{args: wrapArgs(IntType, -1209539058.2), want: NewInt(-1209539058).ToObject()},
 		{args: wrapArgs(IntType, 2.994514758031654e+186), want: NewLong(func() *big.Int { i, _ := big.NewFloat(2.994514758031654e+186).Int(nil); return i }()).ToObject()},
 		{args: wrapArgs(IntType, math.Inf(1)), wantExc: mustCreateException(OverflowErrorType, "cannot convert float infinity to integer")},
 		{args: wrapArgs(IntType, math.Inf(-1)), wantExc: mustCreateException(OverflowErrorType, "cannot convert float infinity to integer")},
