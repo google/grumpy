@@ -92,6 +92,24 @@ func TestIntCompare(t *testing.T) {
 	}
 }
 
+func TestIntAbs(t *testing.T) {
+	cases := []invokeTestCase{
+		{args: wrapArgs(-42), want: NewInt(42).ToObject()},
+		{args: wrapArgs(0), want: NewInt(0).ToObject()},
+		{args: wrapArgs(42), want: NewInt(42).ToObject()},
+		// TODO(dhananjay92): Figure out a way to handle max-min ints safely.
+		// Currently, MaxInt overflows int type on some platforms.
+		// https://play.golang.org/p/ukNGfPjpAT has the smaller repro case.
+		// It overflows on linux/amd64, but works fine on playground.
+		// {args: wrapArgs(MaxInt), want: NewInt(MaxInt).ToObject()},
+	}
+	for _, c := range cases {
+		if err := runInvokeMethodTestCase(IntType, "__abs__", &c); err != "" {
+			t.Error(err)
+		}
+	}
+}
+
 func TestIntInvert(t *testing.T) {
 	cases := []invokeTestCase{
 		{args: wrapArgs(2592), want: NewInt(-2593).ToObject()},
