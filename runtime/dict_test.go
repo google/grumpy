@@ -24,7 +24,8 @@ import (
 
 // hashFoo is the hash of the string 'foo'. We use this to validate some corner
 // cases around hash collision below.
-var hashFoo = NewInt(-4177197833195190597).ToObject()
+// NOTE: Inline func helps support 32bit systems.
+var hashFoo = NewInt(func(i int64) int { return int(i) }(-4177197833195190597)).ToObject()
 
 func TestNewStringDict(t *testing.T) {
 	cases := []struct {

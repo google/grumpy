@@ -329,7 +329,7 @@ func TestHash(t *testing.T) {
 	}))
 	o := newObject(ObjectType)
 	cases := []invokeTestCase{
-		{args: wrapArgs("foo"), want: NewInt(-4177197833195190597).ToObject()},
+		{args: wrapArgs("foo"), want: hashFoo},
 		{args: wrapArgs(123), want: NewInt(123).ToObject()},
 		{args: wrapArgs(o), want: NewInt(int(uintptr(o.toPointer()))).ToObject()},
 		{args: wrapArgs(NewList()), wantExc: mustCreateException(TypeErrorType, "unhashable type: 'list'")},
@@ -464,7 +464,7 @@ func TestIsTrue(t *testing.T) {
 		// Int
 		{args: wrapArgs(0), want: False.ToObject()},
 		{args: wrapArgs(-1020), want: True.ToObject()},
-		{args: wrapArgs(3698391283), want: True.ToObject()},
+		{args: wrapArgs(1698391283), want: True.ToObject()},
 		// None
 		{args: wrapArgs(None), want: False.ToObject()},
 		// Object
