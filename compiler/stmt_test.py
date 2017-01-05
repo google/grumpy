@@ -303,6 +303,11 @@ class StatementVisitorTest(unittest.TestCase):
         print('abc', 123, sep='x')
         print('abc', 123, end=' ')""")))
 
+  def testUnimplementedFutureFeature(self):
+    regexp = r'future feature \w+ not yet implemented'
+    self.assertRaisesRegexp(util.ParseError, regexp, _ParseAndVisit,
+                            'from __future__ import division')
+
   def testRaiseExitStatus(self):
     self.assertEqual(1, _GrumpRun('raise Exception')[0])
 

@@ -451,23 +451,12 @@ func builtinPrint(f *Frame, args Args, kwargs KWArgs) (*Object, *BaseException) 
 			}
 			end = kwend.Value()
 		case "file":
-			// TODO: need to map Python sys.stdout, sys.stderr etc. to
-			// os.Stdout, os.Stderr, but for other file-like objects would need
-			// to recover to the file descriptor probably
+			// TODO: need to map Python sys.stdout, sys.stderr etc. to os.Stdout,
+			// os.Stderr, but for other file-like objects would need to recover
+			// to the file descriptor probably
 		}
 	}
-	for i, arg := range args {
-		if i > 0 {
-			fmt.Fprint(file, sep)
-		}
-		s, raised := ToStr(f, arg)
-		if raised != nil {
-			return nil, raised
-		}
-		fmt.Fprint(file, s.Value())
-	}
-	fmt.Fprint(file, end)
-	return nil, nil
+	return nil, pyPrint(f, args, sep, end, file)
 }
 
 func builtinRange(f *Frame, args Args, kwargs KWArgs) (*Object, *BaseException) {

@@ -16,6 +16,7 @@ package grumpy
 
 import (
 	"fmt"
+	"io"
 	"log"
 	"os"
 	"reflect"
@@ -549,27 +550,34 @@ func Next(f *Frame, iter *Object) (*Object, *BaseException) {
 	return next.Fn(f, iter)
 }
 
-// Print implements the Python print statement. It calls str() on the given args
-// and outputs the results to stdout separated by spaces. Similar to the Python
-// print statement.
-func Print(f *Frame, args Args, nl bool) *BaseException {
-	// TODO: Support outputting to files other than stdout and softspace.
+// pyPrint encapsulates the logic of the Python print function.
+func pyPrint(f *Frame, args Args, sep, end string, file io.Writer) *BaseException {
 	for i, arg := range args {
 		if i > 0 {
-			fmt.Print(" ")
+			fmt.Fprint(file, sep)
 		}
 		s, raised := ToStr(f, arg)
 		if raised != nil {
 			return raised
 		}
-		fmt.Print(s.Value())
+		fmt.Fprint(file, s.Value())
 	}
-	if nl {
-		fmt.Println()
-	} else if len(args) > 0 {
-		fmt.Print(" ")
-	}
+	fmt.Fprint(file, end)
 	return nil
+}
+
+// Print implements the Python print statement. It calls str() on the given args
+// and outputs the results to stdout separated by spaces. Similar to the Python
+// print statement.
+func Print(f *Frame, args Args, nl bool) *BaseException {
+	// TODO: Support outputting to files other than stdout and softspace.
+	var end string
+	if nl {
+		end = "\n"
+	} else if len(args) > 0 {
+		end = " "
+	}
+	return pyPrint(f, args, " ", end, os.Stdout)
 }
 
 // Repr returns a string containing a printable representation of o. This is

@@ -313,15 +313,12 @@ class StatementVisitor(ast.NodeVisitor):
       for alias in node.names:
         name = alias.name
         if name in future_features:
-          (flag, implemented) = future_features[name]
+          flag, implemented = future_features[name]
           if not implemented:
             msg = 'future feature {} not yet implemented by grumpy'.format(name)
-            raise util.ParseError(msg)
+            raise util.ParseError(node, msg)
           self.parser_flags |= flag
-        elif name in redundant_future_features:
-          # no-op
-          pass
-        else:
+        elif name not in redundant_future_features:
           msg = 'future feature {} is not defined'.format(name)
           raise util.ParseError(node, msg)
     else:
