@@ -20,13 +20,14 @@ def copysign(x,y):
 def fabs(x):
     return Abs(x)
 
-def factorial_helper(x, acc):
-    if x <= 1:
-        return acc
-    else:
-        return factorial_helper(x - 1, acc * x)
-
 def factorial(x):
+    
+    def factorial_helper(x, acc):
+        if x <= 1:
+            return acc
+        else:
+            return factorial_helper(x - 1, acc * x)
+    
     if x % 1 != 0 or x < 1:
         raise ValueError
     else:
