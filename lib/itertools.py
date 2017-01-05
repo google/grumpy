@@ -17,12 +17,13 @@
 import _collections
 import sys
 
-
 def chain(*iterables):
   for it in iterables:
     for element in it:
       yield element
 
+def compress(data, selectors):
+  return (d for d,s in izip(data, selectors) if s)
 
 def count(start=0, step=1):
   n = start
@@ -30,6 +31,42 @@ def count(start=0, step=1):
     yield n
     n += step
 
+def cycle(iterable):
+  saved = []
+  for element in iterable:
+    yield element
+    saved.append(element)
+  while saved:
+    for element in saved:
+      yield element
+
+def dropwhile(predicate, iterable):
+  iterable = iter(iterable)
+  for x in iterable:
+    if not predicate(x):
+      yield x
+      break
+  for x in iterable:
+    yield x
+
+def from_iterable(iterables):
+  for it in iterables:
+    for element in it:
+      yield element
+
+def ifilter(predicate, iterable):
+  if predicate is None:
+    predicate = bool
+  for x in iterable:
+    if predicate(x):
+       yield x
+
+def ifilterfalse(predicate, iterable):
+  if predicate is None:
+    predicate = bool
+  for x in iterable:
+    if not predicate(x):
+       yield x
 
 def imap(function, *iterables):
   iterables = map(iter, iterables)
@@ -40,7 +77,6 @@ def imap(function, *iterables):
     else:
       yield function(*args)
 
-
 def islice(iterable, *args):
   s = slice(*args)
   it = iter(xrange(s.start or 0, s.stop or sys.maxint, s.step or 1))
@@ -50,12 +86,10 @@ def islice(iterable, *args):
       yield element
       nexti = next(it)
 
-
 def izip(*iterables):
   iterators = map(iter, iterables)
   while iterators:
     yield tuple(map(next, iterators))
-
 
 def repeat(object, times=None):
   if times is None:
@@ -65,11 +99,16 @@ def repeat(object, times=None):
     for i in xrange(times):
       yield object
 
-
 def starmap(function, iterable):
   for args in iterable:
     yield function(*args)
 
+def takewhile(predicate, iterable):
+  for x in iterable:
+    if predicate(x):
+      yield x
+    else:
+      break
 
 def tee(iterable, n=2):
   it = iter(iterable)
