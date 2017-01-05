@@ -35,7 +35,7 @@ def TestCycle():
       break
   assert tuple(got) == want, 'tuple(cycle%s) == %s, want %s' % (arg, tuple(got), want)
 
-def testDropwhile():
+def TestDropwhile():
   r = range(10)
   cases = [
     ((lambda x: x < 5, r), (5, 6, 7, 8, 9)),
