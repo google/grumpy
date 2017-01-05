@@ -1,3 +1,4 @@
 language: go
+sudo: true
 install: pip install --upgrade pip
 script: make gofmt lint test
