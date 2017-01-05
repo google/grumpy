@@ -183,6 +183,13 @@ func initBuiltinType(typ *Type, info *builtinTypeInfo) {
 	}
 }
 
+func builtinAbs(f *Frame, args Args, _ KWArgs) (*Object, *BaseException) {
+	if raised := checkFunctionArgs(f, "abs", args, ObjectType); raised != nil {
+		return nil, raised
+	}
+	return Abs(f, args[0])
+}
+
 func builtinBin(f *Frame, args Args, _ KWArgs) (*Object, *BaseException) {
 	if raised := checkFunctionArgs(f, "bin", args, ObjectType); raised != nil {
 		return nil, raised
@@ -464,6 +471,7 @@ func builtinUniChr(f *Frame, args Args, _ KWArgs) (*Object, *BaseException) {
 func init() {
 	builtinMap := map[string]*Object{
 		"__frame__":      newBuiltinFunction("__frame__", builtinFrame).ToObject(),
+		"abs":            newBuiltinFunction("abs", builtinAbs).ToObject(),
 		"bin":            newBuiltinFunction("bin", builtinBin).ToObject(),
 		"chr":            newBuiltinFunction("chr", builtinChr).ToObject(),
 		"dir":            newBuiltinFunction("dir", builtinDir).ToObject(),
