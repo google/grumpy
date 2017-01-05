@@ -20,7 +20,7 @@ import (
 
 func TestRecursiveMutex(t *testing.T) {
 	var m recursiveMutex
-	f := newFrame(nil)
+	f := NewRootFrame()
 	m.Lock(f)
 	m.Lock(f)
 	m.Unlock(f)
@@ -29,7 +29,7 @@ func TestRecursiveMutex(t *testing.T) {
 
 func TestRecursiveMutexUnlockedTooManyTimes(t *testing.T) {
 	var m recursiveMutex
-	f := newFrame(nil)
+	f := NewRootFrame()
 	m.Lock(f)
 	m.Unlock(f)
 	oldLogFatal := logFatal
@@ -45,7 +45,7 @@ func TestRecursiveMutexUnlockedTooManyTimes(t *testing.T) {
 
 func TestRecursiveMutexUnlockFrameMismatch(t *testing.T) {
 	var m recursiveMutex
-	m.Lock(newFrame(nil))
+	m.Lock(NewRootFrame())
 	oldLogFatal := logFatal
 	logFatal = func(msg string) { panic(msg) }
 	defer func() {
@@ -54,5 +54,5 @@ func TestRecursiveMutexUnlockFrameMismatch(t *testing.T) {
 			t.Error("Unlock didn't call logFatal")
 		}
 	}()
-	m.Unlock(newFrame(nil))
+	m.Unlock(NewRootFrame())
 }

@@ -84,7 +84,7 @@ func TestPropertySet(t *testing.T) {
 }
 
 func TestMakeStructFieldDescriptor(t *testing.T) {
-	e := mustNotRaise(RuntimeErrorType.Call(newFrame(nil), wrapArgs("foo"), nil))
+	e := mustNotRaise(RuntimeErrorType.Call(NewRootFrame(), wrapArgs("foo"), nil))
 	fun := newBuiltinFunction("TestMakeStructFieldDescriptor", func(f *Frame, args Args, kwargs KWArgs) (*Object, *BaseException) {
 		if raised := checkMethodArgs(f, "TestMakeStructFieldDescriptor", args, TypeType, StrType, StrType, ObjectType); raised != nil {
 			return nil, raised

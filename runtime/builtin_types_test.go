@@ -21,7 +21,7 @@ import (
 )
 
 func TestBuiltinFuncs(t *testing.T) {
-	f := newFrame(nil)
+	f := NewRootFrame()
 	objectDir := ObjectType.dict.Keys(f)
 	objectDir.Sort(f)
 	fooType := newTestClass("Foo", []*Type{ObjectType}, newStringDict(map[string]*Object{"bar": None}))
@@ -179,7 +179,7 @@ func TestBuiltinFuncs(t *testing.T) {
 		{f: "unichr", args: wrapArgs(), wantExc: mustCreateException(TypeErrorType, "'unichr' requires 1 arguments")},
 	}
 	for _, cas := range cases {
-		fun := mustNotRaise(Builtins.GetItemString(newFrame(nil), cas.f))
+		fun := mustNotRaise(Builtins.GetItemString(NewRootFrame(), cas.f))
 		if fun == nil {
 			t.Fatalf("%s not found in builtins: %v", cas.f, Builtins)
 		}
@@ -191,7 +191,7 @@ func TestBuiltinFuncs(t *testing.T) {
 }
 
 func TestBuiltinGlobals(t *testing.T) {
-	f := newFrame(nil)
+	f := NewRootFrame()
 	f.globals = newTestDict("foo", 1, "bar", 2, 42, None)
 	globals := mustNotRaise(Builtins.GetItemString(f, "globals"))
 	got, raised := globals.Call(f, nil, nil)

@@ -666,7 +666,7 @@ func SetItem(f *Frame, o, key, value *Object) *BaseException {
 // StartThread runs callable in a new goroutine.
 func StartThread(callable *Object) {
 	go func() {
-		f := newFrame(nil)
+		f := NewRootFrame()
 		_, raised := callable.Call(f, nil, nil)
 		if raised != nil {
 			s, raised := FormatException(f, raised)

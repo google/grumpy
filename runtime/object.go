@@ -74,7 +74,7 @@ func (o *Object) String() string {
 	if o == nil {
 		return "nil"
 	}
-	s, raised := Repr(newFrame(nil), o)
+	s, raised := Repr(NewRootFrame(), o)
 	if raised != nil {
 		return fmt.Sprintf("<%s object (repr raised %s)>", o.typ.Name(), raised.typ.Name())
 	}

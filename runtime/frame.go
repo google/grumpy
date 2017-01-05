@@ -41,6 +41,11 @@ type Frame struct {
 	code        *Code `attr:"f_code"`
 }
 
+// NewRootFrame creates a Frame that is the bottom of a new stack.
+func NewRootFrame() *Frame {
+	return newFrame(nil)
+}
+
 // newFrame creates a new Frame whose parent frame is back.
 func newFrame(back *Frame) *Frame {
 	f := &Frame{Object: Object{typ: FrameType}}

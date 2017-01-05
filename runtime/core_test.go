@@ -42,7 +42,7 @@ func TestAssert(t *testing.T) {
 		}
 		return None, nil
 	}).ToObject()
-	emptyAssert := toBaseExceptionUnsafe(mustNotRaise(AssertionErrorType.Call(newFrame(nil), nil, nil)))
+	emptyAssert := toBaseExceptionUnsafe(mustNotRaise(AssertionErrorType.Call(NewRootFrame(), nil, nil)))
 	cases := []invokeTestCase{
 		{args: wrapArgs(true), want: None},
 		{args: wrapArgs(NewTuple(None)), want: None},
@@ -241,7 +241,7 @@ func TestDelItem(t *testing.T) {
 }
 
 func TestFormatException(t *testing.T) {
-	f := newFrame(nil)
+	f := NewRootFrame()
 	cases := []struct {
 		o    *Object
 		want string
@@ -531,9 +531,9 @@ func TestNext(t *testing.T) {
 	}).ToObject()
 	testElems := []*Object{NewInt(42).ToObject(), NewStr("foo").ToObject(), newObject(ObjectType)}
 	cases := []invokeTestCase{
-		{args: wrapArgs(mustNotRaise(Iter(newFrame(nil), NewTuple().ToObject()))), want: NewTuple().ToObject()},
-		{args: wrapArgs(mustNotRaise(Iter(newFrame(nil), NewTuple(testElems...).ToObject()))), want: NewTuple(testElems...).ToObject()},
-		{args: wrapArgs(mustNotRaise(Iter(newFrame(nil), NewList(testElems...).ToObject()))), want: NewTuple(testElems...).ToObject()},
+		{args: wrapArgs(mustNotRaise(Iter(NewRootFrame(), NewTuple().ToObject()))), want: NewTuple().ToObject()},
+		{args: wrapArgs(mustNotRaise(Iter(NewRootFrame(), NewTuple(testElems...).ToObject()))), want: NewTuple(testElems...).ToObject()},
+		{args: wrapArgs(mustNotRaise(Iter(NewRootFrame(), NewList(testElems...).ToObject()))), want: NewTuple(testElems...).ToObject()},
 		{args: wrapArgs(123), wantExc: mustCreateException(TypeErrorType, "int object is not an iterator")},
 	}
 	for _, cas := range cases {
@@ -599,7 +599,7 @@ func TestInvokePositionalArgs(t *testing.T) {
 		{NewList(NewFloat(3.14).ToObject()).ToObject(), []*Object{NewStr("foo").ToObject()}, NewTuple(NewStr("foo").ToObject(), NewFloat(3.14).ToObject()).ToObject()},
 	}
 	for _, cas := range cases {
-		got, raised := Invoke(newFrame(nil), fun, cas.args, cas.varargs, nil, nil)
+		got, raised := Invoke(NewRootFrame(), fun, cas.args, cas.varargs, nil, nil)
 		switch checkResult(got, cas.want, raised, nil) {
 		case checkInvokeResultExceptionMismatch:
 			t.Errorf("PackArgs(%v, %v) raised %v, want nil", cas.args, cas.varargs, raised)
@@ -618,7 +618,7 @@ func TestInvokeKeywordArgs(t *testing.T) {
 		return newStringDict(got).ToObject(), nil
 	}).ToObject()
 	d := NewDict()
-	d.SetItem(newFrame(nil), NewInt(123).ToObject(), None)
+	d.SetItem(NewRootFrame(), NewInt(123).ToObject(), None)
 	cases := []struct {
 		keywords KWArgs
 		kwargs   *Object
@@ -633,7 +633,7 @@ func TestInvokeKeywordArgs(t *testing.T) {
 		{nil, d.ToObject(), nil, mustCreateException(TypeErrorType, "keywords must be strings")},
 	}
 	for _, cas := range cases {
-		got, raised := Invoke(newFrame(nil), fun, nil, nil, cas.keywords, cas.kwargs)
+		got, raised := Invoke(NewRootFrame(), fun, nil, nil, cas.keywords, cas.kwargs)
 		switch checkResult(got, cas.want, raised, cas.wantExc) {
 		case checkInvokeResultExceptionMismatch:
 			t.Errorf("PackKwargs(%v, %v) raised %v, want %v", cas.keywords, cas.kwargs, raised, cas.wantExc)
@@ -659,7 +659,7 @@ func TestPrint(t *testing.T) {
 		go func() {
 			defer close(done)
 			defer w.Close()
-			raised = Print(newFrame(nil), args.elems, nl)
+			raised = Print(NewRootFrame(), args.elems, nl)
 		}()
 		var buf bytes.Buffer
 		if _, err := io.Copy(&buf, r); err != nil {
@@ -716,7 +716,7 @@ func TestReprMethodReturnsNonStr(t *testing.T) {
 			return None, nil
 		}).ToObject(),
 	}))
-	_, raised := Repr(newFrame(nil), newObject(typ))
+	_, raised := Repr(NewRootFrame(), newObject(typ))
 	wantExc := mustCreateException(TypeErrorType, "__repr__ returned non-string (type NoneType)")
 	if !exceptionsAreEquivalent(raised, wantExc) {
 		t.Errorf(`Repr() raised %v, want %v`, raised, wantExc)
@@ -724,7 +724,7 @@ func TestReprMethodReturnsNonStr(t *testing.T) {
 }
 
 func TestResolveClass(t *testing.T) {
-	f := newFrame(nil)
+	f := NewRootFrame()
 	cases := []struct {
 		class   *Dict
 		local   *Object
@@ -879,7 +879,7 @@ func TestTie(t *testing.T) {
 			targets[i] = nil
 		}
 		var got *Object
-		raised := Tie(newFrame(nil), cas.t, cas.o)
+		raised := Tie(NewRootFrame(), cas.t, cas.o)
 		if raised == nil {
 			var elems []*Object
 			for _, t := range targets {
@@ -912,7 +912,7 @@ func TestToNative(t *testing.T) {
 		{foo, foo, nil},
 	}
 	for _, cas := range cases {
-		got, raised := ToNative(newFrame(nil), cas.o)
+		got, raised := ToNative(NewRootFrame(), cas.o)
 		if !exceptionsAreEquivalent(raised, cas.wantExc) {
 			t.Errorf("ToNative(%v) raised %v, want %v", cas.o, raised, cas.wantExc)
 		} else if raised == nil && (!got.IsValid() || !reflect.DeepEqual(got.Interface(), cas.want)) {
@@ -939,7 +939,7 @@ func exceptionsAreEquivalent(e1 *BaseException, e2 *BaseException) bool {
 	if e1.args == nil || e2.args == nil {
 		return false
 	}
-	f := newFrame(nil)
+	f := NewRootFrame()
 	b, raised := IsTrue(f, mustNotRaise(Eq(f, e1.args.ToObject(), e2.args.ToObject())))
 	if raised != nil {
 		panic(raised)

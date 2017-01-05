@@ -287,7 +287,7 @@ func RunMain(code *Code) int {
 	}
 	m := newModule("__main__", code.filename)
 	m.state = moduleStateInitializing
-	f := newFrame(nil)
+	f := NewRootFrame()
 	if raised := SysModules.SetItemString(f, "__main__", m.ToObject()); raised != nil {
 		fmt.Fprint(os.Stderr, raised.String())
 	}

@@ -251,7 +251,7 @@ func TestFileStrRepr(t *testing.T) {
 	f := newTestFile("foo\nbar")
 	defer f.cleanup()
 	closedFile := f.open("r").ToObject()
-	mustNotRaise(fileClose(newFrame(nil), []*Object{closedFile}, nil))
+	mustNotRaise(fileClose(NewRootFrame(), []*Object{closedFile}, nil))
 	// Open a file for write.
 	writeFile := f.open("wb")
 	cases := []invokeTestCase{
@@ -350,7 +350,7 @@ func (f *testFile) cleanup() {
 
 func (f *testFile) open(mode string) *File {
 	args := wrapArgs(f.path, mode)
-	o := mustNotRaise(FileType.Call(newFrame(nil), args, nil))
+	o := mustNotRaise(FileType.Call(NewRootFrame(), args, nil))
 	if o == nil || !o.isInstance(FileType) {
 		panic(fmt.Sprintf("file%v = %v, want file object", args, o))
 	}

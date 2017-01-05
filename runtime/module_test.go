@@ -21,7 +21,7 @@ import (
 )
 
 func TestImportModule(t *testing.T) {
-	f := newFrame(nil)
+	f := NewRootFrame()
 	invalidModule := newObject(ObjectType)
 	foo := newTestModule("foo", "foo/__init__.py")
 	bar := newTestModule("foo.bar", "foo/bar/__init__.py")
@@ -185,7 +185,7 @@ func TestImportModule(t *testing.T) {
 }
 
 func TestImportNativeModule(t *testing.T) {
-	f := newFrame(nil)
+	f := NewRootFrame()
 	oldSysModules := SysModules
 	defer func() {
 		SysModules = oldSysModules
@@ -218,7 +218,7 @@ func TestModuleGetNameAndFilename(t *testing.T) {
 	})
 	cases := []invokeTestCase{
 		{args: wrapArgs(newModule("foo", "foo.py")), want: newTestTuple("foo", "foo.py").ToObject()},
-		{args: Args{mustNotRaise(ModuleType.Call(newFrame(nil), wrapArgs("foo"), nil))}, wantExc: mustCreateException(SystemErrorType, "module filename missing")},
+		{args: Args{mustNotRaise(ModuleType.Call(NewRootFrame(), wrapArgs("foo"), nil))}, wantExc: mustCreateException(SystemErrorType, "module filename missing")},
 		{args: wrapArgs(&Module{Object: Object{typ: ModuleType, dict: NewDict()}}), wantExc: mustCreateException(SystemErrorType, "nameless module")},
 	}
 	for _, cas := range cases {
@@ -261,7 +261,7 @@ func TestModuleStrRepr(t *testing.T) {
 	cases := []invokeTestCase{
 		{args: wrapArgs(newModule("foo", "<test>")), want: NewStr("<module 'foo' from '<test>'>").ToObject()},
 		{args: wrapArgs(newModule("foo.bar.baz", "<test>")), want: NewStr("<module 'foo.bar.baz' from '<test>'>").ToObject()},
-		{args: Args{mustNotRaise(ModuleType.Call(newFrame(nil), wrapArgs("foo"), nil))}, want: NewStr("<module 'foo' (built-in)>").ToObject()},
+		{args: Args{mustNotRaise(ModuleType.Call(NewRootFrame(), wrapArgs("foo"), nil))}, want: NewStr("<module 'foo' (built-in)>").ToObject()},
 		{args: wrapArgs(&Module{Object: Object{typ: ModuleType, dict: newTestDict("__file__", "foo.py")}}), want: NewStr("<module '?' from 'foo.py'>").ToObject()},
 	}
 	for _, cas := range cases {
@@ -332,7 +332,7 @@ func runMainAndCaptureStderr(code *Code) (int, string, error) {
 var testModuleType *Type
 
 func init() {
-	testModuleType, _ = newClass(newFrame(nil), TypeType, "testModule", []*Type{ModuleType}, newStringDict(map[string]*Object{
+	testModuleType, _ = newClass(NewRootFrame(), TypeType, "testModule", []*Type{ModuleType}, newStringDict(map[string]*Object{
 		"__eq__": newBuiltinFunction("__eq__", func(f *Frame, args Args, kwargs KWArgs) (*Object, *BaseException) {
 			if raised := checkMethodArgs(f, "__eq__", args, ModuleType, ObjectType); raised != nil {
 				return nil, raised

@@ -40,7 +40,7 @@ func TestFunctionCall(t *testing.T) {
 }
 
 func TestFunctionGet(t *testing.T) {
-	appendMethod := mustNotRaise(GetAttr(newFrame(nil), NewList().ToObject(), NewStr("append"), nil))
+	appendMethod := mustNotRaise(GetAttr(NewRootFrame(), NewList().ToObject(), NewStr("append"), nil))
 	if !appendMethod.isInstance(MethodType) {
 		t.Errorf("list.append = %v, want instancemethod", appendMethod)
 	}

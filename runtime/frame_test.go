@@ -27,7 +27,7 @@ const (
 )
 
 func TestFrameArgsCache(t *testing.T) {
-	f := newFrame(nil)
+	f := NewRootFrame()
 	args1 := f.MakeArgs(0)
 	if args1 != nil {
 		t.Errorf("f.MakeArgs(0) = %v, want nil", args1)
@@ -73,7 +73,7 @@ func TestFramePopCheckpoint(t *testing.T) {
 		{[]RunState{testRunStateDone, testRunStateStart}, testRunStateStart, testRunStateDone},
 	}
 	for _, cas := range cases {
-		f := newFrame(nil)
+		f := NewRootFrame()
 		for _, state := range cas.states {
 			f.PushCheckpoint(state)
 		}
@@ -89,7 +89,7 @@ func TestFramePopCheckpoint(t *testing.T) {
 }
 
 func TestFramePushCheckpoint(t *testing.T) {
-	f := newFrame(nil)
+	f := NewRootFrame()
 	states := []RunState{testRunStateStart, testRunStateDone}
 	for _, state := range states {
 		f.PushCheckpoint(state)
@@ -102,8 +102,8 @@ func TestFramePushCheckpoint(t *testing.T) {
 }
 
 func TestFrameRaise(t *testing.T) {
-	f := newFrame(nil)
-	raisedFrame := newFrame(nil)
+	f := NewRootFrame()
+	raisedFrame := NewRootFrame()
 	raisedFrame.RestoreExc(mustCreateException(ValueErrorType, "foo"), newTraceback(raisedFrame, nil))
 	tb := newTraceback(f, nil)
 	multiArgExc := toBaseExceptionUnsafe(mustNotRaise(ExceptionType.Call(f, []*Object{None, None}, nil)))
@@ -112,7 +112,7 @@ func TestFrameRaise(t *testing.T) {
 			return NewStr("Bar").ToObject(), nil
 		}).ToObject(),
 	}))
-	otherTB := newTraceback(newFrame(nil), nil)
+	otherTB := newTraceback(NewRootFrame(), nil)
 	cases := []struct {
 		f       *Frame
 		typ     *Object
@@ -161,7 +161,7 @@ func TestFrameRaiseType(t *testing.T) {
 	}).ToObject()
 	cases := []invokeTestCase{
 		{args: wrapArgs(TypeErrorType, "bar"), wantExc: mustCreateException(TypeErrorType, "bar")},
-		{args: wrapArgs(ExceptionType, ""), wantExc: toBaseExceptionUnsafe(mustNotRaise(ExceptionType.Call(newFrame(nil), wrapArgs(""), nil)))},
+		{args: wrapArgs(ExceptionType, ""), wantExc: toBaseExceptionUnsafe(mustNotRaise(ExceptionType.Call(NewRootFrame(), wrapArgs(""), nil)))},
 		{args: wrapArgs(TupleType, "foo"), wantExc: mustCreateException(TypeErrorType, `exceptions must be derived from BaseException, not "tuple"`)},
 	}
 	for _, cas := range cases {
@@ -173,9 +173,9 @@ func TestFrameRaiseType(t *testing.T) {
 
 func TestReprEnterLeave(t *testing.T) {
 	o := newObject(ObjectType)
-	parent := newFrame(nil)
+	parent := NewRootFrame()
 	child := newFrame(parent)
-	wantParent := newFrame(nil)
+	wantParent := NewRootFrame()
 	wantParent.reprState = map[*Object]bool{o: true}
 	child.reprEnter(o)
 	// After child.reprEnter(), expect the parent's reprState to contain o.
@@ -196,7 +196,7 @@ func TestReprEnterLeave(t *testing.T) {
 }
 
 func TestFrameRoot(t *testing.T) {
-	f1 := newFrame(nil)
+	f1 := NewRootFrame()
 	f2 := newFrame(f1)
 	frames := []*Frame{f1, f2, newFrame(f2)}
 	for _, f := range frames {
@@ -207,12 +207,12 @@ func TestFrameRoot(t *testing.T) {
 }
 
 func TestFrameExcInfo(t *testing.T) {
-	raisedFrame := newFrame(nil)
+	raisedFrame := NewRootFrame()
 	raisedExc := mustCreateException(ValueErrorType, "foo")
 	raisedTB := newTraceback(raisedFrame, nil)
 	raisedFrame.RestoreExc(raisedExc, raisedTB)
 	cases := []invokeTestCase{
-		{args: wrapArgs(newFrame(nil)), want: NewTuple(None, None).ToObject()},
+		{args: wrapArgs(NewRootFrame()), want: NewTuple(None, None).ToObject()},
 		{args: wrapArgs(raisedFrame), want: newTestTuple(raisedExc, raisedTB).ToObject()},
 	}
 	for _, cas := range cases {
@@ -244,7 +244,7 @@ func checkResult(got, want *Object, gotExc, wantExc *BaseException) checkInvokeR
 			exceptionsAreEquivalent(toBaseExceptionUnsafe(got), toBaseExceptionUnsafe(want)) {
 			return checkInvokeResultOk
 		}
-		f := newFrame(nil)
+		f := NewRootFrame()
 		eq, raised := Eq(f, got, want)
 		if raised != nil {
 			panic(raised)
@@ -265,7 +265,7 @@ func checkInvokeResult(callable *Object, args Args, wantRet *Object, wantExc *Ba
 }
 
 func checkInvokeResultKwargs(callable *Object, args Args, kwargs KWArgs, wantRet *Object, wantExc *BaseException) (*Object, checkInvokeResultType) {
-	ret, raised := callable.Call(newFrame(nil), args, kwargs)
+	ret, raised := callable.Call(NewRootFrame(), args, kwargs)
 	switch checkResult(ret, wantRet, raised, wantExc) {
 	case checkInvokeResultExceptionMismatch:
 		if raised == nil {
@@ -287,7 +287,7 @@ type invokeTestCase struct {
 }
 
 func runInvokeTestCase(callable *Object, cas *invokeTestCase) string {
-	f := newFrame(nil)
+	f := NewRootFrame()
 	name := mustNotRaise(GetAttr(f, callable, NewStr("__name__"), NewStr("<unknown>").ToObject()))
 	if !name.isInstance(StrType) {
 		return fmt.Sprintf("%v.__name__ is not a string", callable)
@@ -309,6 +309,6 @@ func runInvokeTestCase(callable *Object, cas *invokeTestCase) string {
 }
 
 func runInvokeMethodTestCase(t *Type, methodName string, cas *invokeTestCase) string {
-	method := mustNotRaise(GetAttr(newFrame(nil), t.ToObject(), NewStr(methodName), nil))
+	method := mustNotRaise(GetAttr(NewRootFrame(), t.ToObject(), NewStr(methodName), nil))
 	return runInvokeTestCase(method, cas)
 }

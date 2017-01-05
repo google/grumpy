@@ -44,7 +44,7 @@ func TestSetAdd(t *testing.T) {
 }
 
 func TestSetContains(t *testing.T) {
-	f := newFrame(nil)
+	f := NewRootFrame()
 	for _, typ := range []*Type{SetType, FrozenSetType} {
 		cases := []invokeTestCase{
 			{args: wrapArgs(mustNotRaise(typ.Call(f, nil, nil)), "foo"), want: False.ToObject()},
@@ -97,13 +97,13 @@ func TestSetCompare(t *testing.T) {
 		{args: wrapArgs(newTestSet(1, 2, 3), newTestSet(3, 2, 1)), want: compareAllResultEq},
 		{args: wrapArgs(newTestSet("foo", 3.14), newObject(ObjectType)), want: newTestTuple(false, false, false, true, true, true).ToObject()},
 		{args: wrapArgs(123, newTestSet("baz")), want: newTestTuple(true, true, false, true, false, false).ToObject()},
-		{args: wrapArgs(mustNotRaise(SetType.Call(newFrame(nil), wrapArgs(newTestRange(100)), nil)), mustNotRaise(SetType.Call(newFrame(nil), wrapArgs(newTestRange(100)), nil))), want: compareAllResultEq},
+		{args: wrapArgs(mustNotRaise(SetType.Call(NewRootFrame(), wrapArgs(newTestRange(100)), nil)), mustNotRaise(SetType.Call(NewRootFrame(), wrapArgs(newTestRange(100)), nil))), want: compareAllResultEq},
 		{args: wrapArgs(modifiedSet, newTestSet(newObject(modifiedType))), wantExc: mustCreateException(RuntimeErrorType, "set changed during iteration")},
 		{args: wrapArgs(newTestFrozenSet(), newTestFrozenSet("foo")), want: compareAllResultLT},
 		{args: wrapArgs(newTestFrozenSet(1, 2, 3), newTestFrozenSet(3, 2, 1)), want: compareAllResultEq},
 		{args: wrapArgs(newTestFrozenSet("foo", 3.14), newObject(ObjectType)), want: newTestTuple(true, true, false, true, false, false).ToObject()},
 		{args: wrapArgs(123, newTestFrozenSet("baz")), want: newTestTuple(false, false, false, true, true, true).ToObject()},
-		{args: wrapArgs(mustNotRaise(FrozenSetType.Call(newFrame(nil), wrapArgs(newTestRange(100)), nil)), mustNotRaise(FrozenSetType.Call(newFrame(nil), wrapArgs(newTestRange(100)), nil))), want: compareAllResultEq},
+		{args: wrapArgs(mustNotRaise(FrozenSetType.Call(NewRootFrame(), wrapArgs(newTestRange(100)), nil)), mustNotRaise(FrozenSetType.Call(NewRootFrame(), wrapArgs(newTestRange(100)), nil))), want: compareAllResultEq},
 		{args: wrapArgs(newTestFrozenSet(), NewSet()), want: newTestTuple(false, true, true, false, true, false).ToObject()},
 		{args: wrapArgs(newTestSet("foo", "bar"), newTestFrozenSet("foo", "bar")), want: newTestTuple(false, true, true, false, true, false).ToObject()},
 	}
@@ -115,7 +115,7 @@ func TestSetCompare(t *testing.T) {
 }
 
 func TestSetIsSubset(t *testing.T) {
-	f := newFrame(nil)
+	f := NewRootFrame()
 	for _, typ := range []*Type{SetType, FrozenSetType} {
 		cases := []invokeTestCase{
 			{args: wrapArgs(mustNotRaise(typ.Call(f, nil, nil)), newTestSet("foo")), want: True.ToObject()},
@@ -136,7 +136,7 @@ func TestSetIsSubset(t *testing.T) {
 }
 
 func TestSetIsSuperset(t *testing.T) {
-	f := newFrame(nil)
+	f := NewRootFrame()
 	for _, typ := range []*Type{SetType, FrozenSetType} {
 		cases := []invokeTestCase{
 			{args: wrapArgs(mustNotRaise(typ.Call(f, nil, nil)), newTestSet("foo")), want: False.ToObject()},
@@ -155,7 +155,7 @@ func TestSetIsSuperset(t *testing.T) {
 }
 
 func TestSetIsTrue(t *testing.T) {
-	f := newFrame(nil)
+	f := NewRootFrame()
 	for _, typ := range []*Type{SetType, FrozenSetType} {
 		cases := []invokeTestCase{
 			{args: wrapArgs(mustNotRaise(typ.Call(f, nil, nil))), want: False.ToObject()},
@@ -197,7 +197,7 @@ func TestSetIter(t *testing.T) {
 }
 
 func TestSetLen(t *testing.T) {
-	f := newFrame(nil)
+	f := NewRootFrame()
 	for _, typ := range []*Type{SetType, FrozenSetType} {
 		cases := []invokeTestCase{
 			{args: wrapArgs(mustNotRaise(typ.Call(f, nil, nil))), want: NewInt(0).ToObject()},
@@ -212,7 +212,7 @@ func TestSetLen(t *testing.T) {
 }
 
 func TestSetNewInit(t *testing.T) {
-	f := newFrame(nil)
+	f := NewRootFrame()
 	for _, typ := range []*Type{SetType, FrozenSetType} {
 		cases := []invokeTestCase{
 			{want: NewSet().ToObject()},
@@ -300,7 +300,7 @@ func TestSetUpdate(t *testing.T) {
 }
 
 func newTestSet(elems ...interface{}) *Set {
-	f := newFrame(nil)
+	f := NewRootFrame()
 	wrappedElems, raised := seqWrapEach(f, elems...)
 	if raised != nil {
 		panic(raised)
@@ -315,7 +315,7 @@ func newTestSet(elems ...interface{}) *Set {
 }
 
 func newTestFrozenSet(elems ...interface{}) *FrozenSet {
-	f := newFrame(nil)
+	f := NewRootFrame()
 	wrappedElems, raised := seqWrapEach(f, elems...)
 	if raised != nil {
 		panic(raised)

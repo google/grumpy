@@ -161,7 +161,7 @@ func TestFloatIsTrue(t *testing.T) {
 }
 
 func TestFloatNew(t *testing.T) {
-	floatNew := mustNotRaise(GetAttr(newFrame(nil), FloatType.ToObject(), NewStr("__new__"), nil))
+	floatNew := mustNotRaise(GetAttr(NewRootFrame(), FloatType.ToObject(), NewStr("__new__"), nil))
 	strictEqType := newTestClassStrictEq("StrictEq", FloatType)
 	subType := newTestClass("SubType", []*Type{FloatType}, newStringDict(map[string]*Object{}))
 	subTypeObject := (&Float{Object: Object{typ: subType}, value: 3.14}).ToObject()
