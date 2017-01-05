@@ -159,7 +159,7 @@ $(PYLINT_BIN):
 	@pip install --install-option=--install-scripts='$(ROOT_DIR)/build/bin' --target '$(PY_DIR)' pylint
 
 pylint: $(PYLINT_BIN)
-	@$(PYLINT_BIN) compiler/*.py tools/{benchcmp,coverparse,diffrange,grumpc,grumprun}
+	@$(PYLINT_BIN) compiler/*.py $(addprefix tools/,benchcmp coverparse diffrange grumpc grumprun)
 
 lint: golint pylint
 
