@@ -1,4 +1,4 @@
-"""Generate pseudo random numbers. Should not be used for security purposes"""
+"""Generate pseudo random numbers. Should not be used for security purposes."""
 
 from __go__.math.rand import Float64, Seed
 from __go__.time import Now
