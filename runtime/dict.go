@@ -202,14 +202,14 @@ func (t *dictTable) writeEntry(f *Frame, index int, entry *dictEntry) (*dictTabl
 // dictEntryIterator is used to iterate over the entries in a dictTable in an
 // arbitrary order.
 type dictEntryIterator struct {
-	table *dictTable
 	index int64
+	table *dictTable
 }
 
 // newDictEntryIterator creates a dictEntryIterator object for d. It assumes
 // that d.mutex is held by the caller.
 func newDictEntryIterator(d *Dict) *dictEntryIterator {
-	return &dictEntryIterator{d.loadTable(), 0}
+	return &dictEntryIterator{table: d.loadTable()}
 }
 
 // next advances this iterator to the next occupied entry and returns it. The
@@ -219,6 +219,10 @@ func (iter *dictEntryIterator) next() *dictEntry {
 	numEntries := len(iter.table.entries)
 	var entry *dictEntry
 	for entry == nil {
+		// 64bit atomic ops need to be 8 byte aligned. This compile time check
+		// verifies alignment by creating a negative constant for an unsigned type.
+		// See sync/atomic docs for details.
+		const _ = -(unsafe.Offsetof(iter.index) % 8)
 		index := int(atomic.AddInt64(&iter.index, 1)) - 1
 		if index >= numEntries {
 			break
@@ -295,11 +299,19 @@ func (d *Dict) storeTable(table *dictTable) {
 
 // loadVersion atomically loads and returns d's version.
 func (d *Dict) loadVersion() int64 {
+	// 64bit atomic ops need to be 8 byte aligned. This compile time check
+	// verifies alignment by creating a negative constant for an unsigned type.
+	// See sync/atomic docs for details.
+	const _ = -(unsafe.Offsetof(d.version) % 8)
 	return atomic.LoadInt64(&d.version)
 }
 
 // incVersion atomically increments d's version.
 func (d *Dict) incVersion() {
+	// 64bit atomic ops need to be 8 byte aligned. This compile time check
+	// verifies alignment by creating a negative constant for an unsigned type.
+	// See sync/atomic docs for details.
+	const _ = -(unsafe.Offsetof(d.version) % 8)
 	atomic.AddInt64(&d.version, 1)
 }
 
