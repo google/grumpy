@@ -15,6 +15,7 @@
 """"Utilities for manipulating and inspecting OS paths."""
 
 from __go__.path.filepath import Clean as normpath, IsAbs as isabs, Join, Dir as dirname  # pylint: disable=g-multiple-import,unused-import
+from __go__.os import Stat
 
 
 # NOTE(compatibility): This method uses Go's filepath.Join() method which
@@ -35,3 +36,24 @@ def join(*paths):
   if result and not paths[-1]:
     result += '/'
   return result
+
+
+def exists(path):
+  _, err = Stat(path)
+  if err is None:
+    return True
+  return False
+
+
+def isdir(path):
+  info, err = Stat(path)
+  if info and err is None:
+    return info.Mode().IsDir()
+  return False
+
+
+def isfile(path):
+  info, err = Stat(path)
+  if info and err is None:
+    return info.Mode().IsRegular()
+  return False

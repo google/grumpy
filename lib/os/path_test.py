@@ -14,10 +14,12 @@
 
 # pylint: disable=g-import-not-at-top
 
+import os
 import os.path
 path = os.path
 
 import weetest
+import tempfile
 
 
 def TestIsAbs():
@@ -52,6 +54,39 @@ def TestNormPath():
 def TestDirname():
   assert path.dirname('/a/b/c') == '/a/b'
   assert path.dirname('/a/b/c/') == '/a/b/c'
+
+
+def TestExists():
+  _, file_path = tempfile.mkstemp()
+  dir_path = tempfile.mkdtemp()
+  try:
+    assert path.exists(file_path)
+    assert path.exists(dir_path)
+  finally:
+    os.remove(file_path)
+    os.rmdir(dir_path)
+
+
+def TestIsDir():
+  _, file_path = tempfile.mkstemp()
+  dir_path = tempfile.mkdtemp()
+  try:
+    assert not path.isdir(file_path)
+    assert path.isdir(dir_path)
+  finally:
+    os.remove(file_path)
+    os.rmdir(dir_path)
+
+
+def TestIsFile():
+  _, file_path = tempfile.mkstemp()
+  dir_path = tempfile.mkdtemp()
+  try:
+    assert path.isfile(file_path)
+    assert not path.isfile(dir_path)
+  finally:
+    os.remove(file_path)
+    os.rmdir(dir_path)
 
 
 if __name__ == '__main__':
