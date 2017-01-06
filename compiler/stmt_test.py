@@ -293,9 +293,51 @@ class StatementVisitorTest(unittest.TestCase):
         print '123'
         print 'foo', 'bar'""")))
 
+  def testFutureImportProcessingRules(self):
+    class testcase(object):
+      def __init__(self, source, syntax_error=False):
+        self.source = source
+        self.syntax_error = syntax_error
+
+    err = r'from __future__ imports must occur at the beginning of the file'
+
+    tests = [
+      testcase('from __future__ import print_function'),
+      testcase("""
+        "module docstring"
+        from __future__ import with_statement
+      """),
+      testcase("""
+        asd = 123
+        from __future__ import with_statement
+      """, syntax_error=True),
+      testcase("""
+        from __future__ import with_statement
+        from __future__ import print_function
+      """),
+      testcase("""
+        import os
+        from __future__ import with_statement
+      """, syntax_error=True),
+      testcase("""
+        def foo():
+            from __future__ import with_statement
+      """, syntax_error=True),
+    ]
+
+    for tc in tests:
+      if not tc.syntax_error:
+        exit_code, _ = _GrumpRun(textwrap.dedent(tc.source))
+        self.assertEqual(0, exit_code)
+      else:
+        self.assertRaisesRegexp(
+          util.ParseError, err, _ParseAndVisit,
+          textwrap.dedent(tc.source))
+
   def testFutureFeaturePrintFunction(self):
     want = "abc\n123\nabc 123\nabcx123\nabc 123 "
     self.assertEqual((0, want), _GrumpRun(textwrap.dedent("""\
+        "module docstring is ok to proceed __future__"
         from __future__ import print_function
         print('abc')
         print(123)
@@ -307,6 +349,10 @@ class StatementVisitorTest(unittest.TestCase):
     regexp = r'future feature \w+ not yet implemented'
     self.assertRaisesRegexp(util.ParseError, regexp, _ParseAndVisit,
                             'from __future__ import division')
+
+  def testMatchCPythonFutureBraces(self):
+    self.assertRaisesRegexp(util.ParseError, 'not a chance', _ParseAndVisit,
+                            'from __future__ import braces')
 
   def testRaiseExitStatus(self):
     self.assertEqual(1, _GrumpRun('raise Exception')[0])
