@@ -45,14 +45,8 @@ type File struct {
 func NewFileFromFD(fd uintptr) *File {
 	// TODO: Use fcntl or something to get the mode of the descriptor.
 	file := &File{Object: Object{typ: FileType}, mode: "?", open: true, file: os.NewFile(fd, "<fdopen>")}
-	initFileReader(file)
+	file.reader = bufio.NewReader(file.file)
 	return file
-}
-
-func initFileReader(file *File) {
-	if file != nil && file.file != nil {
-		file.reader = bufio.NewReader(file.file)
-	}
 }
 
 func toFileUnsafe(o *Object) *File {
