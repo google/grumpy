@@ -294,7 +294,7 @@ class StatementVisitorTest(unittest.TestCase):
         print 'foo', 'bar'""")))
 
   def testFutureImportProcessingRules(self):
-    class testcase(object):
+    class TestCase(object):
       def __init__(self, source, syntax_error=False):
         self.source = source
         self.syntax_error = syntax_error
@@ -302,27 +302,27 @@ class StatementVisitorTest(unittest.TestCase):
     err = r'from __future__ imports must occur at the beginning of the file'
 
     tests = [
-      testcase('from __future__ import print_function'),
-      testcase("""
-        "module docstring"
-        from __future__ import with_statement
-      """),
-      testcase("""
-        asd = 123
-        from __future__ import with_statement
-      """, syntax_error=True),
-      testcase("""
-        from __future__ import with_statement
-        from __future__ import print_function
-      """),
-      testcase("""
-        import os
-        from __future__ import with_statement
-      """, syntax_error=True),
-      testcase("""
-        def foo():
-            from __future__ import with_statement
-      """, syntax_error=True),
+        TestCase('from __future__ import print_function'),
+        TestCase("""
+          "module docstring"
+          from __future__ import with_statement
+        """),
+        TestCase("""
+          asd = 123
+          from __future__ import with_statement
+        """, syntax_error=True),
+        TestCase("""
+          from __future__ import with_statement
+          from __future__ import print_function
+        """),
+        TestCase("""
+          import os
+          from __future__ import with_statement
+        """, syntax_error=True),
+        TestCase("""
+          def foo():
+              from __future__ import with_statement
+        """, syntax_error=True),
     ]
 
     for tc in tests:
@@ -331,8 +331,8 @@ class StatementVisitorTest(unittest.TestCase):
         self.assertEqual(0, exit_code)
       else:
         self.assertRaisesRegexp(
-          util.ParseError, err, _ParseAndVisit,
-          textwrap.dedent(tc.source))
+            util.ParseError, err, _ParseAndVisit,
+            textwrap.dedent(tc.source))
 
   def testFutureFeaturePrintFunction(self):
     want = "abc\n123\nabc 123\nabcx123\nabc 123 "

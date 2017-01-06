@@ -34,19 +34,19 @@ _nil_expr = expr.nil_expr
 
 # Parser flags, set on 'from __future__ import *', see parser_flags on
 # StatementVisitor below. Note these have the same values as CPython.
-FUTURE_DIVISION         =  0x2000
-FUTURE_ABSOLUTE_IMPORT  =  0x4000
-FUTURE_PRINT_FUNCTION   = 0x10000
+FUTURE_DIVISION = 0x2000
+FUTURE_ABSOLUTE_IMPORT = 0x4000
+FUTURE_PRINT_FUNCTION = 0x10000
 FUTURE_UNICODE_LITERALS = 0x20000
 
 # Names for future features in 'from __future__ import *'. Map from name in the
 # import statement to a tuple of the flag for parser, and whether we've (grumpy)
 # implemented the feature yet.
 future_features = {
-  "division"         : (FUTURE_DIVISION, False),
-  "absolute_import"  : (FUTURE_ABSOLUTE_IMPORT, False),
-  "print_function"   : (FUTURE_PRINT_FUNCTION, True),
-  "unicode_literals" : (FUTURE_UNICODE_LITERALS, False),
+    "division": (FUTURE_DIVISION, False),
+    "absolute_import": (FUTURE_ABSOLUTE_IMPORT, False),
+    "print_function": (FUTURE_PRINT_FUNCTION, True),
+    "unicode_literals": (FUTURE_UNICODE_LITERALS, False),
 }
 
 # These future features are already in the language proper as of 2.6, so
@@ -370,8 +370,7 @@ class StatementVisitor(ast.NodeVisitor):
 
   def visit_Print(self, node):
     if self.parser_flags & FUTURE_PRINT_FUNCTION:
-      raise util.ParseError(
-        node, 'syntax error (print is not a keyword)')
+      raise util.ParseError(node, 'syntax error (print is not a keyword)')
     self._write_py_context(node.lineno)
     with self.block.alloc_temp('[]*πg.Object') as args:
       self.writer.write('{} = make([]*πg.Object, {})'.format(
