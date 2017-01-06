@@ -9,7 +9,43 @@ to be a near drop in replacement for CPython 2.7. The key difference is that it
 compiles Python source code to Go source code which is then compiled to native
 code, rather than to bytecode. This means that Grumpy has no VM. The compiled Go
 source code is a series of calls to the Grumpy runtime, a Go library serving a
-similar purpose to the Python C API (although the C API is not directly supported).
+similar purpose to the Python C API (although the C API is not directly
+supported).
+
+## Limitations
+
+### Things that will probably never be supported by Grumpy
+
+1. `exec`, `eval` and `compile`: These dynamic features of CPython are not
+   supported by Grumpy because Grumpy modules consist of statically compiled Go
+   code. Supporting dynamic execution would require bundling Grumpy programs
+   with the compilation toolchain which would be unwieldy and impractically
+   slow.
+
+2. C extension modules: Grumpy has a different API and object layout than
+   CPython and so supporting C extensions would be difficult. In principle it's
+   possible to support them via an API bridge layer like the one that
+   [JyNI](jyni.org) provides for Jython but it would be hard to maintain and
+   would add significant overhead when calling into and out of extension
+   modules.
+
+### Things that Grumpy will support but doesn't yet
+
+There are three basic categories of incomplete functionality:
+
+1. Language features: Most language features are implemented with the notable
+   exception of decorators. There are also a handful of operators that aren't
+   yet supported.
+
+2. Builtin functions and types: There are a number of missing functions and
+   types in `__builtins__` that have not been implemented. There are also a
+   lot of methods on builtin types that are missing.
+
+3. Standard library: The Python standard library is very large and much of it
+   is pure Python, so as the language features and builtins get filled out, many
+   modules will just work. But there are also a number of libraries in CPython
+   that are C extension modules that need to be rewritten. This includes `re`,
+   `itertools` and others.
 
 ## Running Grumpy Programs
 
