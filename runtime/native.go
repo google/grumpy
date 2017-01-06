@@ -306,6 +306,18 @@ func WrapNative(f *Frame, v reflect.Value) (*Object, *BaseException) {
 	return (&native{Object{typ: t}, v}).ToObject(), nil
 }
 
+// Continually dereferences rtype until we arrive at a value type; returns
+// the number of dereferences required to get to a value type as well as the
+// value type itself.
+func derefPtr(rtype reflect.Type) (int, reflect.Type) {
+	i := 0
+	for rtype.Kind() == reflect.Ptr {
+		rtype = rtype.Elem()
+		i++
+	}
+	return i, rtype
+}
+
 func getNativeType(rtype reflect.Type) *Type {
 	nativeTypesMutex.Lock()
 	t, ok := nativeTypes[rtype]
@@ -328,6 +340,15 @@ func getNativeType(rtype reflect.Type) *Type {
 			base = StrType
 		}
 		d := map[string]*Object{"__module__": builtinStr.ToObject()}
+
+		refCount, derefed := derefPtr(rtype)
+		if derefed.Kind() == reflect.Struct {
+			for i := 0; i < derefed.NumField(); i++ {
+				fieldName := derefed.Field(i).Name
+				d[fieldName] = newNativeField(fieldName, i, refCount)
+			}
+		}
+
 		numMethod := rtype.NumMethod()
 		for i := 0; i < numMethod; i++ {
 			meth := rtype.Method(i)
@@ -346,6 +367,19 @@ func getNativeType(rtype reflect.Type) *Type {
 	nativeTypes[rtype] = t
 	nativeTypesMutex.Unlock()
 	return t
+}
+
+func newNativeField(name string, i, refCount int) *Object {
+	// Closes over `i`
+	nativeFieldGet := func(f *Frame, desc, instance *Object, owner *Type) (*Object, *BaseException) {
+		v := toNativeUnsafe(instance).value
+		for i := 0; i < refCount; i++ {
+			v = v.Elem()
+		}
+		return WrapNative(f, v.Field(i))
+	}
+
+	return &Object{typ: &Type{slots: typeSlots{Get: &getSlot{nativeFieldGet}}}}
 }
 
 func newNativeMethod(name string, fun reflect.Value) *Object {
