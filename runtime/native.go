@@ -341,11 +341,11 @@ func getNativeType(rtype reflect.Type) *Type {
 		}
 		d := map[string]*Object{"__module__": builtinStr.ToObject()}
 
-		refCount, derefed := derefPtr(rtype)
+		refDepth, derefed := derefPtr(rtype)
 		if derefed.Kind() == reflect.Struct {
 			for i := 0; i < derefed.NumField(); i++ {
 				fieldName := derefed.Field(i).Name
-				d[fieldName] = newNativeField(fieldName, i, refCount)
+				d[fieldName] = newNativeField(fieldName, i, refDepth)
 			}
 		}
 
@@ -369,11 +369,11 @@ func getNativeType(rtype reflect.Type) *Type {
 	return t
 }
 
-func newNativeField(name string, i, refCount int) *Object {
-	// Closes over `i`
+func newNativeField(name string, i, refDepth int) *Object {
+	// Closes over `i` and `refDepth`
 	nativeFieldGet := func(f *Frame, desc, instance *Object, owner *Type) (*Object, *BaseException) {
 		v := toNativeUnsafe(instance).value
-		for i := 0; i < refCount; i++ {
+		for i := 0; i < refDepth; i++ {
 			v = v.Elem()
 		}
 		return WrapNative(f, v.Field(i))
