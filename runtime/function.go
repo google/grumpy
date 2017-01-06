@@ -95,17 +95,21 @@ type FunctionArg struct {
 // number of arguments are provided, populating *args and **kwargs if
 // necessary, etc.
 func NewFunction(c *Code, globals *Dict) *Function {
-	return &Function{Object{typ: FunctionType, dict: NewDict()}, nil, c.name, c, globals}
+	f := &Function{Object{typ: FunctionType, dict: NewDict()}, nil, c.name, c, globals}
+	f.self = f
+	return f
 }
 
 // newBuiltinFunction returns a function object with the given name that
 // invokes fn when called.
 func newBuiltinFunction(name string, fn Func) *Function {
-	return &Function{Object: Object{typ: FunctionType, dict: NewDict()}, fn: fn, name: name}
+	f := &Function{Object: Object{typ: FunctionType, dict: NewDict()}, fn: fn, name: name}
+	f.self = f
+	return f
 }
 
 func toFunctionUnsafe(o *Object) *Function {
-	return (*Function)(o.toPointer())
+	return o.self.(*Function)
 }
 
 // ToObject upcasts f to an Object.
@@ -150,11 +154,13 @@ type staticMethod struct {
 }
 
 func newStaticMethod(callable *Object) *staticMethod {
-	return &staticMethod{Object{typ: StaticMethodType}, callable}
+	s := &staticMethod{Object{typ: StaticMethodType}, callable}
+	s.self = s
+	return s
 }
 
 func toStaticMethodUnsafe(o *Object) *staticMethod {
-	return (*staticMethod)(o.toPointer())
+	return o.self.(*staticMethod)
 }
 
 // ToObject upcasts f to an Object.

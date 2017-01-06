@@ -47,6 +47,8 @@ type Code struct {
 	fn      func(*Frame, []*Object) (*Object, *BaseException)
 }
 
+func (c *Code) ToObject() *Object { return &c.Object }
+
 // NewCode creates a new Code object that executes the given fn.
 func NewCode(name, filename string, args []FunctionArg, flags CodeFlag, fn func(*Frame, []*Object) (*Object, *BaseException)) *Code {
 	argc := len(args)
@@ -62,11 +64,13 @@ func NewCode(name, filename string, args []FunctionArg, flags CodeFlag, fn func(
 			logFatal(fmt.Sprintf(format, name, arg.Name))
 		}
 	}
-	return &Code{Object{typ: CodeType}, name, filename, argc, minArgc, flags, args, fn}
+	c := &Code{Object{typ: CodeType}, name, filename, argc, minArgc, flags, args, fn}
+	c.self = c
+	return c
 }
 
 func toCodeUnsafe(o *Object) *Code {
-	return (*Code)(o.toPointer())
+	return o.self.(*Code)
 }
 
 // Eval runs the code object c in the context of the given globals.

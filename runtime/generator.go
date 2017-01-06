@@ -44,11 +44,13 @@ type Generator struct {
 
 // NewGenerator returns a new Generator object that runs the given Block b.
 func NewGenerator(f *Frame, fn func(*Object) (*Object, *BaseException)) *Generator {
-	return &Generator{Object: Object{typ: GeneratorType}, frame: f, fn: fn}
+	g := &Generator{Object: Object{typ: GeneratorType}, frame: f, fn: fn}
+	g.self = g
+	return g
 }
 
 func toGeneratorUnsafe(o *Object) *Generator {
-	return (*Generator)(o.toPointer())
+	return o.self.(*Generator)
 }
 
 func (g *Generator) resume(f *Frame, sendValue *Object) (*Object, *BaseException) {

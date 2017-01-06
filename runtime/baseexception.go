@@ -25,7 +25,7 @@ type BaseException struct {
 }
 
 func toBaseExceptionUnsafe(o *Object) *BaseException {
-	return (*BaseException)(o.toPointer())
+	return o.self.(*BaseException)
 }
 
 // ToObject upcasts e to an Object.

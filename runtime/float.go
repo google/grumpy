@@ -33,11 +33,13 @@ type Float struct {
 
 // NewFloat returns a new Float holding the given floating point value.
 func NewFloat(value float64) *Float {
-	return &Float{Object{typ: FloatType}, value}
+	f := &Float{Object{typ: FloatType}, value}
+	f.self = f
+	return f
 }
 
 func toFloatUnsafe(o *Object) *Float {
-	return (*Float)(o.toPointer())
+	return o.self.(*Float)
 }
 
 // ToObject upcasts f to an Object.

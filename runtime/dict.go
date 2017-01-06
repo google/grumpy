@@ -266,7 +266,9 @@ type Dict struct {
 
 // NewDict returns an empty Dict.
 func NewDict() *Dict {
-	return &Dict{Object: Object{typ: DictType}, table: newDictTable(0)}
+	d := &Dict{Object: Object{typ: DictType}, table: newDictTable(0)}
+	d.self = d
+	return d
 }
 
 func newStringDict(items map[string]*Object) *Dict {
@@ -278,11 +280,13 @@ func newStringDict(items map[string]*Object) *Dict {
 	for key, value := range items {
 		table.insertAbsentEntry(&dictEntry{hashString(key), NewStr(key).ToObject(), value})
 	}
-	return &Dict{Object: Object{typ: DictType}, table: table}
+	d := &Dict{Object: Object{typ: DictType}, table: table}
+	d.self = d
+	return d
 }
 
 func toDictUnsafe(o *Object) *Dict {
-	return (*Dict)(o.toPointer())
+	return o.self.(*Dict)
 }
 
 // loadTable atomically loads and returns d's underlying dictTable.
@@ -741,15 +745,17 @@ type dictItemIterator struct {
 // newDictItemIterator creates a dictItemIterator object for d. It assumes that
 // d.mutex is held by the caller.
 func newDictItemIterator(d *Dict) *dictItemIterator {
-	return &dictItemIterator{
+	i := &dictItemIterator{
 		Object: Object{typ: dictItemIteratorType},
 		iter:   newDictEntryIterator(d),
 		guard:  newDictVersionGuard(d),
 	}
+	i.self = i
+	return i
 }
 
 func toDictItemIteratorUnsafe(o *Object) *dictItemIterator {
-	return (*dictItemIterator)(o.toPointer())
+	return o.self.(*dictItemIterator)
 }
 
 func (iter *dictItemIterator) ToObject() *Object {
@@ -784,15 +790,17 @@ type dictKeyIterator struct {
 // newDictKeyIterator creates a dictKeyIterator object for d. It assumes that
 // d.mutex is held by the caller.
 func newDictKeyIterator(d *Dict) *dictKeyIterator {
-	return &dictKeyIterator{
+	i := &dictKeyIterator{
 		Object: Object{typ: dictKeyIteratorType},
 		iter:   newDictEntryIterator(d),
 		guard:  newDictVersionGuard(d),
 	}
+	i.self = i
+	return i
 }
 
 func toDictKeyIteratorUnsafe(o *Object) *dictKeyIterator {
-	return (*dictKeyIterator)(o.toPointer())
+	return o.self.(*dictKeyIterator)
 }
 
 func (iter *dictKeyIterator) ToObject() *Object {

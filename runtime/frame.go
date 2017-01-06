@@ -49,6 +49,7 @@ func NewRootFrame() *Frame {
 // newFrame creates a new Frame whose parent frame is back.
 func newFrame(back *Frame) *Frame {
 	f := &Frame{Object: Object{typ: FrameType}}
+	f.self = f
 	f.pushFrame(back)
 	return f
 }
@@ -64,7 +65,7 @@ func (f *Frame) pushFrame(back *Frame) {
 }
 
 func toFrameUnsafe(o *Object) *Frame {
-	return (*Frame)(o.toPointer())
+	return o.self.(*Frame)
 }
 
 // Globals returns the globals dict for this frame.

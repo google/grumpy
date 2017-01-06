@@ -326,5 +326,7 @@ func newTestFrozenSet(elems ...interface{}) *FrozenSet {
 			panic(raised)
 		}
 	}
-	return &FrozenSet{Object{typ: FrozenSetType}, d}
+	s := &FrozenSet{Object{typ: FrozenSetType}, d}
+	s.self = s
+	return s
 }

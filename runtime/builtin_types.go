@@ -17,6 +17,7 @@ package grumpy
 import (
 	"fmt"
 	"math/big"
+	"reflect"
 	"unicode"
 )
 
@@ -325,7 +326,7 @@ func builtinID(f *Frame, args Args, kwargs KWArgs) (*Object, *BaseException) {
 	if raised := checkFunctionArgs(f, "id", args, ObjectType); raised != nil {
 		return nil, raised
 	}
-	return NewInt(int(uintptr(args[0].toPointer()))).ToObject(), nil
+	return NewInt(int(reflect.ValueOf(args[0]).Pointer())).ToObject(), nil
 }
 
 func builtinIsInstance(f *Frame, args Args, kwargs KWArgs) (*Object, *BaseException) {

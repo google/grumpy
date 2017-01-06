@@ -69,3 +69,8 @@ var (
 	trueStr  = NewStr("True").ToObject()
 	falseStr = NewStr("False").ToObject()
 )
+
+func init() {
+	False.self = False
+	True.self = True
+}

@@ -100,13 +100,15 @@ func newClass(f *Frame, meta *Type, name string, bases []*Type, dict *Dict) (*Ty
 }
 
 func newType(meta *Type, name string, basis reflect.Type, bases []*Type, dict *Dict) *Type {
-	return &Type{
+	t := &Type{
 		Object: Object{typ: meta, dict: dict},
 		name:   name,
 		basis:  basis,
 		bases:  bases,
 		flags:  typeFlagDefault,
 	}
+	t.self = t
+	return t
 }
 
 func newBasisType(name string, basis reflect.Type, basisFunc interface{}, base *Type) *Type {
@@ -268,7 +270,14 @@ func mroCalc(t *Type) []*Type {
 }
 
 func toTypeUnsafe(o *Object) *Type {
-	return (*Type)(o.toPointer())
+	if t, ok := o.self.(*Type); ok {
+		return t
+	}
+	// TODO: Check this for sanity...
+	if n, ok := o.self.(*nativeMetaclass); ok {
+		return &n.Type
+	}
+	return o.self.(*Type) // Make a properly useful panic
 }
 
 // ToObject upcasts t to an Object.
@@ -333,6 +342,10 @@ var TypeType = &Type{
 	bases: []*Type{ObjectType},
 	flags: typeFlagDefault,
 	slots: typeSlots{Basis: &basisSlot{typeBasisFunc}},
+}
+
+func init() {
+	TypeType.self = TypeType
 }
 
 func typeCall(f *Frame, callable *Object, args Args, kwargs KWArgs) (*Object, *BaseException) {

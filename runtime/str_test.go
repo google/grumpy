@@ -23,6 +23,7 @@ import (
 
 func TestNewStr(t *testing.T) {
 	expected := &Str{Object: Object{typ: StrType}, value: "foo"}
+	expected.self = expected
 	s := NewStr("foo")
 	if !reflect.DeepEqual(s, expected) {
 		t.Errorf(`NewStr("foo") = %+v, expected %+v`, *s, *expected)
@@ -176,6 +177,10 @@ func TestStrGetItem(t *testing.T) {
 }
 
 func TestStrNew(t *testing.T) {
+	setStrSelf := func(s *Str) *Str {
+		s.self = s
+		return s
+	}
 	dummy := newObject(ObjectType)
 	dummyStr := NewStr(fmt.Sprintf("<object object at %p>", dummy))
 	fooType := newTestClass("Foo", []*Type{ObjectType}, newStringDict(map[string]*Object{
@@ -186,7 +191,7 @@ func TestStrNew(t *testing.T) {
 	foo := newObject(fooType)
 	strictEqType := newTestClassStrictEq("StrictEq", StrType)
 	subType := newTestClass("SubType", []*Type{StrType}, newStringDict(map[string]*Object{}))
-	subTypeObject := (&Str{Object: Object{typ: subType}, value: "abc"}).ToObject()
+	subTypeObject := setStrSelf(&Str{Object: Object{typ: subType}, value: "abc"}).ToObject()
 	goodSlotType := newTestClass("GoodSlot", []*Type{ObjectType}, newStringDict(map[string]*Object{
 		"__str__": newBuiltinFunction("__str__", func(_ *Frame, _ Args, _ KWArgs) (*Object, *BaseException) {
 			return NewStr("abc").ToObject(), nil
@@ -210,11 +215,11 @@ func TestStrNew(t *testing.T) {
 		{args: wrapArgs(StrType.ToObject()), want: NewStr("").ToObject()},
 		{args: wrapArgs(StrType.ToObject(), NewDict().ToObject()), want: NewStr("{}").ToObject()},
 		{args: wrapArgs(StrType.ToObject(), dummy), want: dummyStr.ToObject()},
-		{args: wrapArgs(strictEqType, "foo"), want: (&Str{Object: Object{typ: strictEqType}, value: "foo"}).ToObject()},
+		{args: wrapArgs(strictEqType, "foo"), want: setStrSelf(&Str{Object: Object{typ: strictEqType}, value: "foo"}).ToObject()},
 		{args: wrapArgs(StrType, newObject(goodSlotType)), want: NewStr("abc").ToObject()},
 		{args: wrapArgs(StrType, newObject(badSlotType)), wantExc: mustCreateException(TypeErrorType, "__str__ returned non-string (type object)")},
 		{args: wrapArgs(StrType, newObject(slotSubTypeType)), want: subTypeObject},
-		{args: wrapArgs(strictEqType, newObject(goodSlotType)), want: (&Str{Object: Object{typ: strictEqType}, value: "abc"}).ToObject()},
+		{args: wrapArgs(strictEqType, newObject(goodSlotType)), want: setStrSelf(&Str{Object: Object{typ: strictEqType}, value: "abc"}).ToObject()},
 		{args: wrapArgs(strictEqType, newObject(badSlotType)), wantExc: mustCreateException(TypeErrorType, "__str__ returned non-string (type object)")},
 	}
 	for _, cas := range cases {

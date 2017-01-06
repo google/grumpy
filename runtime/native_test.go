@@ -71,6 +71,7 @@ func TestNativeFuncCall(t *testing.T) {
 	}
 	for _, cas := range cases {
 		n := &native{Object{typ: nativeFuncType}, reflect.ValueOf(cas.fun)}
+		n.self = n
 		if err := runInvokeTestCase(n.ToObject(), &cas.invokeTestCase); err != "" {
 			t.Error(err)
 		}
@@ -176,6 +177,7 @@ func TestWrapNative(t *testing.T) {
 	d := NewDict()
 	i := 0
 	n := &native{Object{typ: nativeType}, reflect.ValueOf(&i)}
+	n.self = n
 	cases := []struct {
 		value   interface{}
 		want    *Object
@@ -354,6 +356,7 @@ func TestMaybeConvertValue(t *testing.T) {
 	type fooStruct struct{}
 	foo := &fooStruct{}
 	fooNative := &native{Object{typ: nativeType}, reflect.ValueOf(&foo)}
+	fooNative.self = fooNative
 	cases := []struct {
 		o             *Object
 		expectedRType reflect.Type
