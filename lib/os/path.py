@@ -14,7 +14,7 @@
 
 """"Utilities for manipulating and inspecting OS paths."""
 
-from __go__.path.filepath import Clean as normpath, IsAbs as isabs, Join, Dir as dirname  # pylint: disable=g-multiple-import,unused-import
+from __go__.path.filepath import Clean, IsAbs as isabs, Join, Dir as dirname  # pylint: disable=g-multiple-import,unused-import
 from __go__.os import Stat
 
 
@@ -35,6 +35,15 @@ def join(*paths):
   result = Join(*parts)
   if result and not paths[-1]:
     result += '/'
+  return result
+
+
+def normpath(path):
+  result = Clean(path)
+  if isinstance(path, unicode):
+    # grumpy compiler encoded the string into utf-8,
+    # so the result can be decoded using utf-8.
+    return unicode(result, 'utf-8')
   return result
 
 

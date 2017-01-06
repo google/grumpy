@@ -49,6 +49,11 @@ def TestNormPath():
   assert path.normpath('abc/../123') == '123'
   assert path.normpath('../abc/123') == '../abc/123'
   assert path.normpath('x/y/./z') == 'x/y/z'
+  assert path.normpath(u'abc/') == u'abc'
+  assert path.normpath(u'/a//b') == u'/a/b'
+  assert path.normpath(u'abc/../123') == u'123'
+  assert path.normpath(u'../abc/123') == u'../abc/123'
+  assert path.normpath(u'x/y/./z') == u'x/y/z'
 
 
 def TestDirname():
