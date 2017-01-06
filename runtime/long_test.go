@@ -233,6 +233,19 @@ func TestLongCompare(t *testing.T) {
 	}
 }
 
+func TestLongAbs(t *testing.T) {
+	cases := []invokeTestCase{
+		{args: wrapArgs(big.NewInt(42)), want: NewLong(big.NewInt(42)).ToObject()},
+		{args: wrapArgs(big.NewInt(0)), want: NewLong(big.NewInt(0)).ToObject()},
+		{args: wrapArgs(big.NewInt(-42)), want: NewLong(big.NewInt(42)).ToObject()},
+	}
+	for _, cas := range cases {
+		if err := runInvokeMethodTestCase(LongType, "__abs__", &cas); err != "" {
+			t.Error(err)
+		}
+	}
+}
+
 func TestLongInvert(t *testing.T) {
 	googol, _ := big.NewFloat(1e100).Int(nil)
 	cases := []invokeTestCase{

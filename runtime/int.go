@@ -16,6 +16,7 @@ package grumpy
 
 import (
 	"fmt"
+	"math"
 	"math/big"
 	"reflect"
 	"strconv"
@@ -65,6 +66,10 @@ func (i *Int) IsTrue() bool {
 
 // IntType is the object representing the Python 'int' type.
 var IntType = newBasisType("int", reflect.TypeOf(Int{}), toIntUnsafe, ObjectType)
+
+func intAbs(f *Frame, v *Object) (*Object, *BaseException) {
+	return NewInt(int(math.Abs(float64(toIntUnsafe(v).Value())))).ToObject(), nil
+}
 
 func intAdd(f *Frame, v, w *Object) (*Object, *BaseException) {
 	return intAddMulOp(f, "__add__", v, w, intCheckedAdd, longAdd)
@@ -287,6 +292,7 @@ func intXor(f *Frame, v, w *Object) (*Object, *BaseException) {
 
 func initIntType(dict map[string]*Object) {
 	dict["__getnewargs__"] = newBuiltinFunction("__getnewargs__", intGetNewArgs).ToObject()
+	IntType.slots.Abs = &unaryOpSlot{intAbs}
 	IntType.slots.Add = &binaryOpSlot{intAdd}
 	IntType.slots.And = &binaryOpSlot{intAnd}
 	IntType.slots.Div = &binaryOpSlot{intDiv}

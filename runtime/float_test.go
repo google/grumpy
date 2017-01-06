@@ -238,3 +238,16 @@ func TestFloatStrRepr(t *testing.T) {
 		}
 	}
 }
+
+func TestFloatAbs(t *testing.T) {
+	cases := []invokeTestCase{
+		{args: wrapArgs(-42.42), want: NewFloat(42.42).ToObject()},
+		{args: wrapArgs(0.0), want: NewFloat(0.0).ToObject()},
+		{args: wrapArgs(42.42), want: NewFloat(42.42).ToObject()},
+	}
+	for _, c := range cases {
+		if err := runInvokeMethodTestCase(FloatType, "__abs__", &c); err != "" {
+			t.Error(err)
+		}
+	}
+}

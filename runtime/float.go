@@ -50,6 +50,10 @@ func (f *Float) Value() float64 {
 	return f.value
 }
 
+func floatAbs(f *Frame, v *Object) (*Object, *BaseException) {
+	return NewFloat(math.Abs(float64(toFloatUnsafe(v).Value()))).ToObject(), nil
+}
+
 func floatAdd(f *Frame, v, w *Object) (*Object, *BaseException) {
 	return floatArithmeticOp(f, "__add__", v, w, func(v, w float64) float64 { return v + w })
 }
@@ -221,6 +225,7 @@ func floatSub(f *Frame, v, w *Object) (*Object, *BaseException) {
 
 func initFloatType(dict map[string]*Object) {
 	dict["__getnewargs__"] = newBuiltinFunction("__getnewargs__", floatGetNewArgs).ToObject()
+	FloatType.slots.Abs = &unaryOpSlot{floatAbs}
 	FloatType.slots.Add = &binaryOpSlot{floatAdd}
 	FloatType.slots.Div = &binaryOpSlot{floatDiv}
 	FloatType.slots.Eq = &binaryOpSlot{floatEq}
