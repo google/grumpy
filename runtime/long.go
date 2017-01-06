@@ -86,6 +86,10 @@ func (l *Long) Neg() *Long {
 // LongType is the object representing the Python 'long' type.
 var LongType = newBasisType("long", reflect.TypeOf(Long{}), toLongUnsafe, ObjectType)
 
+func longAbs(z, x *big.Int) {
+	z.Abs(x)
+}
+
 func longAdd(z, x, y *big.Int) {
 	z.Add(x, y)
 }
@@ -299,6 +303,7 @@ func longXor(z, x, y *big.Int) {
 
 func initLongType(dict map[string]*Object) {
 	dict["__getnewargs__"] = newBuiltinFunction("__getnewargs__", longGetNewArgs).ToObject()
+	LongType.slots.Abs = longUnaryOpSlot(longAbs)
 	LongType.slots.Add = longBinaryOpSlot(longAdd)
 	LongType.slots.And = longBinaryOpSlot(longAnd)
 	LongType.slots.Div = longDivModOpSlot(longDiv)

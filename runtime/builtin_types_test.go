@@ -56,6 +56,15 @@ func TestBuiltinFuncs(t *testing.T) {
 		want    *Object
 		wantExc *BaseException
 	}{
+		{f: "abs", args: wrapArgs(1, 2, 3), wantExc: mustCreateException(TypeErrorType, "'abs' requires 1 arguments")},
+		{f: "abs", args: wrapArgs(1), want: NewInt(1).ToObject()},
+		{f: "abs", args: wrapArgs(-1), want: NewInt(1).ToObject()},
+		{f: "abs", args: wrapArgs(big.NewInt(2)), want: NewLong(big.NewInt(2)).ToObject()},
+		{f: "abs", args: wrapArgs(big.NewInt(-2)), want: NewLong(big.NewInt(2)).ToObject()},
+		{f: "abs", args: wrapArgs(NewFloat(3.4)), want: NewFloat(3.4).ToObject()},
+		{f: "abs", args: wrapArgs(NewFloat(-3.4)), want: NewFloat(3.4).ToObject()},
+		{f: "abs", args: wrapArgs(MinInt), want: NewLong(big.NewInt(MinInt).Neg(minIntBig)).ToObject()},
+		{f: "abs", args: wrapArgs(NewStr("a")), wantExc: mustCreateException(TypeErrorType, "bad operand type for abs(): 'str'")},
 		{f: "bin", args: wrapArgs(64 + 8 + 1), want: NewStr("0b1001001").ToObject()},
 		{f: "bin", args: wrapArgs(MinInt), want: NewStr(fmt.Sprintf("-0b%b0", -(MinInt >> 1))).ToObject()},
 		{f: "bin", args: wrapArgs(0), want: NewStr("0b0").ToObject()},

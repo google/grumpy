@@ -23,6 +23,16 @@ import (
 
 var logFatal = func(msg string) { log.Fatal(msg) }
 
+// Abs returns the result of o.__abs__ and is equivalent to the Python
+// expression "abs(o)".
+func Abs(f *Frame, o *Object) (*Object, *BaseException) {
+	abs := o.typ.slots.Abs
+	if abs == nil {
+		return nil, f.RaiseType(TypeErrorType, fmt.Sprintf("bad operand type for abs(): '%s'", o.typ.Name()))
+	}
+	return abs.Fn(f, o)
+}
+
 // Add returns the result of adding v and w together according to the
 // __add/radd__ operator.
 func Add(f *Frame, v, w *Object) (*Object, *BaseException) {
