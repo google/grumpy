@@ -338,6 +338,13 @@ func getNativeType(rtype reflect.Type) *Type {
 			}
 		}
 		t = &newNativeType(rtype, base, newStringDict(d)).Type
+		t.slots.Native = &nativeSlot{func(f *Frame, o *Object) (reflect.Value, *BaseException) {
+			val, raised := base.slots.Native.Fn(f, o)
+			if raised != nil {
+				return reflect.Value{}, raised
+			}
+			return val.Convert(toNativeMetaclassUnsafe(o.typ.ToObject()).rtype), nil
+		}}
 		// This cannot fail since we're defining simple classes.
 		if err := prepareType(t); err != "" {
 			logFatal(err)
