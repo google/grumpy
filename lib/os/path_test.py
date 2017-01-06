@@ -67,6 +67,7 @@ def TestExists():
   try:
     assert path.exists(file_path)
     assert path.exists(dir_path)
+    assert not path.exists('path/does/not/exist')
   finally:
     os.remove(file_path)
     os.rmdir(dir_path)
@@ -78,6 +79,7 @@ def TestIsDir():
   try:
     assert not path.isdir(file_path)
     assert path.isdir(dir_path)
+    assert not path.isdir('path/does/not/exist')
   finally:
     os.remove(file_path)
     os.rmdir(dir_path)
@@ -89,6 +91,7 @@ def TestIsFile():
   try:
     assert path.isfile(file_path)
     assert not path.isfile(dir_path)
+    assert not path.isfile('path/does/not/exist')
   finally:
     os.remove(file_path)
     os.rmdir(dir_path)
