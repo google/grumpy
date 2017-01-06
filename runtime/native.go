@@ -306,18 +306,6 @@ func WrapNative(f *Frame, v reflect.Value) (*Object, *BaseException) {
 	return (&native{Object{typ: t}, v}).ToObject(), nil
 }
 
-// Continually dereferences rtype until we arrive at a value type; returns
-// the number of dereferences required to get to a value type as well as the
-// value type itself.
-func derefPtr(rtype reflect.Type) (int, reflect.Type) {
-	i := 0
-	for rtype.Kind() == reflect.Ptr {
-		rtype = rtype.Elem()
-		i++
-	}
-	return i, rtype
-}
-
 func getNativeType(rtype reflect.Type) *Type {
 	nativeTypesMutex.Lock()
 	t, ok := nativeTypes[rtype]
@@ -341,11 +329,14 @@ func getNativeType(rtype reflect.Type) *Type {
 		}
 		d := map[string]*Object{"__module__": builtinStr.ToObject()}
 
-		refDepth, derefed := derefPtr(rtype)
+		derefed := rtype
+		for derefed.Kind() == reflect.Ptr {
+			derefed = derefed.Elem()
+		}
 		if derefed.Kind() == reflect.Struct {
 			for i := 0; i < derefed.NumField(); i++ {
-				fieldName := derefed.Field(i).Name
-				d[fieldName] = newNativeField(fieldName, i, refDepth)
+				name := derefed.Field(i).Name
+				d[name] = newNativeField(name, i)
 			}
 		}
 
@@ -369,17 +360,19 @@ func getNativeType(rtype reflect.Type) *Type {
 	return t
 }
 
-func newNativeField(name string, i, refDepth int) *Object {
-	// Closes over `i` and `refDepth`
-	nativeFieldGet := func(f *Frame, desc, instance *Object, owner *Type) (*Object, *BaseException) {
-		v := toNativeUnsafe(instance).value
-		for i := 0; i < refDepth; i++ {
+func newNativeField(name string, i int) *Object {
+	nativeFieldGet := func(f *Frame, args Args, _ KWArgs) (*Object, *BaseException) {
+		if raised := checkFunctionArgs(f, name, args, nativeType); raised != nil {
+			return nil, raised
+		}
+		v := toNativeUnsafe(args[0]).value
+		for v.Type().Kind() == reflect.Ptr {
 			v = v.Elem()
 		}
 		return WrapNative(f, v.Field(i))
 	}
-
-	return &Object{typ: &Type{slots: typeSlots{Get: &getSlot{nativeFieldGet}}}}
+	get := newBuiltinFunction(name, nativeFieldGet).ToObject()
+	return newProperty(get, nil, nil).ToObject()
 }
 
 func newNativeMethod(name string, fun reflect.Value) *Object {
