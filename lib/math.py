@@ -1,4 +1,3 @@
-#NOTE: This is ugly.
 from __go__.math import (Pi, E, Ceil, Copysign, Abs, Floor, Mod, Frexp, IsInf,
     IsNaN, Exp2, Modf, Trunc, Exp, Expm1, Log, Log1p, Log10, Pow, Sqrt, Acos,
     Asin, Atan, Atan2, Hypot, Sin, Cos, Tan, Acosh, Asinh, Atanh, Sinh, Cosh,
@@ -18,8 +17,8 @@ def ceil(x):
     return Ceil(float(x))
     
     
-def copysign(x,y):
-    return Copysign(float(x),float(y))
+def copysign(x, y):
+    return Copysign(float(x), float(y))
 
     
 def fabs(x):
@@ -33,10 +32,12 @@ def factorial(x):
             return acc
         return factorial_helper(x - 1, acc * x)
     
-    if x % 1 != 0 or x < 1:
-        raise ValueError
+    if x % 1 != 0:
+        raise ValueError("factorial() only accepts integral values")
+    if x < 0:
+        raise ValueError("factorial() not defined for negative values")
 
-    return factorial_helper(int(x),1)
+    return factorial_helper(int(x), 1)
 
         
 def floor(x):
@@ -51,11 +52,9 @@ def frexp(x):
     return Frexp(float(x))
 
 
-# NOTE: This function exists in python, but I don't know how to write it,
-#and I don't see it anywhere in Go's math library.
-#
+# TODO: Implement fsum()
 # def fsum(x):
-#     pass
+#    pass
 
 
 def isinf(x):
@@ -66,15 +65,15 @@ def isnan(x):
     return IsNaN(float(x))
 
 
-def ldexp(x,i):
+def ldexp(x, i):
     # NOTE: These are converted to floats, but maybe they should be integers instead?
     return float(x) * Exp2(float(i))
     
     
 def modf(x):
-    #Modf returns (int, frac), but python should return (frac, int)
-    (a, b) = Modf(float(x))
-    return (b, a)
+    #Modf returns (int, frac), but python should return (frac, int).
+    a, b = Modf(float(x))
+    return b, a
 
     
 def trunc(x):
@@ -96,8 +95,8 @@ def log(x, b=None):
         return Log(float(x))
 
     # NOTE: We can try and catch more special cases to delegate to specific
-    # Go functions or maybe there is a function that does this and I missed it
-    return Log(float(x))/Log(float(b))
+    # Go functions or maybe there is a function that does this and I missed it.
+    return Log(float(x)) / Log(float(b))
 
 
 def log1p(x):
@@ -109,7 +108,7 @@ def log10(x):
     
     
 def pow(x, y):
-    return Pow(float(x),float(y))
+    return Pow(float(x), float(y))
 
 
 def sqrt(x):
@@ -139,7 +138,7 @@ def cos(x):
 
 
 def hypot(x, y):
-    return Hypot(float(x),float(y))
+    return Hypot(float(x), float(y))
 
 
 def sin(x):
