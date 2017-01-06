@@ -1,4 +1,4 @@
 language: go
 sudo: required
 install: pip install --upgrade pip
-script: make gofmt lint test
+script: make gofmt lint; make -j4 test
