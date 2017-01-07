@@ -230,6 +230,17 @@ func builtinBin(f *Frame, args Args, _ KWArgs) (*Object, *BaseException) {
 	return NewStr(numberToBase("0b", 2, index)).ToObject(), nil
 }
 
+func builtinCallable(f *Frame, args Args, _ KWArgs) (*Object, *BaseException) {
+	if raised := checkFunctionArgs(f, "callable", args, ObjectType); raised != nil {
+		return nil, raised
+	}
+	o := args[0]
+	if call := o.Type().slots.Call; call == nil {
+		return False.ToObject(), nil
+	}
+	return True.ToObject(), nil
+}
+
 func builtinChr(f *Frame, args Args, _ KWArgs) (*Object, *BaseException) {
 	if raised := checkFunctionArgs(f, "chr", args, IntType); raised != nil {
 		return nil, raised
@@ -499,6 +510,7 @@ func init() {
 		"abs":            newBuiltinFunction("abs", builtinAbs).ToObject(),
 		"all":            newBuiltinFunction("all", builtinAll).ToObject(),
 		"bin":            newBuiltinFunction("bin", builtinBin).ToObject(),
+		"callable":       newBuiltinFunction("callable", builtinCallable).ToObject(),
 		"chr":            newBuiltinFunction("chr", builtinChr).ToObject(),
 		"dir":            newBuiltinFunction("dir", builtinDir).ToObject(),
 		"False":          False.ToObject(),

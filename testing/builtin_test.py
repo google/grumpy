@@ -54,3 +54,27 @@ except TypeError as e:
   assert str(e) == "'int' object is not iterable"
 else:
   raise AssertionError('this was supposed to raise an exception')
+
+# callable(x)
+
+assert not callable(1)
+assert not callable(0.1)
+
+assert not callable([1, 2, 3])
+assert not callable((1, 2, 3))
+assert not callable({'foo': 1, 'bar': 2})
+
+assert callable(lambda x: x+1)
+
+def foo(x):
+    pass
+
+assert callable(foo)
+
+class bar(object):
+    def __call__(self, *args, **kwargs):
+        pass
+
+assert callable(bar)
+assert callable(bar())
+
