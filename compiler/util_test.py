@@ -20,6 +20,7 @@ import unittest
 
 from grumpy.compiler import block
 from grumpy.compiler import util
+from grumpy.compiler import stmt
 
 
 class WriterTest(unittest.TestCase):
@@ -34,8 +35,9 @@ class WriterTest(unittest.TestCase):
 
   def testWriteBlock(self):
     writer = util.Writer()
-    writer.write_block(block.ModuleBlock(
-        '__main__', 'grumpy', 'grumpy/lib', '<test>', []), 'BODY')
+    mod_block = block.ModuleBlock('__main__', 'grumpy', 'grumpy/lib', '<test>',
+                                  [], stmt.FutureFeatures())
+    writer.write_block(mod_block, 'BODY')
     output = writer.out.getvalue()
     dispatch = 'switch πF.State() {\n\tcase 0:\n\tdefault: panic'
     self.assertIn(dispatch, output)

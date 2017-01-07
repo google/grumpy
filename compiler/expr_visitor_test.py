@@ -24,6 +24,7 @@ import unittest
 from grumpy.compiler import block
 from grumpy.compiler import expr_visitor
 from grumpy.compiler import shard_test
+from grumpy.compiler import stmt
 from grumpy.compiler import util
 
 
@@ -220,7 +221,8 @@ class ExprVisitorTest(unittest.TestCase):
 
 
 def _MakeModuleBlock():
-  return block.ModuleBlock('__main__', 'grumpy', 'grumpy/lib', '<test>', [])
+  return block.ModuleBlock('__main__', 'grumpy', 'grumpy/lib', '<test>', [],
+                           stmt.FutureFeatures())
 
 
 def _ParseExpr(expr):

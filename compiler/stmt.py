@@ -56,6 +56,72 @@ redundant_future_features = ["generators", "with_statement", "nested_scopes"]
 late_future = 'from __future__ imports must occur at the beginning of the file'
 
 
+# import_from_future processes a future import statement, returning the set of
+# flags it defines.
+def import_from_future(node):
+  assert isinstance(node, ast.ImportFrom)
+  assert node.module == '__future__'
+  flags = 0
+  for alias in node.names:
+    name = alias.name
+    if name in future_features:
+      flag, implemented = future_features[name]
+      if not implemented:
+        msg = 'future feature {} not yet implemented by grumpy'.format(name)
+        raise util.ParseError(node, msg)
+      flags |= flag
+    elif name == 'braces':
+      raise util.ParseError(node, 'not a chance')
+    elif name not in redundant_future_features:
+      msg = 'future feature {} is not defined'.format(name)
+      raise util.ParseError(node, msg)
+  return flags
+
+
+class FutureFeatures(object):
+  def __init__(self):
+    self.parser_flags = 0
+    self.future_lineno = 0
+
+
+def visit_future(node):
+  """Accumulates a set of compiler flags for the compiler __future__ imports.
+
+  Returns an instance of FutureFeatures which encapsulates the flags and the
+  line number of the last valid future import parsed. A downstream parser can
+  use the latter to detect invalid future imports that appear too late in the
+  file.
+  """
+  # If this is the module node, do an initial pass through the module body's
+  # statements to detect future imports and process their directives (i.e.,
+  # set compiler flags), and detect ones that don't appear at the beginning of
+  # the file. The only things that can proceed a future statement are other
+  # future statements and/or a doc string.
+  assert isinstance(node, ast.Module)
+  ff = FutureFeatures()
+  done = False
+  found_docstring = False
+  for node in node.body:
+    if isinstance(node, ast.ImportFrom):
+      modname = node.module
+      if modname == '__future__':
+        if done:
+          raise util.ParseError(node, late_future)
+        ff.parser_flags |= import_from_future(node)
+        ff.future_lineno = node.lineno
+      else:
+        done = True
+    elif isinstance(node, ast.Expr) and not found_docstring:
+      e = node.value
+      if not isinstance(e, ast.Str):
+        done = True
+      else:
+        found_docstring = True
+    else:
+      done = True
+  return ff
+
+
 class StatementVisitor(ast.NodeVisitor):
   """Outputs Go statements to a Writer for the given Python nodes."""
 
@@ -63,42 +129,10 @@ class StatementVisitor(ast.NodeVisitor):
 
   def __init__(self, block_):
     self.block = block_
+    self.future_features = self.block.future_features or FutureFeatures()
     self.writer = util.Writer()
     self.expr_visitor = expr_visitor.ExprVisitor(self.block, self.writer)
-    self.parser_flags = 0
-    self.did_future_pass = False
-    self.future_lineno = 0
-
-  def visit(self, node):
-    root = node
-    # If this is the module node, do an initial pass through the module body's
-    # statements to detect future imports and process their directives (i.e.,
-    # set compiler flags), and detect ones that don't appear at the beginning of
-    # the file. The only things that can proceed a future statement are other
-    # future statements and/or a doc string.
-    if not self.did_future_pass and isinstance(node, ast.Module):
-      self.did_future_pass = True
-      done = False
-      found_docstring = False
-      for node in node.body:
-        if isinstance(node, ast.ImportFrom):
-          modname = node.module
-          if modname == '__future__':
-            if done:
-              raise util.ParseError(node, late_future)
-            self._handle_import_from_future(node)
-            self.future_lineno = node.lineno
-          else:
-            done = True
-        elif isinstance(node, ast.Expr) and not found_docstring:
-          e = node.value
-          if not isinstance(e, ast.Str):
-            done = True
-          else:
-            found_docstring = True
-        else:
-          done = True
-    super(StatementVisitor, self).visit(root)
+    self.parser_flags = getattr(block_, 'parser_flags', 0)
 
   def generic_visit(self, node):
     msg = 'node not yet implemented: {}'.format(type(node).__name__)
@@ -348,7 +382,7 @@ class StatementVisitor(ast.NodeVisitor):
       # At this stage all future imports are done in an initial pass (see
       # visit() above), so if they are encountered here after the last valid
       # __future__ then it's a syntax error.
-      if node.lineno > self.future_lineno:
+      if node.lineno > self.future_features.future_lineno:
         raise util.ParseError(node, late_future)
     else:
       # NOTE: Assume that the names being imported are all modules within a
@@ -369,7 +403,7 @@ class StatementVisitor(ast.NodeVisitor):
     self._write_py_context(node.lineno)
 
   def visit_Print(self, node):
-    if self.parser_flags & FUTURE_PRINT_FUNCTION:
+    if self.future_features.parser_flags & FUTURE_PRINT_FUNCTION:
       raise util.ParseError(node, 'syntax error (print is not a keyword)')
     self._write_py_context(node.lineno)
     with self.block.alloc_temp('[]*πg.Object') as args:
@@ -751,20 +785,3 @@ class StatementVisitor(ast.NodeVisitor):
       line = self.block.lines[lineno - 1].strip()
       self.writer.write('// line {}: {}'.format(lineno, line))
       self.writer.write('πF.SetLineno({})'.format(lineno))
-
-  def _handle_import_from_future(self, node):
-    assert isinstance(node, ast.ImportFrom)
-    assert node.module == '__future__'
-    for alias in node.names:
-      name = alias.name
-      if name in future_features:
-        flag, implemented = future_features[name]
-        if not implemented:
-          msg = 'future feature {} not yet implemented by grumpy'.format(name)
-          raise util.ParseError(node, msg)
-        self.parser_flags |= flag
-      elif name == 'braces':
-        raise util.ParseError(node, 'not a chance')
-      elif name not in redundant_future_features:
-        msg = 'future feature {} is not defined'.format(name)
-        raise util.ParseError(node, msg)

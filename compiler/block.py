@@ -62,6 +62,7 @@ class Block(object):
   _runtime = None
   _strings = None
   imports = None
+  future_features = None
 
   def __init__(self, parent_block, name):
     self.parent_block = parent_block
@@ -216,7 +217,7 @@ class ModuleBlock(Block):
     imports: A dict mapping fully qualified Go package names to Package objects.
   """
 
-  def __init__(self, full_package_name, runtime, libroot, filename, lines):
+  def __init__(self, full_package_name, runtime, libroot, filename, lines, future_features):
     super(ModuleBlock, self).__init__(None, '<module>')
     self._full_package_name = full_package_name
     self._runtime = runtime
@@ -225,6 +226,7 @@ class ModuleBlock(Block):
     self._lines = lines
     self._strings = set()
     self.imports = {}
+    self.future_features = future_features
 
   def bind_var(self, writer, name, value):
     writer.write_checked_call1(
