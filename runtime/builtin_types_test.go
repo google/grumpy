@@ -64,6 +64,12 @@ func TestBuiltinFuncs(t *testing.T) {
 			return newObject(badNextType), nil
 		}).ToObject(),
 	}))
+	fooBuiltinFunc := newBuiltinFunction("foo", func(f *Frame, args Args, kwargs KWArgs) (*Object, *BaseException) {
+		return newTestTuple(NewTuple(args.makeCopy()...), kwargs.makeDict()).ToObject(), nil
+	}).ToObject()
+	fooFunc := NewFunction(NewCode("foo", "foo.py", nil, CodeFlagVarArg, func(f *Frame, args []*Object) (*Object, *BaseException) {
+		return args[0], nil
+	}), nil)
 	cases := []struct {
 		f       string
 		args    Args
@@ -96,6 +102,15 @@ func TestBuiltinFuncs(t *testing.T) {
 		{f: "bin", args: wrapArgs(0.1), wantExc: mustCreateException(TypeErrorType, "float object cannot be interpreted as an index")},
 		{f: "bin", args: wrapArgs(1, 2, 3), wantExc: mustCreateException(TypeErrorType, "'bin' requires 1 arguments")},
 		{f: "bin", args: wrapArgs(newObject(indexType)), want: NewStr("0b1111011").ToObject()},
+		{f: "callable", args: wrapArgs(fooBuiltinFunc), want: True.ToObject()},
+		{f: "callable", args: wrapArgs(fooFunc), want: True.ToObject()},
+		{f: "callable", args: wrapArgs(0), want: False.ToObject()},
+		{f: "callable", args: wrapArgs(0.1), want: False.ToObject()},
+		{f: "callable", args: wrapArgs("foo"), want: False.ToObject()},
+		{f: "callable", args: wrapArgs(newTestDict("foo", 1, "bar", 2)), want: False.ToObject()},
+		{f: "callable", args: wrapArgs(newTestList(1, 2, 3)), want: False.ToObject()},
+		{f: "callable", args: wrapArgs(iter), want: False.ToObject()},
+		{f: "callable", args: wrapArgs(1, 2), wantExc: mustCreateException(TypeErrorType, "'callable' requires 1 arguments")},
 		{f: "chr", args: wrapArgs(0), want: NewStr("\x00").ToObject()},
 		{f: "chr", args: wrapArgs(65), want: NewStr("A").ToObject()},
 		{f: "chr", args: wrapArgs(300), wantExc: mustCreateException(ValueErrorType, "chr() arg not in range(256)")},
