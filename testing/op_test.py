@@ -14,6 +14,7 @@
 
 """Arithmetic and boolean operator tests."""
 
+from __go__.math import IsNaN, IsInf
 import weetest
 
 
@@ -54,6 +55,29 @@ def TestBoolOpsLazyEval():
   ran = []
   assert Yes() or Yes() or Yes()
   assert ran == ['Yes']
+
+
+def TestNeg():
+  x = 12
+  assert -x == -12
+
+  x = 1.1
+  assert -x == -1.1
+
+  x = 0.0
+  assert -x == -0.0
+
+  x = float('inf')
+  assert IsInf(-x, -1)
+
+  x = -float('inf')
+  assert IsInf(-x, 1)
+
+  x = float('nan')
+  assert IsNaN(-x)
+
+  x = long(100)
+  assert -x == -100
 
 
 if __name__ == '__main__':

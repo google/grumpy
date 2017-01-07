@@ -774,7 +774,7 @@ func ToStr(f *Frame, o *Object) (*Str, *BaseException) {
 func Neg(f *Frame, o *Object) (*Object, *BaseException) {
 	neg := o.typ.slots.Neg
 	if neg == nil {
-		return nil, f.RaiseType(TypeErrorType, fmt.Sprintf("bad operand type for unary ~: '%s'", o.typ.Name()))
+		return nil, f.RaiseType(TypeErrorType, fmt.Sprintf("bad operand type for unary -: '%s'", o.typ.Name()))
 	}
 	return neg.Fn(f, o)
 }
