@@ -295,10 +295,10 @@ class StatementVisitorTest(unittest.TestCase):
 
   def testImportFromFuture(self):
     testcases = [
-      ('from __future__ import print_function', stmt.FUTURE_PRINT_FUNCTION),
-      ('from __future__ import generators', 0),
-      ('from __future__ import generators, print_function',
-       stmt.FUTURE_PRINT_FUNCTION),
+        ('from __future__ import print_function', stmt.FUTURE_PRINT_FUNCTION),
+        ('from __future__ import generators', 0),
+        ('from __future__ import generators, print_function',
+         stmt.FUTURE_PRINT_FUNCTION),
     ]
 
     for i, tc in enumerate(testcases):
@@ -311,14 +311,18 @@ class StatementVisitorTest(unittest.TestCase):
 
   def testImportFromFutureParseError(self):
     testcases = [
-      # NOTE: move these to testImportFromFuture as they are implemented by grumpy
-      ('from __future__ import absolute_import', r'future feature \w+ not yet implemented'),
-      ('from __future__ import division', r'future feature \w+ not yet implemented'),
-      ('from __future__ import unicode_literals', r'future feature \w+ not yet implemented'),
+        # NOTE: move this group to testImportFromFuture as they are implemented
+        # by grumpy
+        ('from __future__ import absolute_import',
+         r'future feature \w+ not yet implemented'),
+        ('from __future__ import division',
+         r'future feature \w+ not yet implemented'),
+        ('from __future__ import unicode_literals',
+         r'future feature \w+ not yet implemented'),
 
-      ('from __future__ import braces', 'not a chance'),
-      ('from __future__ import nonexistant_feature',
-       r'future feature \w+ is not defined'),
+        ('from __future__ import braces', 'not a chance'),
+        ('from __future__ import nonexistant_feature',
+         r'future feature \w+ is not defined'),
     ]
 
     for tc in testcases:
@@ -330,11 +334,19 @@ class StatementVisitorTest(unittest.TestCase):
 
   def testVisitFuture(self):
     testcases = [
-      ('from __future__ import print_function', stmt.FUTURE_PRINT_FUNCTION, 1),
-      ("""\
-      "module docstring"
-      from __future__ import print_function
-      """, stmt.FUTURE_PRINT_FUNCTION, 2),
+        ('from __future__ import print_function',
+         stmt.FUTURE_PRINT_FUNCTION, 1),
+        ("""\
+        "module docstring"
+
+        from __future__ import print_function
+        """, stmt.FUTURE_PRINT_FUNCTION, 3),
+        ("""\
+        "module docstring"
+
+        from __future__ import print_function, with_statement
+        from __future__ import nested_scopes
+        """, stmt.FUTURE_PRINT_FUNCTION, 4),
     ]
 
     for tc in testcases:
@@ -346,16 +358,16 @@ class StatementVisitorTest(unittest.TestCase):
 
   def testVisitFutureParseError(self):
     testcases = [
-      # future after normal imports
-      """\
-      import os
-      from __future__ import print_function
-      """,
-      # future after non-docstring expression 
-      """
-      asd = 123
-      from __future__ import print_function
-      """
+        # future after normal imports
+        """\
+        import os
+        from __future__ import print_function
+        """,
+        # future after non-docstring expression
+        """
+        asd = 123
+        from __future__ import print_function
+        """
     ]
 
     for source in testcases:
@@ -373,15 +385,6 @@ class StatementVisitorTest(unittest.TestCase):
         print('abc', 123)
         print('abc', 123, sep='x')
         print('abc', 123, end=' ')""")))
-
-  def testUnimplementedFutureFeature(self):
-    regexp = r'future feature \w+ not yet implemented'
-    self.assertRaisesRegexp(util.ParseError, regexp, _ParseAndVisit,
-                            'from __future__ import division')
-
-  def testMatchCPythonFutureBraces(self):
-    self.assertRaisesRegexp(util.ParseError, 'not a chance', _ParseAndVisit,
-                            'from __future__ import braces')
 
   def testRaiseExitStatus(self):
     self.assertEqual(1, _GrumpRun('raise Exception')[0])

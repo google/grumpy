@@ -56,9 +56,8 @@ redundant_future_features = ["generators", "with_statement", "nested_scopes"]
 late_future = 'from __future__ imports must occur at the beginning of the file'
 
 
-# import_from_future processes a future import statement, returning the set of
-# flags it defines.
 def import_from_future(node):
+  """processes a future import statement, returning set of flags it defines."""
   assert isinstance(node, ast.ImportFrom)
   assert node.module == '__future__'
   flags = 0
@@ -113,7 +112,7 @@ def visit_future(node):
         done = True
     elif isinstance(node, ast.Expr) and not found_docstring:
       e = node.value
-      if not isinstance(e, ast.Str):
+      if not isinstance(e, ast.Str): # pylint: disable=simplifiable-if-statement
         done = True
       else:
         found_docstring = True

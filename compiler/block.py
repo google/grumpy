@@ -217,7 +217,8 @@ class ModuleBlock(Block):
     imports: A dict mapping fully qualified Go package names to Package objects.
   """
 
-  def __init__(self, full_package_name, runtime, libroot, filename, lines, future_features):
+  def __init__(self, full_package_name, runtime, libroot, filename, lines,
+               future_features):
     super(ModuleBlock, self).__init__(None, '<module>')
     self._full_package_name = full_package_name
     self._runtime = runtime
@@ -442,5 +443,5 @@ class FunctionBlockVisitor(BlockVisitor):
         raise util.ParseError(node, msg)
       self.vars[name] = Var(name, Var.TYPE_PARAM, arg_index=i)
 
-  def visit_Yield(self, unused_node):
+  def visit_Yield(self, unused_node): # pylint: disable=unused-argument
     self.is_generator = True
