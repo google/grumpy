@@ -34,3 +34,23 @@ except TypeError as e:
   assert str(e) == "bad operand type for abs(): 'str'"
 else:
   raise AssertionError('this was supposed to raise an exception')
+
+
+# all(iterable)
+
+assert all([1, 2, 3])
+assert all([])
+assert not all([1, 1, 1, 0, 1])
+
+assert all([True, True])
+assert not all([False, True, True])
+
+assert all('')
+assert all('abc')
+
+try:
+  all(13)
+except TypeError as e:
+  assert str(e) == "'int' object is not iterable"
+else:
+  raise AssertionError('this was supposed to raise an exception')

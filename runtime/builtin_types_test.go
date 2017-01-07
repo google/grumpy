@@ -49,6 +49,21 @@ func TestBuiltinFuncs(t *testing.T) {
 			return NewInt(123).ToObject(), nil
 		}).ToObject(),
 	}))
+	badNonZeroType := newTestClass("BadNonZeroType", []*Type{ObjectType}, newStringDict(map[string]*Object{
+		"__nonzero__": newBuiltinFunction("__nonzero__", func(f *Frame, args Args, kwargs KWArgs) (*Object, *BaseException) {
+			return nil, f.RaiseType(RuntimeErrorType, "foo")
+		}).ToObject(),
+	}))
+	badNextType := newTestClass("BadNextType", []*Type{ObjectType}, newStringDict(map[string]*Object{
+		"next": newBuiltinFunction("next", func(f *Frame, args Args, kwargs KWArgs) (*Object, *BaseException) {
+			return nil, f.RaiseType(RuntimeErrorType, "foo")
+		}).ToObject(),
+	}))
+	badIterType := newTestClass("BadIterType", []*Type{ObjectType}, newStringDict(map[string]*Object{
+		"__iter__": newBuiltinFunction("__iter__", func(f *Frame, args Args, kwargs KWArgs) (*Object, *BaseException) {
+			return newObject(badNextType), nil
+		}).ToObject(),
+	}))
 	cases := []struct {
 		f       string
 		args    Args
@@ -65,6 +80,12 @@ func TestBuiltinFuncs(t *testing.T) {
 		{f: "abs", args: wrapArgs(NewFloat(-3.4)), want: NewFloat(3.4).ToObject()},
 		{f: "abs", args: wrapArgs(MinInt), want: NewLong(big.NewInt(MinInt).Neg(minIntBig)).ToObject()},
 		{f: "abs", args: wrapArgs(NewStr("a")), wantExc: mustCreateException(TypeErrorType, "bad operand type for abs(): 'str'")},
+		{f: "all", args: wrapArgs(newTestList()), want: True.ToObject()},
+		{f: "all", args: wrapArgs(newTestList(1, 2, 3)), want: True.ToObject()},
+		{f: "all", args: wrapArgs(newTestList(1, 0, 1)), want: False.ToObject()},
+		{f: "all", args: wrapArgs(13), wantExc: mustCreateException(TypeErrorType, "'int' object is not iterable")},
+		{f: "all", args: wrapArgs(newTestList(newObject(badNonZeroType))), wantExc: mustCreateException(RuntimeErrorType, "foo")},
+		{f: "all", args: wrapArgs(newObject(badIterType)), wantExc: mustCreateException(RuntimeErrorType, "foo")},
 		{f: "bin", args: wrapArgs(64 + 8 + 1), want: NewStr("0b1001001").ToObject()},
 		{f: "bin", args: wrapArgs(MinInt), want: NewStr(fmt.Sprintf("-0b%b0", -(MinInt >> 1))).ToObject()},
 		{f: "bin", args: wrapArgs(0), want: NewStr("0b0").ToObject()},

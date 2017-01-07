@@ -190,6 +190,31 @@ func builtinAbs(f *Frame, args Args, _ KWArgs) (*Object, *BaseException) {
 	return Abs(f, args[0])
 }
 
+func builtinAll(f *Frame, args Args, _ KWArgs) (*Object, *BaseException) {
+	if raised := checkFunctionArgs(f, "all", args, ObjectType); raised != nil {
+		return nil, raised
+	}
+	iter, raised := Iter(f, args[0])
+	if raised != nil {
+		return nil, raised
+	}
+	o, raised := Next(f, iter)
+	for ; raised == nil; o, raised = Next(f, iter) {
+		ret, raised := IsTrue(f, o)
+		if raised != nil {
+			return nil, raised
+		}
+		if !ret {
+			return False.ToObject(), nil
+		}
+	}
+	if !raised.isInstance(StopIterationType) {
+		return nil, raised
+	}
+	f.RestoreExc(nil, nil)
+	return True.ToObject(), nil
+}
+
 func builtinBin(f *Frame, args Args, _ KWArgs) (*Object, *BaseException) {
 	if raised := checkFunctionArgs(f, "bin", args, ObjectType); raised != nil {
 		return nil, raised
@@ -472,6 +497,7 @@ func init() {
 	builtinMap := map[string]*Object{
 		"__frame__":      newBuiltinFunction("__frame__", builtinFrame).ToObject(),
 		"abs":            newBuiltinFunction("abs", builtinAbs).ToObject(),
+		"all":            newBuiltinFunction("all", builtinAll).ToObject(),
 		"bin":            newBuiltinFunction("bin", builtinBin).ToObject(),
 		"chr":            newBuiltinFunction("chr", builtinChr).ToObject(),
 		"dir":            newBuiltinFunction("dir", builtinDir).ToObject(),
