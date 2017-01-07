@@ -71,11 +71,7 @@ func intAbs(f *Frame, o *Object) (*Object, *BaseException) {
 	if z.Value() > 0 {
 		return z.ToObject(), nil
 	}
-	if z.Value() == MinInt {
-		nz := big.NewInt(int64(z.Value()))
-		return NewLong(nz.Neg(nz)).ToObject(), nil
-	}
-	return NewInt(-z.Value()).ToObject(), nil
+	return intNeg(f, o)
 }
 
 func intAdd(f *Frame, v, w *Object) (*Object, *BaseException) {
@@ -166,6 +162,15 @@ func intNative(f *Frame, o *Object) (reflect.Value, *BaseException) {
 
 func intNE(f *Frame, v, w *Object) (*Object, *BaseException) {
 	return intCompare(compareOpNE, toIntUnsafe(v), w), nil
+}
+
+func intNeg(f *Frame, o *Object) (*Object, *BaseException) {
+	z := toIntUnsafe(o)
+	if z.Value() == MinInt {
+		nz := big.NewInt(int64(z.Value()))
+		return NewLong(nz.Neg(nz)).ToObject(), nil
+	}
+	return NewInt(-z.Value()).ToObject(), nil
 }
 
 func intNew(f *Frame, t *Type, args Args, _ KWArgs) (*Object, *BaseException) {
@@ -319,6 +324,7 @@ func initIntType(dict map[string]*Object) {
 	IntType.slots.Mul = &binaryOpSlot{intMul}
 	IntType.slots.Native = &nativeSlot{intNative}
 	IntType.slots.NE = &binaryOpSlot{intNE}
+	IntType.slots.Neg = &unaryOpSlot{intNeg}
 	IntType.slots.New = &newSlot{intNew}
 	IntType.slots.NonZero = &unaryOpSlot{intNonZero}
 	IntType.slots.Or = &binaryOpSlot{intOr}

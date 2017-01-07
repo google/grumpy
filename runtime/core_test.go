@@ -512,6 +512,20 @@ func TestIter(t *testing.T) {
 	}
 }
 
+func TestNeg(t *testing.T) {
+	cases := []invokeTestCase{
+		{args: wrapArgs(42), want: NewInt(-42).ToObject()},
+		{args: wrapArgs(1.2), want: NewFloat(-1.2).ToObject()},
+		{args: wrapArgs(NewLong(big.NewInt(123))), want: NewLong(big.NewInt(-123)).ToObject()},
+		{args: wrapArgs("foo"), wantExc: mustCreateException(TypeErrorType, "bad operand type for unary -: 'str'")},
+	}
+	for _, cas := range cases {
+		if err := runInvokeTestCase(wrapFuncForTest(Neg), &cas); err != "" {
+			t.Error(err)
+		}
+	}
+}
+
 func TestNext(t *testing.T) {
 	fun := newBuiltinFunction("TestNext", func(f *Frame, args Args, _ KWArgs) (*Object, *BaseException) {
 		if argc := len(args); argc != 1 {

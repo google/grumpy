@@ -200,6 +200,10 @@ func longNE(x, y *big.Int) bool {
 	return x.Cmp(y) != 0
 }
 
+func longNeg(z, x *big.Int) {
+	z.Neg(x)
+}
+
 func longNew(f *Frame, t *Type, args Args, _ KWArgs) (*Object, *BaseException) {
 	if t != LongType {
 		// Allocate a plain long and then copy its value into an
@@ -323,6 +327,7 @@ func initLongType(dict map[string]*Object) {
 	LongType.slots.Mul = longBinaryOpSlot(longMul)
 	LongType.slots.Native = &nativeSlot{longNative}
 	LongType.slots.NE = longBinaryBoolOpSlot(longNE)
+	LongType.slots.Neg = longUnaryOpSlot(longNeg)
 	LongType.slots.New = &newSlot{longNew}
 	LongType.slots.NonZero = longUnaryBoolOpSlot(longNonZero)
 	LongType.slots.Or = longBinaryOpSlot(longOr)

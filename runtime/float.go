@@ -143,6 +143,11 @@ func floatNE(f *Frame, v, w *Object) (*Object, *BaseException) {
 	return floatCompare(toFloatUnsafe(v), w, True, False, True), nil
 }
 
+func floatNeg(f *Frame, o *Object) (*Object, *BaseException) {
+	z := toFloatUnsafe(o).Value()
+	return NewFloat(-z).ToObject(), nil
+}
+
 func floatNew(f *Frame, t *Type, args Args, _ KWArgs) (*Object, *BaseException) {
 	argc := len(args)
 	if argc == 0 {
@@ -241,6 +246,7 @@ func initFloatType(dict map[string]*Object) {
 	FloatType.slots.Mul = &binaryOpSlot{floatMul}
 	FloatType.slots.Native = &nativeSlot{floatNative}
 	FloatType.slots.NE = &binaryOpSlot{floatNE}
+	FloatType.slots.Neg = &unaryOpSlot{floatNeg}
 	FloatType.slots.New = &newSlot{floatNew}
 	FloatType.slots.NonZero = &unaryOpSlot{floatNonZero}
 	FloatType.slots.RAdd = &binaryOpSlot{floatRAdd}
