@@ -328,18 +328,6 @@ func getNativeType(rtype reflect.Type) *Type {
 			base = StrType
 		}
 		d := map[string]*Object{"__module__": builtinStr.ToObject()}
-
-		derefed := rtype
-		for derefed.Kind() == reflect.Ptr {
-			derefed = derefed.Elem()
-		}
-		if derefed.Kind() == reflect.Struct {
-			for i := 0; i < derefed.NumField(); i++ {
-				name := derefed.Field(i).Name
-				d[name] = newNativeField(name, i)
-			}
-		}
-
 		numMethod := rtype.NumMethod()
 		for i := 0; i < numMethod; i++ {
 			meth := rtype.Method(i)
@@ -349,7 +337,27 @@ func getNativeType(rtype reflect.Type) *Type {
 				d[meth.Name] = newNativeMethod(meth.Name, meth.Func)
 			}
 		}
-		t = &newNativeType(rtype, base, newStringDict(d)).Type
+
+		// Building a field for this type depends on the type itself, but we
+		// can't construct the type with the real `*Dict` yet, because we
+		// couldn't otherwise add the new fields to the `*Dict` (because we
+		// don't have access to a `*Frame` in this function). Instead, we'll
+		// convert `d` into a `*Dict` after we construct all of its fields, and
+		// we'll stick it back on `t` at that point.
+		t = &newNativeType(rtype, base, nil).Type
+
+		derefed := rtype
+		for derefed.Kind() == reflect.Ptr {
+			derefed = derefed.Elem()
+		}
+		if derefed.Kind() == reflect.Struct {
+			for i := 0; i < derefed.NumField(); i++ {
+				name := derefed.Field(i).Name
+				d[name] = newNativeField(name, i, t)
+			}
+		}
+		t.dict = newStringDict(d)
+
 		// This cannot fail since we're defining simple classes.
 		if err := prepareType(t); err != "" {
 			logFatal(err)
@@ -360,9 +368,9 @@ func getNativeType(rtype reflect.Type) *Type {
 	return t
 }
 
-func newNativeField(name string, i int) *Object {
+func newNativeField(name string, i int, t *Type) *Object {
 	nativeFieldGet := func(f *Frame, args Args, _ KWArgs) (*Object, *BaseException) {
-		if raised := checkFunctionArgs(f, name, args, nativeType); raised != nil {
+		if raised := checkFunctionArgs(f, name, args, t); raised != nil {
 			return nil, raised
 		}
 		v := toNativeUnsafe(args[0]).value

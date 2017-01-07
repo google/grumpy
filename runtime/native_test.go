@@ -413,6 +413,33 @@ func TestNativeTypeName(t *testing.T) {
 	}
 }
 
+func TestNewNativeField_ChecksInstanceType(t *testing.T) {
+	f := newFrame(nil)
+
+	// Given a native object
+	native, raised := WrapNative(f, reflect.ValueOf(struct{ foo string }{}))
+	if raised != nil {
+		t.Fatal("Unexpected exception:", raised)
+	}
+
+	// When its field property is assigned to a different type
+	property, raised := native.typ.dict.GetItemString(f, "foo")
+	if raised != nil {
+		t.Fatal("Unexpected exception:", raised)
+	}
+	if raised := IntType.dict.SetItemString(f, "foo", property); raised != nil {
+		t.Fatal("Unexpected exception:", raised)
+	}
+
+	// And we try to access that property on an object of the new type
+	_, raised = GetAttr(f, NewInt(1).ToObject(), NewStr("foo"), nil)
+
+	// Then expect a TypeError was raised
+	if raised == nil || raised.Type() != TypeErrorType {
+		t.Fatal("Wanted TypeError; got:", raised)
+	}
+}
+
 func wrapArgs(elems ...interface{}) Args {
 	f := newFrame(nil)
 	argc := len(elems)
