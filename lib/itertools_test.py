@@ -54,7 +54,7 @@ def TestFromIterable():
     ([], ())
   ]
   for args, want in cases:
-    got = tuple(itertools.from_iterable(args))
+    got = tuple(itertools.chain.from_iterable(args))
     assert got == want, 'tuple(from_iterable%s) == %s, want %s' % (args, got, want)
 
 def TestIFilter():
