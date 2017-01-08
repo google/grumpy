@@ -980,7 +980,6 @@ func pyPrint(f *Frame, args Args, sep, end string, file io.Writer) *BaseExceptio
 		}
 		s, raised := ToStr(f, arg)
 		if raised != nil {
-			log.Printf("*** RAISED: %v", raised)
 			return raised
 		}
 		fmt.Fprint(file, s.Value())
