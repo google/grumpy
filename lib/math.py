@@ -26,20 +26,62 @@ def fabs(x):
 
 
 def factorial(x):
+    try:
+        xi = int(x)
+    except TypeError:
+        xi = None
     
-    def factorial_helper(x, acc):
-        if x <= 1:
-            return acc
-        return factorial_helper(x - 1, acc * x)
+    try:
+        xf = float(x)
+    except TypeError:
+        xf = None
     
-    if x % 1 != 0:
+    if xi is None:
+        xi = int(xf)
+        if xi != xf:
+            raise ValueError("factorial() only accepts integral values")
+    elif xf is None and xi is None:
+        raise TypeError("an integer is required")
+    elif xf is None:
+        pass
+    elif xf != xi:
         raise ValueError("factorial() only accepts integral values")
-    if x < 0:
-        raise ValueError("factorial() not defined for negative values")
+    
+    x = xi
+    
+    # The rest of this implementation is taken from PyPy
+    if x <= 100:
+        if x < 0:
+            raise ValueError("x must be >= 0")
+        res = 1
+        for i in range(2, x + 1):
+            res *= i
+        return res
 
-    return factorial_helper(int(x), 1)
+    # Experimentally this gap seems good
+    gap = max(100, x >> 7)
+    def _fac_odd(low, high):
+        if low + gap >= high:
+            t = 1
+            for i in range(low, high, 2):
+                t *= i
+            return t
 
-        
+        mid = ((low + high) >> 1) | 1
+        return _fac_odd(low, mid) * _fac_odd(mid, high)
+
+    def _fac1(x):
+        if x <= 2:
+            return 1, 1, x - 1
+        x2 = x >> 1
+        f, g, shift = _fac1(x2)
+        g *= _fac_odd((x2 + 1) | 1, x + 1)
+        return (f * g, g, shift + x2)
+
+    res, _, shift = _fac1(x)
+    return res << shift
+
+
 def floor(x):
     return Floor(float(x))
 
