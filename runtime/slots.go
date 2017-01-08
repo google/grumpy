@@ -374,6 +374,7 @@ type typeSlots struct {
 	And          *binaryOpSlot
 	Basis        *basisSlot
 	Call         *callSlot
+	Cmp          *binaryOpSlot
 	Contains     *binaryOpSlot
 	DelAttr      *delAttrSlot
 	Delete       *deleteSlot

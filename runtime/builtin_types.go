@@ -266,6 +266,13 @@ func builtinChr(f *Frame, args Args, _ KWArgs) (*Object, *BaseException) {
 	return NewStr(string([]byte{byte(i)})).ToObject(), nil
 }
 
+func builtinCmp(f *Frame, args Args, _ KWArgs) (*Object, *BaseException) {
+	if raised := checkFunctionArgs(f, "cmp", args, ObjectType, ObjectType); raised != nil {
+		return nil, raised
+	}
+	return Compare(f, args[0], args[1])
+}
+
 func builtinDir(f *Frame, args Args, kwargs KWArgs) (*Object, *BaseException) {
 	// TODO: Support __dir__.
 	if raised := checkFunctionArgs(f, "dir", args, ObjectType); raised != nil {
@@ -554,6 +561,7 @@ func init() {
 		"bin":            newBuiltinFunction("bin", builtinBin).ToObject(),
 		"callable":       newBuiltinFunction("callable", builtinCallable).ToObject(),
 		"chr":            newBuiltinFunction("chr", builtinChr).ToObject(),
+		"cmp":            newBuiltinFunction("cmp", builtinCmp).ToObject(),
 		"dir":            newBuiltinFunction("dir", builtinDir).ToObject(),
 		"False":          False.ToObject(),
 		"getattr":        newBuiltinFunction("getattr", builtinGetAttr).ToObject(),

@@ -65,6 +65,29 @@ func Assert(f *Frame, cond *Object, msg *Object) *BaseException {
 	return raised
 }
 
+// compare implements a 3-way comparison which returns:
+//
+//   -1 if v < w
+//    0 if v == w
+//    1 if v > w
+//
+// It closely resembles the behavior of CPython's do_cmp in object.c.
+func Compare(f *Frame, v, w *Object) (*Object, *BaseException) {
+	cmp := v.typ.slots.Cmp
+	if v.typ == w.typ && cmp != nil {
+		return cmp.Fn(f, v, w)
+	}
+	r, raised := tryRichTo3wayCompare(f, v, w)
+	if r != NotImplemented {
+		return r, raised
+	}
+	r, raised = try3wayCompare(f, v, w)
+	if r != NotImplemented {
+		return r, raised
+	}
+	return NewInt(compareDefault(f, v, w)).ToObject(), nil
+}
+
 // Contains checks whether value is present in seq. It first checks the
 // __contains__ method of seq and, if that is not available, attempts to find
 // value by iteration over seq. It is equivalent to the Python expression
@@ -934,6 +957,83 @@ func compareDefault(f *Frame, v, w *Object) int {
 		return -1
 	}
 	return 1
+}
+
+// tryRichCompareBool tries a rich comparison with the given comparison op and
+// returns a bool indicating if the relation is true. It closely resembles the
+// behavior of CPython's try_rich_compare_bool in object.c.
+func tryRichCompareBool(f *Frame, op compareOp, v, w *Object) (bool, *BaseException) {
+	r, raised := compareRich(f, op, v, w)
+	if raised != nil {
+		return false, raised
+	}
+	if r == NotImplemented {
+		return false, nil
+	}
+	br, raised := IsTrue(f, r)
+	if raised != nil {
+		return false, raised
+	}
+	return br, raised
+}
+
+// halfCompare tries a comparison with the __cmp__ slot, ensures the result
+// is an integer, and returns it. It closely resembles the behavior of CPython's
+// half_compare in typeobject.c.
+func halfCompare(f *Frame, v, w *Object) (*Object, *BaseException) {
+	cmp := v.typ.slots.Cmp
+	r, raised := cmp.Fn(f, v, w)
+	if raised != nil {
+		return nil, raised
+	}
+	if !r.isInstance(IntType) {
+		return nil, f.RaiseType(TypeErrorType, "an integer is required")
+	}
+	return r, nil
+}
+
+// try3wayCompare tries a comparison with the __cmp__ slot with the given
+// arguments. It first tries to use the __cmp__ slot on v and if that fails
+// on w. It closely resembles the behavior of CPython's try_3way_compare in
+// object.c.
+func try3wayCompare(f *Frame, v, w *Object) (*Object, *BaseException) {
+	cmp := v.typ.slots.Cmp
+	if cmp != nil {
+		return halfCompare(f, v, w)
+	}
+	cmp = w.typ.slots.Cmp
+	if cmp != nil {
+		r, raised := halfCompare(f, w, v)
+		if raised != nil {
+			return nil, raised
+		}
+		return intNeg(f, r)
+	}
+	return NotImplemented, nil
+}
+
+// tryRichTo3wayCompare tries to compute a 3-way comparison in terms of
+// the rich comparison operators (if they exist). It closely resembles
+// the behavior of CPython's try_rich_to_3way_compare in object.c.
+func tryRichTo3wayCompare(f *Frame, v, w *Object) (*Object, *BaseException) {
+	var tries = []struct {
+		op      compareOp
+		outcome int
+	}{
+		{compareOpEq, 0},
+		{compareOpLT, -1},
+		{compareOpGT, 1},
+	}
+	for _, try := range tries {
+		r, raised := tryRichCompareBool(f, try.op, v, w)
+		if raised != nil {
+			return nil, raised
+		}
+		if r {
+			return NewInt(try.outcome).ToObject(), nil
+		}
+	}
+	return NotImplemented, nil
 }
 
 func checkFunctionArgs(f *Frame, function string, args Args, types ...*Type) *BaseException {
