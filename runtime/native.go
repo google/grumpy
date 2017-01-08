@@ -64,10 +64,10 @@ func toNativeMetaclassUnsafe(o *Object) *nativeMetaclass {
 	return (*nativeMetaclass)(o.toPointer())
 }
 
-func newNativeType(rtype reflect.Type, base *Type, d *Dict) *nativeMetaclass {
+func newNativeType(rtype reflect.Type, base *Type) *nativeMetaclass {
 	return &nativeMetaclass{
 		Type{
-			Object: Object{typ: nativeMetaclassType, dict: d},
+			Object: Object{typ: nativeMetaclassType},
 			name:   nativeTypeName(rtype),
 			basis:  base.basis,
 			bases:  []*Type{base},
@@ -338,13 +338,7 @@ func getNativeType(rtype reflect.Type) *Type {
 			}
 		}
 
-		// Building a field for this type depends on the type itself, but we
-		// can't construct the type with the real `*Dict` yet, because we
-		// couldn't otherwise add the new fields to the `*Dict` (because we
-		// don't have access to a `*Frame` in this function). Instead, we'll
-		// convert `d` into a `*Dict` after we construct all of its fields, and
-		// we'll stick it back on `t` at that point.
-		t = &newNativeType(rtype, base, nil).Type
+		t = &newNativeType(rtype, base).Type
 
 		derefed := rtype
 		for derefed.Kind() == reflect.Ptr {

@@ -24,7 +24,7 @@ import (
 
 func TestNativeMetaclassNew(t *testing.T) {
 	var i int16
-	intType := &newNativeType(reflect.TypeOf(i), IntType, NewDict()).Type
+	intType := &newNativeType(reflect.TypeOf(i), IntType).Type
 	fun := wrapFuncForTest(func(f *Frame, args ...*Object) *BaseException {
 		newFunc, raised := GetAttr(f, intType.ToObject(), NewStr("new"), nil)
 		if raised != nil {
@@ -413,7 +413,7 @@ func TestNativeTypeName(t *testing.T) {
 	}
 }
 
-func TestNewNativeField_ChecksInstanceType(t *testing.T) {
+func TestNewNativeFieldChecksInstanceType(t *testing.T) {
 	f := newFrame(nil)
 
 	// Given a native object
