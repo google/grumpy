@@ -62,7 +62,7 @@ class Block(object):
   _runtime = None
   _strings = None
   imports = None
-  future_features = None
+  _future_features = None
 
   def __init__(self, parent_block, name):
     self.parent_block = parent_block
@@ -104,6 +104,11 @@ class Block(object):
   @property
   def strings(self):
     return self._module_block._strings  # pylint: disable=protected-access
+
+  @property
+  def future_features(self):
+    # pylint: disable=protected-access
+    return self._module_block._future_features
 
   @abc.abstractmethod
   def bind_var(self, writer, name, value):
@@ -227,7 +232,7 @@ class ModuleBlock(Block):
     self._lines = lines
     self._strings = set()
     self.imports = {}
-    self.future_features = future_features
+    self._future_features = future_features
 
   def bind_var(self, writer, name, value):
     writer.write_checked_call1(

@@ -57,7 +57,7 @@ late_future = 'from __future__ imports must occur at the beginning of the file'
 
 
 def import_from_future(node):
-  """processes a future import statement, returning set of flags it defines."""
+  """Processes a future import statement, returning set of flags it defines."""
   assert isinstance(node, ast.ImportFrom)
   assert node.module == '__future__'
   flags = 0
@@ -131,7 +131,6 @@ class StatementVisitor(ast.NodeVisitor):
     self.future_features = self.block.future_features or FutureFeatures()
     self.writer = util.Writer()
     self.expr_visitor = expr_visitor.ExprVisitor(self.block, self.writer)
-    self.parser_flags = getattr(block_, 'parser_flags', 0)
 
   def generic_visit(self, node):
     msg = 'node not yet implemented: {}'.format(type(node).__name__)

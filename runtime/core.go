@@ -550,22 +550,6 @@ func Next(f *Frame, iter *Object) (*Object, *BaseException) {
 	return next.Fn(f, iter)
 }
 
-// pyPrint encapsulates the logic of the Python print function.
-func pyPrint(f *Frame, args Args, sep, end string, file io.Writer) *BaseException {
-	for i, arg := range args {
-		if i > 0 {
-			fmt.Fprint(file, sep)
-		}
-		s, raised := ToStr(f, arg)
-		if raised != nil {
-			return raised
-		}
-		fmt.Fprint(file, s.Value())
-	}
-	fmt.Fprint(file, end)
-	return nil
-}
-
 // Print implements the Python print statement. It calls str() on the given args
 // and outputs the results to stdout separated by spaces. Similar to the Python
 // print statement.
@@ -986,4 +970,21 @@ func checkMethodVarArgs(f *Frame, method string, args Args, types ...*Type) *Bas
 
 func hashNotImplemented(f *Frame, o *Object) (*Object, *BaseException) {
 	return nil, f.RaiseType(TypeErrorType, fmt.Sprintf("unhashable type: '%s'", o.typ.Name()))
+}
+
+// pyPrint encapsulates the logic of the Python print function.
+func pyPrint(f *Frame, args Args, sep, end string, file io.Writer) *BaseException {
+	for i, arg := range args {
+		if i > 0 {
+			fmt.Fprint(file, sep)
+		}
+		s, raised := ToStr(f, arg)
+		if raised != nil {
+			log.Printf("*** RAISED: %v", raised)
+			return raised
+		}
+		fmt.Fprint(file, s.Value())
+	}
+	fmt.Fprint(file, end)
+	return nil
 }
