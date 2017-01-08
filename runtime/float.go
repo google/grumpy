@@ -50,6 +50,11 @@ func (f *Float) Value() float64 {
 	return f.value
 }
 
+func floatAbs(f *Frame, o *Object) (*Object, *BaseException) {
+	z := toFloatUnsafe(o).Value()
+	return NewFloat(math.Abs(z)).ToObject(), nil
+}
+
 func floatAdd(f *Frame, v, w *Object) (*Object, *BaseException) {
 	return floatArithmeticOp(f, "__add__", v, w, func(v, w float64) float64 { return v + w })
 }
@@ -138,6 +143,11 @@ func floatNE(f *Frame, v, w *Object) (*Object, *BaseException) {
 	return floatCompare(toFloatUnsafe(v), w, True, False, True), nil
 }
 
+func floatNeg(f *Frame, o *Object) (*Object, *BaseException) {
+	z := toFloatUnsafe(o).Value()
+	return NewFloat(-z).ToObject(), nil
+}
+
 func floatNew(f *Frame, t *Type, args Args, _ KWArgs) (*Object, *BaseException) {
 	argc := len(args)
 	if argc == 0 {
@@ -221,6 +231,7 @@ func floatSub(f *Frame, v, w *Object) (*Object, *BaseException) {
 
 func initFloatType(dict map[string]*Object) {
 	dict["__getnewargs__"] = newBuiltinFunction("__getnewargs__", floatGetNewArgs).ToObject()
+	FloatType.slots.Abs = &unaryOpSlot{floatAbs}
 	FloatType.slots.Add = &binaryOpSlot{floatAdd}
 	FloatType.slots.Div = &binaryOpSlot{floatDiv}
 	FloatType.slots.Eq = &binaryOpSlot{floatEq}
@@ -235,6 +246,7 @@ func initFloatType(dict map[string]*Object) {
 	FloatType.slots.Mul = &binaryOpSlot{floatMul}
 	FloatType.slots.Native = &nativeSlot{floatNative}
 	FloatType.slots.NE = &binaryOpSlot{floatNE}
+	FloatType.slots.Neg = &unaryOpSlot{floatNeg}
 	FloatType.slots.New = &newSlot{floatNew}
 	FloatType.slots.NonZero = &unaryOpSlot{floatNonZero}
 	FloatType.slots.RAdd = &binaryOpSlot{floatRAdd}

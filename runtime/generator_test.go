@@ -19,7 +19,7 @@ import (
 )
 
 func TestGeneratorNext(t *testing.T) {
-	f := newFrame(nil)
+	f := NewRootFrame()
 	var recursive *Object
 	recursiveFn := func(*Object) (*Object, *BaseException) {
 		next, raised := GetAttr(f, recursive, NewStr("next"), nil)
@@ -32,11 +32,11 @@ func TestGeneratorNext(t *testing.T) {
 	emptyFn := func(*Object) (*Object, *BaseException) {
 		return nil, nil
 	}
-	exhausted := NewGenerator(newFrame(nil), emptyFn).ToObject()
-	mustNotRaise(ListType.Call(newFrame(nil), Args{exhausted}, nil))
+	exhausted := NewGenerator(NewRootFrame(), emptyFn).ToObject()
+	mustNotRaise(ListType.Call(NewRootFrame(), Args{exhausted}, nil))
 	cases := []invokeTestCase{
 		invokeTestCase{args: wrapArgs(recursive), wantExc: mustCreateException(ValueErrorType, "generator already executing")},
-		invokeTestCase{args: wrapArgs(exhausted), wantExc: toBaseExceptionUnsafe(mustNotRaise(StopIterationType.Call(newFrame(nil), nil, nil)))},
+		invokeTestCase{args: wrapArgs(exhausted), wantExc: toBaseExceptionUnsafe(mustNotRaise(StopIterationType.Call(NewRootFrame(), nil, nil)))},
 	}
 	for _, cas := range cases {
 		if err := runInvokeMethodTestCase(GeneratorType, "next", &cas); err != "" {
@@ -50,8 +50,8 @@ func TestGeneratorSend(t *testing.T) {
 		return nil, nil
 	}
 	cases := []invokeTestCase{
-		invokeTestCase{args: wrapArgs(NewGenerator(newFrame(nil), emptyFn), 123), wantExc: mustCreateException(TypeErrorType, "can't send non-None value to a just-started generator")},
-		invokeTestCase{args: wrapArgs(NewGenerator(newFrame(nil), emptyFn), "foo", "bar"), wantExc: mustCreateException(TypeErrorType, "'send' of 'generator' requires 2 arguments")},
+		invokeTestCase{args: wrapArgs(NewGenerator(NewRootFrame(), emptyFn), 123), wantExc: mustCreateException(TypeErrorType, "can't send non-None value to a just-started generator")},
+		invokeTestCase{args: wrapArgs(NewGenerator(NewRootFrame(), emptyFn), "foo", "bar"), wantExc: mustCreateException(TypeErrorType, "'send' of 'generator' requires 2 arguments")},
 	}
 	for _, cas := range cases {
 		if err := runInvokeMethodTestCase(GeneratorType, "send", &cas); err != "" {
@@ -61,7 +61,7 @@ func TestGeneratorSend(t *testing.T) {
 }
 
 func TestGeneratorSimple(t *testing.T) {
-	f := newFrame(nil)
+	f := NewRootFrame()
 	fn := func(*Object) (*Object, *BaseException) {
 		switch f.State() {
 		case 0:

@@ -24,7 +24,8 @@ import (
 
 // hashFoo is the hash of the string 'foo'. We use this to validate some corner
 // cases around hash collision below.
-var hashFoo = NewInt(-4177197833195190597).ToObject()
+// NOTE: Inline func helps support 32bit systems.
+var hashFoo = NewInt(func(i int64) int { return int(i) }(-4177197833195190597)).ToObject()
 
 func TestNewStringDict(t *testing.T) {
 	cases := []struct {
@@ -135,7 +136,7 @@ func TestDictEqNE(t *testing.T) {
 		}
 		return None, nil
 	}).ToObject()
-	f := newFrame(nil)
+	f := NewRootFrame()
 	large1, large2 := NewDict(), NewDict()
 	largeSize := 100
 	for i := 0; i < largeSize; i++ {
@@ -193,7 +194,7 @@ func TestDictGetItem(t *testing.T) {
 		}
 		return result, raised
 	}).ToObject()
-	f := newFrame(nil)
+	f := NewRootFrame()
 	h, raised := Hash(f, NewStr("foo").ToObject())
 	if raised != nil {
 		t.Fatal(raised)
@@ -253,7 +254,7 @@ func TestDictItemIteratorIter(t *testing.T) {
 }
 
 func TestDictItemIterModified(t *testing.T) {
-	f := newFrame(nil)
+	f := NewRootFrame()
 	iterItems := mustNotRaise(GetAttr(f, DictType.ToObject(), NewStr("iteritems"), nil))
 	d := NewDict()
 	iter := mustNotRaise(iterItems.Call(f, wrapArgs(d), nil))
@@ -280,7 +281,7 @@ func TestDictIter(t *testing.T) {
 		}
 		return TupleType.Call(f, []*Object{iter}, nil)
 	}).ToObject()
-	f := newFrame(nil)
+	f := NewRootFrame()
 	deletedItemDict := newTestDict(hashFoo, None, "foo", None)
 	deletedItemDict.DelItem(f, hashFoo)
 	cases := []invokeTestCase{
@@ -298,7 +299,7 @@ func TestDictIter(t *testing.T) {
 
 // Tests dict.items and dict.iteritems.
 func TestDictItems(t *testing.T) {
-	f := newFrame(nil)
+	f := NewRootFrame()
 	iterItems := mustNotRaise(GetAttr(f, DictType.ToObject(), NewStr("iteritems"), nil))
 	items := newBuiltinFunction("TestDictIterItems", func(f *Frame, args Args, _ KWArgs) (*Object, *BaseException) {
 		if raised := checkFunctionArgs(f, "TestDictIterItems", args, DictType); raised != nil {
@@ -337,7 +338,7 @@ func TestDictKeyIteratorIter(t *testing.T) {
 }
 
 func TestDictKeyIterModified(t *testing.T) {
-	f := newFrame(nil)
+	f := NewRootFrame()
 	d := NewDict()
 	iter := mustNotRaise(Iter(f, d.ToObject()))
 	if raised := d.SetItemString(f, "foo", None); raised != nil {
@@ -405,7 +406,7 @@ func TestDictSetItem(t *testing.T) {
 		}
 		return d.ToObject(), nil
 	}).ToObject()
-	f := newFrame(nil)
+	f := NewRootFrame()
 	o := newObject(ObjectType)
 	deletedItemDict := newStringDict(map[string]*Object{"foo": None})
 	if _, raised := deletedItemDict.DelItemString(f, "foo"); raised != nil {
@@ -464,7 +465,7 @@ func TestDictSetItemString(t *testing.T) {
 
 func TestDictStrRepr(t *testing.T) {
 	recursiveDict := NewDict()
-	if raised := recursiveDict.SetItemString(newFrame(nil), "key", recursiveDict.ToObject()); raised != nil {
+	if raised := recursiveDict.SetItemString(NewRootFrame(), "key", recursiveDict.ToObject()); raised != nil {
 		t.Fatal(raised)
 	}
 	cases := []struct {
@@ -504,7 +505,7 @@ func TestDictStrRepr(t *testing.T) {
 }
 
 func TestDictUpdate(t *testing.T) {
-	updateMethod := mustNotRaise(GetAttr(newFrame(nil), DictType.ToObject(), NewStr("update"), nil))
+	updateMethod := mustNotRaise(GetAttr(NewRootFrame(), DictType.ToObject(), NewStr("update"), nil))
 	update := newBuiltinFunction("TestDictUpdate", func(f *Frame, args Args, kwargs KWArgs) (*Object, *BaseException) {
 		if raised := checkFunctionVarArgs(f, "TestDictUpdate", args, DictType); raised != nil {
 			return nil, raised
@@ -573,7 +574,7 @@ func TestParallelDictUpdates(t *testing.T) {
 			finished.Add(1)
 			go func() {
 				defer finished.Done()
-				frame := newFrame(nil)
+				frame := NewRootFrame()
 				i := 0
 				for _, k := range keys {
 					f(frame, k, i)
@@ -619,7 +620,7 @@ func newTestDict(elems ...interface{}) *Dict {
 	}
 	numItems := len(elems) / 2
 	d := NewDict()
-	f := newFrame(nil)
+	f := NewRootFrame()
 	for i := 0; i < numItems; i++ {
 		k := mustNotRaise(WrapNative(f, reflect.ValueOf(elems[i*2])))
 		v := mustNotRaise(WrapNative(f, reflect.ValueOf(elems[i*2+1])))

@@ -90,5 +90,5 @@ func TestSliceStrRepr(t *testing.T) {
 }
 
 func newTestSlice(args ...interface{}) *Object {
-	return mustNotRaise(SliceType.Call(newFrame(nil), wrapArgs(args...), nil))
+	return mustNotRaise(SliceType.Call(NewRootFrame(), wrapArgs(args...), nil))
 }

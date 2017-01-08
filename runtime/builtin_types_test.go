@@ -21,7 +21,7 @@ import (
 )
 
 func TestBuiltinFuncs(t *testing.T) {
-	f := newFrame(nil)
+	f := NewRootFrame()
 	objectDir := ObjectType.dict.Keys(f)
 	objectDir.Sort(f)
 	fooType := newTestClass("Foo", []*Type{ObjectType}, newStringDict(map[string]*Object{"bar": None}))
@@ -49,6 +49,27 @@ func TestBuiltinFuncs(t *testing.T) {
 			return NewInt(123).ToObject(), nil
 		}).ToObject(),
 	}))
+	badNonZeroType := newTestClass("BadNonZeroType", []*Type{ObjectType}, newStringDict(map[string]*Object{
+		"__nonzero__": newBuiltinFunction("__nonzero__", func(f *Frame, args Args, kwargs KWArgs) (*Object, *BaseException) {
+			return nil, f.RaiseType(RuntimeErrorType, "foo")
+		}).ToObject(),
+	}))
+	badNextType := newTestClass("BadNextType", []*Type{ObjectType}, newStringDict(map[string]*Object{
+		"next": newBuiltinFunction("next", func(f *Frame, args Args, kwargs KWArgs) (*Object, *BaseException) {
+			return nil, f.RaiseType(RuntimeErrorType, "foo")
+		}).ToObject(),
+	}))
+	badIterType := newTestClass("BadIterType", []*Type{ObjectType}, newStringDict(map[string]*Object{
+		"__iter__": newBuiltinFunction("__iter__", func(f *Frame, args Args, kwargs KWArgs) (*Object, *BaseException) {
+			return newObject(badNextType), nil
+		}).ToObject(),
+	}))
+	fooBuiltinFunc := newBuiltinFunction("foo", func(f *Frame, args Args, kwargs KWArgs) (*Object, *BaseException) {
+		return newTestTuple(NewTuple(args.makeCopy()...), kwargs.makeDict()).ToObject(), nil
+	}).ToObject()
+	fooFunc := NewFunction(NewCode("foo", "foo.py", nil, CodeFlagVarArg, func(f *Frame, args []*Object) (*Object, *BaseException) {
+		return args[0], nil
+	}), nil)
 	cases := []struct {
 		f       string
 		args    Args
@@ -56,6 +77,21 @@ func TestBuiltinFuncs(t *testing.T) {
 		want    *Object
 		wantExc *BaseException
 	}{
+		{f: "abs", args: wrapArgs(1, 2, 3), wantExc: mustCreateException(TypeErrorType, "'abs' requires 1 arguments")},
+		{f: "abs", args: wrapArgs(1), want: NewInt(1).ToObject()},
+		{f: "abs", args: wrapArgs(-1), want: NewInt(1).ToObject()},
+		{f: "abs", args: wrapArgs(big.NewInt(2)), want: NewLong(big.NewInt(2)).ToObject()},
+		{f: "abs", args: wrapArgs(big.NewInt(-2)), want: NewLong(big.NewInt(2)).ToObject()},
+		{f: "abs", args: wrapArgs(NewFloat(3.4)), want: NewFloat(3.4).ToObject()},
+		{f: "abs", args: wrapArgs(NewFloat(-3.4)), want: NewFloat(3.4).ToObject()},
+		{f: "abs", args: wrapArgs(MinInt), want: NewLong(big.NewInt(MinInt).Neg(minIntBig)).ToObject()},
+		{f: "abs", args: wrapArgs(NewStr("a")), wantExc: mustCreateException(TypeErrorType, "bad operand type for abs(): 'str'")},
+		{f: "all", args: wrapArgs(newTestList()), want: True.ToObject()},
+		{f: "all", args: wrapArgs(newTestList(1, 2, 3)), want: True.ToObject()},
+		{f: "all", args: wrapArgs(newTestList(1, 0, 1)), want: False.ToObject()},
+		{f: "all", args: wrapArgs(13), wantExc: mustCreateException(TypeErrorType, "'int' object is not iterable")},
+		{f: "all", args: wrapArgs(newTestList(newObject(badNonZeroType))), wantExc: mustCreateException(RuntimeErrorType, "foo")},
+		{f: "all", args: wrapArgs(newObject(badIterType)), wantExc: mustCreateException(RuntimeErrorType, "foo")},
 		{f: "bin", args: wrapArgs(64 + 8 + 1), want: NewStr("0b1001001").ToObject()},
 		{f: "bin", args: wrapArgs(MinInt), want: NewStr(fmt.Sprintf("-0b%b0", -(MinInt >> 1))).ToObject()},
 		{f: "bin", args: wrapArgs(0), want: NewStr("0b0").ToObject()},
@@ -66,6 +102,15 @@ func TestBuiltinFuncs(t *testing.T) {
 		{f: "bin", args: wrapArgs(0.1), wantExc: mustCreateException(TypeErrorType, "float object cannot be interpreted as an index")},
 		{f: "bin", args: wrapArgs(1, 2, 3), wantExc: mustCreateException(TypeErrorType, "'bin' requires 1 arguments")},
 		{f: "bin", args: wrapArgs(newObject(indexType)), want: NewStr("0b1111011").ToObject()},
+		{f: "callable", args: wrapArgs(fooBuiltinFunc), want: True.ToObject()},
+		{f: "callable", args: wrapArgs(fooFunc), want: True.ToObject()},
+		{f: "callable", args: wrapArgs(0), want: False.ToObject()},
+		{f: "callable", args: wrapArgs(0.1), want: False.ToObject()},
+		{f: "callable", args: wrapArgs("foo"), want: False.ToObject()},
+		{f: "callable", args: wrapArgs(newTestDict("foo", 1, "bar", 2)), want: False.ToObject()},
+		{f: "callable", args: wrapArgs(newTestList(1, 2, 3)), want: False.ToObject()},
+		{f: "callable", args: wrapArgs(iter), want: False.ToObject()},
+		{f: "callable", args: wrapArgs(1, 2), wantExc: mustCreateException(TypeErrorType, "'callable' requires 1 arguments")},
 		{f: "chr", args: wrapArgs(0), want: NewStr("\x00").ToObject()},
 		{f: "chr", args: wrapArgs(65), want: NewStr("A").ToObject()},
 		{f: "chr", args: wrapArgs(300), wantExc: mustCreateException(ValueErrorType, "chr() arg not in range(256)")},
@@ -84,7 +129,7 @@ func TestBuiltinFuncs(t *testing.T) {
 		{f: "hash", args: wrapArgs(123), want: NewInt(123).ToObject()},
 		{f: "hash", args: wrapArgs("foo"), want: hashFoo},
 		{f: "hash", args: wrapArgs(NewList()), wantExc: mustCreateException(TypeErrorType, "unhashable type: 'list'")},
-		{f: "hex", args: wrapArgs(0xd3adbeef), want: NewStr("0xd3adbeef").ToObject()},
+		{f: "hex", args: wrapArgs(0x63adbeef), want: NewStr("0x63adbeef").ToObject()},
 		{f: "hex", args: wrapArgs(0), want: NewStr("0x0").ToObject()},
 		{f: "hex", args: wrapArgs(1), want: NewStr("0x1").ToObject()},
 		{f: "hex", args: wrapArgs(-1), want: NewStr("-0x1").ToObject()},
@@ -179,7 +224,7 @@ func TestBuiltinFuncs(t *testing.T) {
 		{f: "unichr", args: wrapArgs(), wantExc: mustCreateException(TypeErrorType, "'unichr' requires 1 arguments")},
 	}
 	for _, cas := range cases {
-		fun := mustNotRaise(Builtins.GetItemString(newFrame(nil), cas.f))
+		fun := mustNotRaise(Builtins.GetItemString(NewRootFrame(), cas.f))
 		if fun == nil {
 			t.Fatalf("%s not found in builtins: %v", cas.f, Builtins)
 		}
@@ -191,7 +236,7 @@ func TestBuiltinFuncs(t *testing.T) {
 }
 
 func TestBuiltinGlobals(t *testing.T) {
-	f := newFrame(nil)
+	f := NewRootFrame()
 	f.globals = newTestDict("foo", 1, "bar", 2, 42, None)
 	globals := mustNotRaise(Builtins.GetItemString(f, "globals"))
 	got, raised := globals.Call(f, nil, nil)

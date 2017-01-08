@@ -99,7 +99,7 @@ func TestCodeEvalRestoreExc(t *testing.T) {
 		ranC2 = true
 		return None, nil
 	})
-	c2.Eval(newFrame(nil), globals, nil, nil)
+	c2.Eval(NewRootFrame(), globals, nil, nil)
 	if !ranC1 {
 		t.Error("c1 did not run")
 	}

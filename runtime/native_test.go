@@ -214,7 +214,7 @@ func TestWrapNative(t *testing.T) {
 
 func TestWrapNativeFunc(t *testing.T) {
 	foo := func() int { return 42 }
-	wrappedFoo := mustNotRaise(WrapNative(newFrame(nil), reflect.ValueOf(foo)))
+	wrappedFoo := mustNotRaise(WrapNative(NewRootFrame(), reflect.ValueOf(foo)))
 	if err := runInvokeTestCase(wrappedFoo, &invokeTestCase{want: NewInt(42).ToObject()}); err != "" {
 		t.Error(err)
 	}
@@ -227,7 +227,7 @@ func TestWrapNativeInterface(t *testing.T) {
 	if iVal.Kind() != reflect.Interface {
 		t.Fatalf("iVal.Kind() = %v, want interface", iVal.Kind())
 	}
-	o := mustNotRaise(WrapNative(newFrame(nil), iVal))
+	o := mustNotRaise(WrapNative(NewRootFrame(), iVal))
 	cas := &invokeTestCase{args: wrapArgs(o), want: NewStr("foo").ToObject()}
 	if err := runInvokeMethodTestCase(o.typ, "Error", cas); err != "" {
 		t.Error(err)
@@ -237,7 +237,7 @@ func TestWrapNativeInterface(t *testing.T) {
 	if nilVal.Kind() != reflect.Interface {
 		t.Fatalf("nilVal.Kind() = %v, want interface", nilVal.Kind())
 	}
-	if o := mustNotRaise(WrapNative(newFrame(nil), nilVal)); o != None {
+	if o := mustNotRaise(WrapNative(NewRootFrame(), nilVal)); o != None {
 		t.Errorf("WrapNative(%v) = %v, want None", nilVal, o)
 	}
 }
@@ -414,7 +414,7 @@ func TestNativeTypeName(t *testing.T) {
 }
 
 func wrapArgs(elems ...interface{}) Args {
-	f := newFrame(nil)
+	f := NewRootFrame()
 	argc := len(elems)
 	result := make(Args, argc, argc)
 	var raised *BaseException
@@ -432,7 +432,7 @@ func wrapKWArgs(elems ...interface{}) KWArgs {
 	}
 	numItems := len(elems) / 2
 	kwargs := make(KWArgs, numItems, numItems)
-	f := newFrame(nil)
+	f := NewRootFrame()
 	for i := 0; i < numItems; i++ {
 		kwargs[i].Name = elems[i*2].(string)
 		kwargs[i].Value = mustNotRaise(WrapNative(f, reflect.ValueOf(elems[i*2+1])))

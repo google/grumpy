@@ -67,7 +67,7 @@ func TestBaseExceptionRepr(t *testing.T) {
 }
 
 func TestBaseExceptionStr(t *testing.T) {
-	f := newFrame(nil)
+	f := NewRootFrame()
 	cases := []invokeTestCase{
 		{args: wrapArgs(newObject(TypeErrorType)), want: NewStr("").ToObject()},
 		{args: wrapArgs(mustNotRaise(ExceptionType.Call(f, wrapArgs(""), nil))), want: NewStr("").ToObject()},

@@ -188,7 +188,7 @@ func weakRefFinalizeReferent(o *Object) {
 	// Don't hold r.mutex while invoking callbacks in case they access r
 	// and attempt to acquire the mutex.
 	for i := numCallbacks - 1; i >= 0; i-- {
-		f := newFrame(nil)
+		f := NewRootFrame()
 		if _, raised := callbacks[i].Call(f, Args{r.ToObject()}, nil); raised != nil {
 			s, raised := FormatException(f, raised)
 			if raised != nil {

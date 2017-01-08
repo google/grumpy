@@ -41,7 +41,7 @@ func TestWeakRefCall(t *testing.T) {
 func TestWeakRefHash(t *testing.T) {
 	aliveRef, alive, deadRef := makeWeakRefsForTest()
 	hashedRef, hashed, _ := makeWeakRefsForTest()
-	if _, raised := Hash(newFrame(nil), hashedRef.ToObject()); raised != nil {
+	if _, raised := Hash(NewRootFrame(), hashedRef.ToObject()); raised != nil {
 		t.Fatal(raised)
 	}
 	runtime.KeepAlive(hashed)
@@ -131,7 +131,7 @@ func newTestWeakRef(o, callback *Object) *WeakRef {
 	if callback != nil {
 		args = Args{o, callback}
 	}
-	return toWeakRefUnsafe(mustNotRaise(WeakRefType.Call(newFrame(nil), args, nil)))
+	return toWeakRefUnsafe(mustNotRaise(WeakRefType.Call(NewRootFrame(), args, nil)))
 }
 
 func makeWeakRefsForTest() (*WeakRef, *Object, *WeakRef) {
@@ -155,7 +155,7 @@ func weakRefMustDie(r *WeakRef) {
 	callback := wrapFuncForTest(func(f *Frame, r *WeakRef) {
 		close(doneChannel)
 	})
-	mustNotRaise(WeakRefType.Call(newFrame(nil), Args{o, callback}, nil))
+	mustNotRaise(WeakRefType.Call(NewRootFrame(), Args{o, callback}, nil))
 	o = nil
 	timeoutChannel := make(chan bool)
 	go func() {

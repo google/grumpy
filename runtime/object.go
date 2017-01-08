@@ -71,7 +71,10 @@ func (o *Object) Dict() *Dict {
 
 // String returns a string representation of o, e.g. for debugging.
 func (o *Object) String() string {
-	s, raised := Repr(newFrame(nil), o)
+	if o == nil {
+		return "nil"
+	}
+	s, raised := Repr(NewRootFrame(), o)
 	if raised != nil {
 		return fmt.Sprintf("<%s object (repr raised %s)>", o.typ.Name(), raised.typ.Name())
 	}

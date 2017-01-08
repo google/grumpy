@@ -29,6 +29,7 @@ func TestNewStr(t *testing.T) {
 	}
 }
 
+// # On a 64bit system:
 // >>> hash("foo")
 // -4177197833195190597
 // >>> hash("bar")
@@ -36,13 +37,14 @@ func TestNewStr(t *testing.T) {
 // >>> hash("baz")
 // 327024216814240876
 func TestHashString(t *testing.T) {
+	truncateInt := func(i int64) int { return int(i) } // Support for 32bit platforms
 	cases := []struct {
 		value string
 		hash  int
 	}{
-		{"foo", -4177197833195190597},
-		{"bar", 327024216814240868},
-		{"baz", 327024216814240876},
+		{"foo", truncateInt(-4177197833195190597)},
+		{"bar", truncateInt(327024216814240868)},
+		{"baz", truncateInt(327024216814240876)},
 	}
 	for _, cas := range cases {
 		if h := hashString(cas.value); h != cas.hash {

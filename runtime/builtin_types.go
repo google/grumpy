@@ -183,6 +183,38 @@ func initBuiltinType(typ *Type, info *builtinTypeInfo) {
 	}
 }
 
+func builtinAbs(f *Frame, args Args, _ KWArgs) (*Object, *BaseException) {
+	if raised := checkFunctionArgs(f, "abs", args, ObjectType); raised != nil {
+		return nil, raised
+	}
+	return Abs(f, args[0])
+}
+
+func builtinAll(f *Frame, args Args, _ KWArgs) (*Object, *BaseException) {
+	if raised := checkFunctionArgs(f, "all", args, ObjectType); raised != nil {
+		return nil, raised
+	}
+	iter, raised := Iter(f, args[0])
+	if raised != nil {
+		return nil, raised
+	}
+	o, raised := Next(f, iter)
+	for ; raised == nil; o, raised = Next(f, iter) {
+		ret, raised := IsTrue(f, o)
+		if raised != nil {
+			return nil, raised
+		}
+		if !ret {
+			return False.ToObject(), nil
+		}
+	}
+	if !raised.isInstance(StopIterationType) {
+		return nil, raised
+	}
+	f.RestoreExc(nil, nil)
+	return True.ToObject(), nil
+}
+
 func builtinBin(f *Frame, args Args, _ KWArgs) (*Object, *BaseException) {
 	if raised := checkFunctionArgs(f, "bin", args, ObjectType); raised != nil {
 		return nil, raised
@@ -196,6 +228,17 @@ func builtinBin(f *Frame, args Args, _ KWArgs) (*Object, *BaseException) {
 		return nil, f.RaiseType(TypeErrorType, fmt.Sprintf(format, args[0].typ.Name()))
 	}
 	return NewStr(numberToBase("0b", 2, index)).ToObject(), nil
+}
+
+func builtinCallable(f *Frame, args Args, _ KWArgs) (*Object, *BaseException) {
+	if raised := checkFunctionArgs(f, "callable", args, ObjectType); raised != nil {
+		return nil, raised
+	}
+	o := args[0]
+	if call := o.Type().slots.Call; call == nil {
+		return False.ToObject(), nil
+	}
+	return True.ToObject(), nil
 }
 
 func builtinChr(f *Frame, args Args, _ KWArgs) (*Object, *BaseException) {
@@ -464,7 +507,10 @@ func builtinUniChr(f *Frame, args Args, _ KWArgs) (*Object, *BaseException) {
 func init() {
 	builtinMap := map[string]*Object{
 		"__frame__":      newBuiltinFunction("__frame__", builtinFrame).ToObject(),
+		"abs":            newBuiltinFunction("abs", builtinAbs).ToObject(),
+		"all":            newBuiltinFunction("all", builtinAll).ToObject(),
 		"bin":            newBuiltinFunction("bin", builtinBin).ToObject(),
+		"callable":       newBuiltinFunction("callable", builtinCallable).ToObject(),
 		"chr":            newBuiltinFunction("chr", builtinChr).ToObject(),
 		"dir":            newBuiltinFunction("dir", builtinDir).ToObject(),
 		"False":          False.ToObject(),

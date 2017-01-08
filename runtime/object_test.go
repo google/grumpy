@@ -127,7 +127,7 @@ func TestObjectDelAttr(t *testing.T) {
 	}))
 	fooType := newTestClass("Foo", []*Type{ObjectType}, newStringDict(map[string]*Object{"deller": newObject(dellerType)}))
 	foo := newObject(fooType)
-	if raised := foo.dict.SetItemString(newFrame(nil), "attr", NewInt(123).ToObject()); raised != nil {
+	if raised := foo.dict.SetItemString(NewRootFrame(), "attr", NewInt(123).ToObject()); raised != nil {
 		t.Fatal(raised)
 	}
 	cases := []invokeTestCase{
@@ -180,13 +180,13 @@ func TestObjectGetAttribute(t *testing.T) {
 		"barsetter": setter,
 	}))
 	foo := newObject(fooType)
-	if raised := foo.dict.SetItemString(newFrame(nil), "fooattr", True.ToObject()); raised != nil {
+	if raised := foo.dict.SetItemString(NewRootFrame(), "fooattr", True.ToObject()); raised != nil {
 		t.Fatal(raised)
 	}
-	if raised := foo.dict.SetItemString(newFrame(nil), "barattr", NewInt(-1).ToObject()); raised != nil {
+	if raised := foo.dict.SetItemString(NewRootFrame(), "barattr", NewInt(-1).ToObject()); raised != nil {
 		t.Fatal(raised)
 	}
-	if raised := foo.dict.SetItemString(newFrame(nil), "barsetter", NewStr("NOT setter").ToObject()); raised != nil {
+	if raised := foo.dict.SetItemString(NewRootFrame(), "barsetter", NewStr("NOT setter").ToObject()); raised != nil {
 		t.Fatal(raised)
 	}
 	cases := []invokeTestCase{

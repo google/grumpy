@@ -72,7 +72,7 @@ func TestSeqIterator(t *testing.T) {
 		return TupleType.Call(f, args, nil)
 	}).ToObject()
 	exhaustedIter := newSeqIterator(NewStr("foo").ToObject())
-	TupleType.Call(newFrame(nil), []*Object{exhaustedIter}, nil)
+	TupleType.Call(NewRootFrame(), []*Object{exhaustedIter}, nil)
 	cases := []invokeTestCase{
 		{args: wrapArgs(newSeqIterator(NewStr("bar").ToObject())), want: newTestTuple("b", "a", "r").ToObject()},
 		{args: wrapArgs(newSeqIterator(newTestTuple(123, 456).ToObject())), want: newTestTuple(123, 456).ToObject()},

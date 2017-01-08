@@ -83,7 +83,7 @@ func BenchmarkListContains(b *testing.B) {
 	b.Run("false-3", func(b *testing.B) {
 		t := newTestList("foo", 42, "bar").ToObject()
 		a := wrapArgs(1)[0]
-		f := newFrame(nil)
+		f := NewRootFrame()
 		b.ResetTimer()
 		for i := 0; i < b.N; i++ {
 			Contains(f, t, a)
@@ -93,7 +93,7 @@ func BenchmarkListContains(b *testing.B) {
 	b.Run("false-10", func(b *testing.B) {
 		t := newTestList("foo", 42, "bar", "foo", 42, "bar", "foo", 42, "bar", "baz").ToObject()
 		a := wrapArgs(1)[0]
-		f := newFrame(nil)
+		f := NewRootFrame()
 		b.ResetTimer()
 		for i := 0; i < b.N; i++ {
 			Contains(f, t, a)
@@ -103,7 +103,7 @@ func BenchmarkListContains(b *testing.B) {
 	b.Run("true-3.1", func(b *testing.B) {
 		t := newTestList("foo", 42, "bar").ToObject()
 		a := wrapArgs("foo")[0]
-		f := newFrame(nil)
+		f := NewRootFrame()
 		b.ResetTimer()
 		for i := 0; i < b.N; i++ {
 			Contains(f, t, a)
@@ -113,7 +113,7 @@ func BenchmarkListContains(b *testing.B) {
 	b.Run("true-3.3", func(b *testing.B) {
 		t := newTestList("foo", 42, "bar").ToObject()
 		a := wrapArgs("bar")[0]
-		f := newFrame(nil)
+		f := NewRootFrame()
 		b.ResetTimer()
 		for i := 0; i < b.N; i++ {
 			Contains(f, t, a)
@@ -123,7 +123,7 @@ func BenchmarkListContains(b *testing.B) {
 	b.Run("true-10.10", func(b *testing.B) {
 		t := newTestList("foo", 42, "bar", "foo", 42, "bar", "foo", 42, "bar", "baz").ToObject()
 		a := wrapArgs("baz")[0]
-		f := newFrame(nil)
+		f := NewRootFrame()
 		b.ResetTimer()
 		for i := 0; i < b.N; i++ {
 			Contains(f, t, a)
@@ -247,7 +247,7 @@ func TestListNew(t *testing.T) {
 }
 
 func TestListReverse(t *testing.T) {
-	reverse := mustNotRaise(GetAttr(newFrame(nil), ListType.ToObject(), NewStr("reverse"), nil))
+	reverse := mustNotRaise(GetAttr(NewRootFrame(), ListType.ToObject(), NewStr("reverse"), nil))
 	fun := wrapFuncForTest(func(f *Frame, o *Object, args ...*Object) (*Object, *BaseException) {
 		_, raised := reverse.Call(f, append(Args{o}, args...), nil)
 		if raised != nil {
@@ -269,7 +269,7 @@ func TestListReverse(t *testing.T) {
 
 func TestListStrRepr(t *testing.T) {
 	recursiveList := newTestList("foo").ToObject()
-	listAppend(newFrame(nil), []*Object{recursiveList, recursiveList}, nil)
+	listAppend(NewRootFrame(), []*Object{recursiveList, recursiveList}, nil)
 	cases := []invokeTestCase{
 		{args: wrapArgs(NewList()), want: NewStr("[]").ToObject()},
 		{args: wrapArgs(newTestList("foo")), want: NewStr("['foo']").ToObject()},
@@ -288,7 +288,7 @@ func TestListStrRepr(t *testing.T) {
 
 func TestListInsert(t *testing.T) {
 	fun := wrapFuncForTest(func(f *Frame, l *List, args ...*Object) (*Object, *BaseException) {
-		insert, raised := GetAttr(newFrame(nil), l.ToObject(), NewStr("insert"), nil)
+		insert, raised := GetAttr(NewRootFrame(), l.ToObject(), NewStr("insert"), nil)
 		if raised != nil {
 			return nil, raised
 		}
@@ -425,7 +425,7 @@ func newTestRange(n int) *List {
 }
 
 func newTestList(elems ...interface{}) *List {
-	listElems, raised := seqWrapEach(newFrame(nil), elems...)
+	listElems, raised := seqWrapEach(NewRootFrame(), elems...)
 	if raised != nil {
 		panic(raised)
 	}

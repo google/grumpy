@@ -106,7 +106,7 @@ func BenchmarkTupleContains(b *testing.B) {
 	b.Run("false-3", func(b *testing.B) {
 		t := newTestTuple("foo", 42, "bar").ToObject()
 		a := wrapArgs(1)[0]
-		f := newFrame(nil)
+		f := NewRootFrame()
 		b.ResetTimer()
 		for i := 0; i < b.N; i++ {
 			Contains(f, t, a)
@@ -116,7 +116,7 @@ func BenchmarkTupleContains(b *testing.B) {
 	b.Run("false-10", func(b *testing.B) {
 		t := newTestTuple("foo", 42, "bar", "foo", 42, "bar", "foo", 42, "bar", "baz").ToObject()
 		a := wrapArgs(1)[0]
-		f := newFrame(nil)
+		f := NewRootFrame()
 		b.ResetTimer()
 		for i := 0; i < b.N; i++ {
 			Contains(f, t, a)
@@ -126,7 +126,7 @@ func BenchmarkTupleContains(b *testing.B) {
 	b.Run("true-3.1", func(b *testing.B) {
 		t := newTestTuple("foo", 42, "bar").ToObject()
 		a := wrapArgs("foo")[0]
-		f := newFrame(nil)
+		f := NewRootFrame()
 		b.ResetTimer()
 		for i := 0; i < b.N; i++ {
 			Contains(f, t, a)
@@ -136,7 +136,7 @@ func BenchmarkTupleContains(b *testing.B) {
 	b.Run("true-3.3", func(b *testing.B) {
 		t := newTestTuple("foo", 42, "bar").ToObject()
 		a := wrapArgs("bar")[0]
-		f := newFrame(nil)
+		f := NewRootFrame()
 		b.ResetTimer()
 		for i := 0; i < b.N; i++ {
 			Contains(f, t, a)
@@ -146,7 +146,7 @@ func BenchmarkTupleContains(b *testing.B) {
 	b.Run("true-10.10", func(b *testing.B) {
 		t := newTestTuple("foo", 42, "bar", "foo", 42, "bar", "foo", 42, "bar", "baz").ToObject()
 		a := wrapArgs("baz")[0]
-		f := newFrame(nil)
+		f := NewRootFrame()
 		b.ResetTimer()
 		for i := 0; i < b.N; i++ {
 			Contains(f, t, a)

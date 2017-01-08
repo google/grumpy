@@ -23,6 +23,16 @@ import (
 
 var logFatal = func(msg string) { log.Fatal(msg) }
 
+// Abs returns the result of o.__abs__ and is equivalent to the Python
+// expression "abs(o)".
+func Abs(f *Frame, o *Object) (*Object, *BaseException) {
+	abs := o.typ.slots.Abs
+	if abs == nil {
+		return nil, f.RaiseType(TypeErrorType, fmt.Sprintf("bad operand type for abs(): '%s'", o.typ.Name()))
+	}
+	return abs.Fn(f, o)
+}
+
 // Add returns the result of adding v and w together according to the
 // __add/radd__ operator.
 func Add(f *Frame, v, w *Object) (*Object, *BaseException) {
@@ -666,7 +676,7 @@ func SetItem(f *Frame, o, key, value *Object) *BaseException {
 // StartThread runs callable in a new goroutine.
 func StartThread(callable *Object) {
 	go func() {
-		f := newFrame(nil)
+		f := NewRootFrame()
 		_, raised := callable.Call(f, nil, nil)
 		if raised != nil {
 			s, raised := FormatException(f, raised)
@@ -764,7 +774,7 @@ func ToStr(f *Frame, o *Object) (*Str, *BaseException) {
 func Neg(f *Frame, o *Object) (*Object, *BaseException) {
 	neg := o.typ.slots.Neg
 	if neg == nil {
-		return nil, f.RaiseType(TypeErrorType, fmt.Sprintf("bad operand type for unary ~: '%s'", o.typ.Name()))
+		return nil, f.RaiseType(TypeErrorType, fmt.Sprintf("bad operand type for unary -: '%s'", o.typ.Name()))
 	}
 	return neg.Fn(f, o)
 }

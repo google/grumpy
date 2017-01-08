@@ -369,12 +369,12 @@ func TestTypeName(t *testing.T) {
 
 func TestTypeNew(t *testing.T) {
 	fooMetaType := newTestClass("FooMeta", []*Type{TypeType}, NewDict())
-	fooType, raised := newClass(newFrame(nil), fooMetaType, "Foo", []*Type{ObjectType}, NewDict())
+	fooType, raised := newClass(NewRootFrame(), fooMetaType, "Foo", []*Type{ObjectType}, NewDict())
 	if raised != nil {
 		panic(raised)
 	}
 	barMetaType := newTestClass("BarMeta", []*Type{TypeType}, NewDict())
-	barType, raised := newClass(newFrame(nil), barMetaType, "Bar", []*Type{ObjectType}, NewDict())
+	barType, raised := newClass(NewRootFrame(), barMetaType, "Bar", []*Type{ObjectType}, NewDict())
 	if raised != nil {
 		panic(raised)
 	}
@@ -388,7 +388,7 @@ func TestTypeNew(t *testing.T) {
 			return GetBool(args[0].typ == toTypeUnsafe(args[1])).ToObject(), nil
 		}).ToObject(),
 	}))
-	bazType, raised := newClass(newFrame(nil), bazMetaType, "Baz", []*Type{ObjectType}, NewDict())
+	bazType, raised := newClass(NewRootFrame(), bazMetaType, "Baz", []*Type{ObjectType}, NewDict())
 	if raised != nil {
 		panic(raised)
 	}
@@ -455,7 +455,7 @@ func TestTypeStrRepr(t *testing.T) {
 		{args: wrapArgs(TupleType), want: newTestTuple("<type 'tuple'>", "<type 'tuple'>").ToObject()},
 		{args: wrapArgs(TypeType), want: newTestTuple("<type 'type'>", "<type 'type'>").ToObject()},
 		{args: wrapArgs(fooType), want: newTestTuple("<type 'foo.bar.Foo'>", "<type 'foo.bar.Foo'>").ToObject()},
-		{args: wrapArgs(mustNotRaise(WrapNative(newFrame(nil), reflect.ValueOf(t))).Type()), want: newTestTuple("<type '*T'>", "<type '*T'>").ToObject()},
+		{args: wrapArgs(mustNotRaise(WrapNative(NewRootFrame(), reflect.ValueOf(t))).Type()), want: newTestTuple("<type '*T'>", "<type '*T'>").ToObject()},
 	}
 	for _, cas := range cases {
 		if err := runInvokeTestCase(fun, &cas); err != "" {
@@ -479,7 +479,7 @@ func TestTypeModule(t *testing.T) {
 	barType := newTestClass("Bar", []*Type{ObjectType}, NewDict())
 	cases := []invokeTestCase{
 		{args: wrapArgs(IntType), want: NewStr("__builtin__").ToObject()},
-		{args: wrapArgs(mustNotRaise(WrapNative(newFrame(nil), reflect.ValueOf(t))).Type()), want: NewStr("__builtin__").ToObject()},
+		{args: wrapArgs(mustNotRaise(WrapNative(NewRootFrame(), reflect.ValueOf(t))).Type()), want: NewStr("__builtin__").ToObject()},
 		{args: wrapArgs(fooType), want: NewStr("foo.bar").ToObject()},
 		{args: wrapArgs(barType), want: NewStr("__builtin__").ToObject()},
 	}
@@ -491,7 +491,7 @@ func TestTypeModule(t *testing.T) {
 }
 
 func newTestClass(name string, bases []*Type, dict *Dict) *Type {
-	t, raised := newClass(newFrame(nil), TypeType, name, bases, dict)
+	t, raised := newClass(NewRootFrame(), TypeType, name, bases, dict)
 	if raised != nil {
 		panic(raised)
 	}
