@@ -108,7 +108,6 @@ def isnan(x):
 
 
 def ldexp(x, i):
-    # NOTE: These are converted to floats, but maybe they should be integers instead?
     return float(x) * Exp2(float(i))
     
     
