@@ -493,6 +493,26 @@ func builtinRepr(f *Frame, args Args, kwargs KWArgs) (*Object, *BaseException) {
 	return s.ToObject(), nil
 }
 
+func builtinTuple(f *Frame, args Args, _ KWArgs) (*Object, *BaseException) {
+	if raised := checkFunctionArgs(f, "tuple", args, ObjectType); raised != nil {
+		return nil, raised
+	}
+	iter, raised := Iter(f, args[0])
+	if raised != nil {
+		return nil, raised
+	}
+	o, raised := Next(f, iter)
+	a := []*Object{}
+	for ; raised == nil; o, raised = Next(f, iter) {
+		a = append(a, o)
+	}
+	if !raised.isInstance(StopIterationType) {
+		return nil, raised
+	}
+	f.RestoreExc(nil, nil)
+	return NewTuple(a...).ToObject(), nil
+}
+
 func builtinUniChr(f *Frame, args Args, _ KWArgs) (*Object, *BaseException) {
 	if raised := checkFunctionArgs(f, "unichr", args, IntType); raised != nil {
 		return nil, raised
@@ -535,6 +555,7 @@ func init() {
 		"range":          newBuiltinFunction("range", builtinRange).ToObject(),
 		"repr":           newBuiltinFunction("repr", builtinRepr).ToObject(),
 		"True":           True.ToObject(),
+		"tuple":          newBuiltinFunction("tuple", builtinTuple).ToObject(),
 		"unichr":         newBuiltinFunction("unichr", builtinUniChr).ToObject(),
 	}
 	// Do type initialization in two phases so that we don't have to think
