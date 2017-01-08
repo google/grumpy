@@ -2,6 +2,9 @@ import math
 
 import weetest
 
+# Tests exist for all functions which have logic in the math.py module, instead
+# of simply calling the go equivalent.
+
 
 def TestFactorial():
   assert math.factorial(0) == 1
@@ -10,6 +13,22 @@ def TestFactorial():
   assert math.factorial(3) == 6
   assert math.factorial(4) == 24
   assert math.factorial(5) == 120
+
+
+def TestFactorialError():
+  try:
+    math.factorial(-1)
+  except ValueError:
+    pass
+  else:
+    raise AssertionError
+  
+  try:
+    math.factorial(0.5)
+  except ValueError:
+    pass
+  else:
+    raise AssertionError
 
 
 def TestLdexp():
