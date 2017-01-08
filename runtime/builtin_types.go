@@ -113,6 +113,7 @@ var builtinTypes = map[*Type]*builtinTypeInfo{
 	MethodType:                    {init: initMethodType},
 	ModuleType:                    {init: initModuleType},
 	NameErrorType:                 {global: true},
+	nativeBoolMetaclassType:       {init: initNativeBoolMetaclassType},
 	nativeFuncType:                {init: initNativeFuncType},
 	nativeMetaclassType:           {init: initNativeMetaclassType},
 	nativeSliceType:               {init: initNativeSliceType},

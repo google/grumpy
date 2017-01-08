@@ -24,7 +24,7 @@ import (
 
 func TestNativeMetaclassNew(t *testing.T) {
 	var i int16
-	intType := &newNativeType(reflect.TypeOf(i), IntType, NewDict()).Type
+	intType := newNativeType(reflect.TypeOf(i), IntType, NewDict())
 	fun := wrapFuncForTest(func(f *Frame, args ...*Object) *BaseException {
 		newFunc, raised := GetAttr(f, intType.ToObject(), NewStr("new"), nil)
 		if raised != nil {
@@ -384,6 +384,29 @@ func TestMaybeConvertValue(t *testing.T) {
 			testCase.want = None
 		}
 		if err := runInvokeTestCase(fun, &testCase); err != "" {
+			t.Error(err)
+		}
+	}
+}
+
+func TestNativeTypedefNative(t *testing.T) {
+	fun := wrapFuncForTest(func(f *Frame, o *Object, wantType reflect.Type) (bool, *BaseException) {
+		val, raised := ToNative(f, o)
+		if raised != nil {
+			return false, raised
+		}
+		return val.Type() == wantType, nil
+	})
+	type testBool bool
+	testBoolRType := reflect.TypeOf(testBool(false))
+	type testInt int
+	testIntRType := reflect.TypeOf(testInt(0))
+	cases := []invokeTestCase{
+		{args: wrapArgs(mustNotRaise(getNativeType(testBoolRType).Call(NewRootFrame(), wrapArgs(true), nil)), testBoolRType), want: True.ToObject()},
+		{args: wrapArgs(mustNotRaise(getNativeType(testIntRType).Call(NewRootFrame(), wrapArgs(123), nil)), testIntRType), want: True.ToObject()},
+	}
+	for _, cas := range cases {
+		if err := runInvokeTestCase(fun, &cas); err != "" {
 			t.Error(err)
 		}
 	}

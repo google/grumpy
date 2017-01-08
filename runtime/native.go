@@ -25,10 +25,11 @@ import (
 )
 
 var (
-	nativeFuncType      = newSimpleType("func", nativeType)
-	nativeMetaclassType = newBasisType("nativetype", reflect.TypeOf(nativeMetaclass{}), toNativeMetaclassUnsafe, TypeType)
-	nativeSliceType     = newSimpleType("slice", nativeType)
-	nativeType          = newBasisType("native", reflect.TypeOf(native{}), toNativeUnsafe, ObjectType)
+	nativeBoolMetaclassType = newBasisType("nativebooltype", reflect.TypeOf(nativeBoolMetaclass{}), toNativeBoolMetaclassUnsafe, nativeMetaclassType)
+	nativeFuncType          = newSimpleType("func", nativeType)
+	nativeMetaclassType     = newBasisType("nativetype", reflect.TypeOf(nativeMetaclass{}), toNativeMetaclassUnsafe, TypeType)
+	nativeSliceType         = newSimpleType("slice", nativeType)
+	nativeType              = newBasisType("native", reflect.TypeOf(native{}), toNativeUnsafe, ObjectType)
 	// Prepopulate the builtin primitive types so that WrapNative calls on
 	// these kinds of values resolve directly to primitive Python types.
 	nativeTypes = map[reflect.Type]*Type{
@@ -64,8 +65,8 @@ func toNativeMetaclassUnsafe(o *Object) *nativeMetaclass {
 	return (*nativeMetaclass)(o.toPointer())
 }
 
-func newNativeType(rtype reflect.Type, base *Type, d *Dict) *nativeMetaclass {
-	return &nativeMetaclass{
+func newNativeType(rtype reflect.Type, base *Type, d *Dict) *Type {
+	t := &nativeMetaclass{
 		Type{
 			Object: Object{typ: nativeMetaclassType, dict: d},
 			name:   nativeTypeName(rtype),
@@ -75,6 +76,23 @@ func newNativeType(rtype reflect.Type, base *Type, d *Dict) *nativeMetaclass {
 		},
 		rtype,
 	}
+	if !base.isSubclass(nativeType) {
+		t.slots.Native = &nativeSlot{nativeTypedefNative}
+	}
+	return &t.Type
+}
+
+func nativeTypedefNative(f *Frame, o *Object) (reflect.Value, *BaseException) {
+	// The __native__ slot for primitive base classes (e.g. int) returns
+	// the corresponding primitive Go type. For typedef'd primitive types
+	// (e.g. type devNull int) we should return the subtype, not the
+	// primitive type.  So first call the primitive type's __native__ and
+	// then convert it to the appropriate subtype.
+	val, raised := o.typ.bases[0].slots.Native.Fn(f, o)
+	if raised != nil {
+		return reflect.Value{}, raised
+	}
+	return val.Convert(toNativeMetaclassUnsafe(o.typ.ToObject()).rtype), nil
 }
 
 func nativeMetaclassNew(f *Frame, args Args, kwargs KWArgs) (*Object, *BaseException) {
@@ -86,6 +104,61 @@ func nativeMetaclassNew(f *Frame, args Args, kwargs KWArgs) (*Object, *BaseExcep
 
 func initNativeMetaclassType(dict map[string]*Object) {
 	nativeMetaclassType.flags &^= typeFlagInstantiable | typeFlagBasetype
+	dict["new"] = newBuiltinFunction("new", nativeMetaclassNew).ToObject()
+}
+
+type nativeBoolMetaclass struct {
+	nativeMetaclass
+	trueValue  *Object
+	falseValue *Object
+}
+
+func toNativeBoolMetaclassUnsafe(o *Object) *nativeBoolMetaclass {
+	return (*nativeBoolMetaclass)(o.toPointer())
+}
+
+func newNativeBoolType(rtype reflect.Type, d *Dict) *Type {
+	t := &nativeBoolMetaclass{
+		nativeMetaclass: nativeMetaclass{
+			Type{
+				Object: Object{typ: nativeBoolMetaclassType, dict: d},
+				name:   nativeTypeName(rtype),
+				basis:  BoolType.basis,
+				bases:  []*Type{BoolType},
+				flags:  typeFlagDefault &^ (typeFlagInstantiable | typeFlagBasetype),
+			},
+			rtype,
+		},
+	}
+	t.trueValue = (&Int{Object{typ: &t.nativeMetaclass.Type}, 1}).ToObject()
+	t.falseValue = (&Int{Object{typ: &t.nativeMetaclass.Type}, 0}).ToObject()
+	t.slots.Native = &nativeSlot{nativeBoolNative}
+	t.slots.New = &newSlot{nativeBoolNew}
+	return &t.nativeMetaclass.Type
+}
+
+func nativeBoolNative(f *Frame, o *Object) (reflect.Value, *BaseException) {
+	val := reflect.ValueOf(toIntUnsafe(o).IsTrue())
+	return val.Convert(toNativeMetaclassUnsafe(o.typ.ToObject()).rtype), nil
+}
+
+func nativeBoolNew(f *Frame, t *Type, args Args, kwargs KWArgs) (*Object, *BaseException) {
+	meta := toNativeBoolMetaclassUnsafe(t.ToObject())
+	if len(args) == 0 {
+		return meta.falseValue, nil
+	}
+	ret, raised := IsTrue(f, args[0])
+	if raised != nil {
+		return nil, raised
+	}
+	if ret {
+		return meta.trueValue, nil
+	}
+	return meta.falseValue, nil
+}
+
+func initNativeBoolMetaclassType(dict map[string]*Object) {
+	nativeBoolMetaclassType.flags &^= typeFlagInstantiable | typeFlagBasetype
 	dict["new"] = newBuiltinFunction("new", nativeMetaclassNew).ToObject()
 }
 
@@ -314,8 +387,6 @@ func getNativeType(rtype reflect.Type) *Type {
 		// object.
 		base := nativeType
 		switch rtype.Kind() {
-		case reflect.Bool:
-			base = BoolType
 		case reflect.Float32, reflect.Float64:
 			base = FloatType
 		case reflect.Func:
@@ -337,14 +408,11 @@ func getNativeType(rtype reflect.Type) *Type {
 				d[meth.Name] = newNativeMethod(meth.Name, meth.Func)
 			}
 		}
-		t = &newNativeType(rtype, base, newStringDict(d)).Type
-		t.slots.Native = &nativeSlot{func(f *Frame, o *Object) (reflect.Value, *BaseException) {
-			val, raised := base.slots.Native.Fn(f, o)
-			if raised != nil {
-				return reflect.Value{}, raised
-			}
-			return val.Convert(toNativeMetaclassUnsafe(o.typ.ToObject()).rtype), nil
-		}}
+		if rtype.Kind() == reflect.Bool {
+			t = newNativeBoolType(rtype, newStringDict(d))
+		} else {
+			t = newNativeType(rtype, base, newStringDict(d))
+		}
 		// This cannot fail since we're defining simple classes.
 		if err := prepareType(t); err != "" {
 			logFatal(err)
