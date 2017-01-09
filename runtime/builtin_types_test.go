@@ -15,8 +15,11 @@
 package grumpy
 
 import (
+	"bytes"
 	"fmt"
+	"io"
 	"math/big"
+	"os"
 	"testing"
 )
 
@@ -261,5 +264,57 @@ func TestNoneRepr(t *testing.T) {
 	cas := invokeTestCase{args: wrapArgs(None), want: NewStr("None").ToObject()}
 	if err := runInvokeMethodTestCase(NoneType, "__repr__", &cas); err != "" {
 		t.Error(err)
+	}
+}
+
+// captureStdout invokes a function closure which writes to stdout and captures
+// its output as string.
+func captureStdout(f *Frame, fn func() *BaseException) (string, *BaseException) {
+	r, w, err := os.Pipe()
+	if err != nil {
+		return "", f.RaiseType(RuntimeErrorType, fmt.Sprintf("failed to open pipe: %v", err))
+	}
+	oldStdout := os.Stdout
+	os.Stdout = w
+	defer func() {
+		os.Stdout = oldStdout
+	}()
+	done := make(chan struct{})
+	var raised *BaseException
+	go func() {
+		defer close(done)
+		defer w.Close()
+		raised = fn()
+	}()
+	var buf bytes.Buffer
+	if _, err := io.Copy(&buf, r); err != nil {
+		return "", f.RaiseType(RuntimeErrorType, fmt.Sprintf("failed to copy buffer: %v", err))
+	}
+	<-done
+	if raised != nil {
+		return "", raised
+	}
+	return buf.String(), nil
+}
+
+func TestBuiltinPrint(t *testing.T) {
+	fun := wrapFuncForTest(func(f *Frame, args *Tuple, kwargs KWArgs) (string, *BaseException) {
+		return captureStdout(f, func() *BaseException {
+			_, raised := builtinPrint(newFrame(nil), args.elems, kwargs)
+			return raised
+		})
+	})
+	cases := []invokeTestCase{
+		{args: wrapArgs(NewTuple(), wrapKWArgs()), want: NewStr("\n").ToObject()},
+		{args: wrapArgs(newTestTuple("abc"), wrapKWArgs()), want: NewStr("abc\n").ToObject()},
+		{args: wrapArgs(newTestTuple("abc", 123), wrapKWArgs()), want: NewStr("abc 123\n").ToObject()},
+		{args: wrapArgs(newTestTuple("abc", 123), wrapKWArgs("sep", "")), want: NewStr("abc123\n").ToObject()},
+		{args: wrapArgs(newTestTuple("abc", 123), wrapKWArgs("end", "")), want: NewStr("abc 123").ToObject()},
+		{args: wrapArgs(newTestTuple("abc", 123), wrapKWArgs("sep", "XX", "end", "--")), want: NewStr("abcXX123--").ToObject()},
+	}
+	for _, cas := range cases {
+		if err := runInvokeTestCase(fun, &cas); err != "" {
+			t.Error(err)
+		}
 	}
 }

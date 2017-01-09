@@ -16,6 +16,7 @@ package grumpy
 
 import (
 	"fmt"
+	"io"
 	"log"
 	"os"
 	"reflect"
@@ -564,22 +565,13 @@ func Next(f *Frame, iter *Object) (*Object, *BaseException) {
 // print statement.
 func Print(f *Frame, args Args, nl bool) *BaseException {
 	// TODO: Support outputting to files other than stdout and softspace.
-	for i, arg := range args {
-		if i > 0 {
-			fmt.Print(" ")
-		}
-		s, raised := ToStr(f, arg)
-		if raised != nil {
-			return raised
-		}
-		fmt.Print(s.Value())
-	}
+	var end string
 	if nl {
-		fmt.Println()
+		end = "\n"
 	} else if len(args) > 0 {
-		fmt.Print(" ")
+		end = " "
 	}
-	return nil
+	return pyPrint(f, args, " ", end, os.Stdout)
 }
 
 // Repr returns a string containing a printable representation of o. This is
@@ -988,4 +980,20 @@ func checkMethodVarArgs(f *Frame, method string, args Args, types ...*Type) *Bas
 
 func hashNotImplemented(f *Frame, o *Object) (*Object, *BaseException) {
 	return nil, f.RaiseType(TypeErrorType, fmt.Sprintf("unhashable type: '%s'", o.typ.Name()))
+}
+
+// pyPrint encapsulates the logic of the Python print function.
+func pyPrint(f *Frame, args Args, sep, end string, file io.Writer) *BaseException {
+	for i, arg := range args {
+		if i > 0 {
+			fmt.Fprint(file, sep)
+		}
+		s, raised := ToStr(f, arg)
+		if raised != nil {
+			return raised
+		}
+		fmt.Fprint(file, s.Value())
+	}
+	fmt.Fprint(file, end)
+	return nil
 }

@@ -21,8 +21,8 @@ import textwrap
 import unittest
 
 from grumpy.compiler import block
+from grumpy.compiler import stmt
 from grumpy.compiler import util
-
 
 class PackageTest(unittest.TestCase):
 
@@ -243,7 +243,8 @@ class FunctionBlockVisitorTest(unittest.TestCase):
 
 
 def _MakeModuleBlock():
-  return block.ModuleBlock('__main__', 'grumpy', 'grumpy/lib', '<test>', [])
+  return block.ModuleBlock('__main__', 'grumpy', 'grumpy/lib', '<test>', [],
+                           stmt.FutureFeatures())
 
 
 def _ParseStmt(stmt_str):

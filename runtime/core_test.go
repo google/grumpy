@@ -17,9 +17,7 @@ package grumpy
 import (
 	"bytes"
 	"fmt"
-	"io"
 	"math/big"
-	"os"
 	"reflect"
 	"regexp"
 	"runtime"
@@ -657,33 +655,33 @@ func TestInvokeKeywordArgs(t *testing.T) {
 	}
 }
 
-func TestPrint(t *testing.T) {
-	fun := wrapFuncForTest(func(f *Frame, args *Tuple, nl bool) (string, *BaseException) {
-		r, w, err := os.Pipe()
-		if err != nil {
-			return "", f.RaiseType(RuntimeErrorType, fmt.Sprintf("failed to open pipe: %v", err))
-		}
-		oldStdout := os.Stdout
-		os.Stdout = w
-		defer func() {
-			os.Stdout = oldStdout
-		}()
-		done := make(chan struct{})
-		var raised *BaseException
-		go func() {
-			defer close(done)
-			defer w.Close()
-			raised = Print(NewRootFrame(), args.elems, nl)
-		}()
+func TestPyPrint(t *testing.T) {
+	fun := wrapFuncForTest(func(f *Frame, args *Tuple, sep, end string) (string, *BaseException) {
 		var buf bytes.Buffer
-		if _, err := io.Copy(&buf, r); err != nil {
-			return "", f.RaiseType(RuntimeErrorType, fmt.Sprintf("failed to copy buffer: %v", err))
-		}
-		<-done
+		raised := pyPrint(NewRootFrame(), args.elems, sep, end, &buf)
 		if raised != nil {
 			return "", raised
 		}
 		return buf.String(), nil
+	})
+	cases := []invokeTestCase{
+		{args: wrapArgs(NewTuple(), "", "\n"), want: NewStr("\n").ToObject()},
+		{args: wrapArgs(NewTuple(), "", ""), want: NewStr("").ToObject()},
+		{args: wrapArgs(newTestTuple("abc", 123), " ", "\n"), want: NewStr("abc 123\n").ToObject()},
+		{args: wrapArgs(newTestTuple("foo"), "", " "), want: NewStr("foo ").ToObject()},
+	}
+	for _, cas := range cases {
+		if err := runInvokeTestCase(fun, &cas); err != "" {
+			t.Error(err)
+		}
+	}
+}
+
+func TestPrint(t *testing.T) {
+	fun := wrapFuncForTest(func(f *Frame, args *Tuple, nl bool) (string, *BaseException) {
+		return captureStdout(f, func() *BaseException {
+			return Print(NewRootFrame(), args.elems, nl)
+		})
 	})
 	cases := []invokeTestCase{
 		{args: wrapArgs(NewTuple(), true), want: NewStr("\n").ToObject()},

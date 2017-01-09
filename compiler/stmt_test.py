@@ -287,11 +287,104 @@ class StatementVisitorTest(unittest.TestCase):
         from __go__.time import type_Duration as Duration
         print Duration""")))
 
-  def testPrint(self):
+  def testPrintStatement(self):
     self.assertEqual((0, 'abc 123\nfoo bar\n'), _GrumpRun(textwrap.dedent("""\
         print 'abc',
         print '123'
         print 'foo', 'bar'""")))
+
+  def testImportFromFuture(self):
+    testcases = [
+        ('from __future__ import print_function', stmt.FUTURE_PRINT_FUNCTION),
+        ('from __future__ import generators', 0),
+        ('from __future__ import generators, print_function',
+         stmt.FUTURE_PRINT_FUNCTION),
+    ]
+
+    for i, tc in enumerate(testcases):
+      source, want_flags = tc
+      mod = ast.parse(textwrap.dedent(source))
+      node = mod.body[0]
+      got = stmt.import_from_future(node)
+      msg = '#{}: want {}, got {}'.format(i, want_flags, got)
+      self.assertEqual(want_flags, got, msg=msg)
+
+  def testImportFromFutureParseError(self):
+    testcases = [
+        # NOTE: move this group to testImportFromFuture as they are implemented
+        # by grumpy
+        ('from __future__ import absolute_import',
+         r'future feature \w+ not yet implemented'),
+        ('from __future__ import division',
+         r'future feature \w+ not yet implemented'),
+        ('from __future__ import unicode_literals',
+         r'future feature \w+ not yet implemented'),
+
+        ('from __future__ import braces', 'not a chance'),
+        ('from __future__ import nonexistant_feature',
+         r'future feature \w+ is not defined'),
+    ]
+
+    for tc in testcases:
+      source, want_regexp = tc
+      mod = ast.parse(source)
+      node = mod.body[0]
+      self.assertRaisesRegexp(util.ParseError, want_regexp,
+                              stmt.import_from_future, node)
+
+  def testVisitFuture(self):
+    testcases = [
+        ('from __future__ import print_function',
+         stmt.FUTURE_PRINT_FUNCTION, 1),
+        ("""\
+        "module docstring"
+
+        from __future__ import print_function
+        """, stmt.FUTURE_PRINT_FUNCTION, 3),
+        ("""\
+        "module docstring"
+
+        from __future__ import print_function, with_statement
+        from __future__ import nested_scopes
+        """, stmt.FUTURE_PRINT_FUNCTION, 4),
+    ]
+
+    for tc in testcases:
+      source, flags, lineno = tc
+      mod = ast.parse(textwrap.dedent(source))
+      future_features = stmt.visit_future(mod)
+      self.assertEqual(future_features.parser_flags, flags)
+      self.assertEqual(future_features.future_lineno, lineno)
+
+  def testVisitFutureParseError(self):
+    testcases = [
+        # future after normal imports
+        """\
+        import os
+        from __future__ import print_function
+        """,
+        # future after non-docstring expression
+        """
+        asd = 123
+        from __future__ import print_function
+        """
+    ]
+
+    for source in testcases:
+      mod = ast.parse(textwrap.dedent(source))
+      self.assertRaisesRegexp(util.ParseError, stmt.late_future,
+                              stmt.visit_future, mod)
+
+  def testFutureFeaturePrintFunction(self):
+    want = "abc\n123\nabc 123\nabcx123\nabc 123 "
+    self.assertEqual((0, want), _GrumpRun(textwrap.dedent("""\
+        "module docstring is ok to proceed __future__"
+        from __future__ import print_function
+        print('abc')
+        print(123)
+        print('abc', 123)
+        print('abc', 123, sep='x')
+        print('abc', 123, end=' ')""")))
 
   def testRaiseExitStatus(self):
     self.assertEqual(1, _GrumpRun('raise Exception')[0])
@@ -465,14 +558,17 @@ class StatementVisitorTest(unittest.TestCase):
 
 
 def _MakeModuleBlock():
-  return block.ModuleBlock('__main__', 'grumpy', 'grumpy/lib', '<test>', [])
+  return block.ModuleBlock('__main__', 'grumpy', 'grumpy/lib', '<test>', [],
+                           stmt.FutureFeatures())
 
 
 def _ParseAndVisit(source):
+  mod = ast.parse(source)
+  future_features = stmt.visit_future(mod)
   b = block.ModuleBlock('__main__', 'grumpy', 'grumpy/lib', '<test>',
-                        source.split('\n'))
+                        source.split('\n'), future_features)
   visitor = stmt.StatementVisitor(b)
-  visitor.visit(ast.parse(source))
+  visitor.visit(mod)
   return visitor
 
 
