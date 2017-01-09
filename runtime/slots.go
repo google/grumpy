@@ -369,6 +369,7 @@ func (s *unaryOpSlot) wrapCallable(callable *Object) bool {
 // The wrapper structs permit comparison of like slots which is occasionally
 // necessary to determine whether a function has been overridden by a subclass.
 type typeSlots struct {
+	Abs          *unaryOpSlot
 	Add          *binaryOpSlot
 	And          *binaryOpSlot
 	Basis        *basisSlot

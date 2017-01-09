@@ -49,9 +49,18 @@ def main(args):
     print >> sys.stderr, '{}: line {}: invalid syntax: {}'.format(
         e.filename, e.lineno, e.text)
     return 2
+
+  # Do a pass for compiler directives from `from __future__ import *` statements
+  try:
+    future_features = stmt.visit_future(mod)
+  except util.ParseError as e:
+    print >> sys.stderr, str(e)
+    return 2
+
   full_package_name = args.modname.replace('.', '/')
   mod_block = block.ModuleBlock(full_package_name, args.runtime, args.libroot,
-                                args.filename, py_contents.split('\n'))
+                                args.filename, py_contents.split('\n'),
+                                future_features)
   mod_block.add_native_import('grumpy')
   visitor = stmt.StatementVisitor(mod_block)
   # Indent so that the module body is aligned with the goto labels.

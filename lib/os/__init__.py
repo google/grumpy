@@ -18,7 +18,7 @@
 from os import path
 import stat as stat_module
 import sys
-from __go__.os import Chmod, Environ, Remove, Stat
+from __go__.os import Chdir, Chmod, Environ, Getwd, Remove, Stat
 from __go__.path.filepath import Separator
 from __go__.grumpy import NewFileFromFD
 from __go__.syscall import Close, SYS_FCNTL, Syscall, F_GETFD
@@ -30,6 +30,12 @@ environ = {}
 for var in Environ():
   k, v = var.split('=', 1)
   environ[k] = v
+
+
+def chdir(path):
+  err = Chdir(path)
+  if err:
+    raise OSError(err.Error())
 
 
 def chmod(filepath, mode):
@@ -51,6 +57,13 @@ def fdopen(fd, mode='r'):  # pylint: disable=unused-argument
   if err:
     raise OSError(err.Error())
   return NewFileFromFD(fd)
+
+
+def getcwd():
+  dir, err = Getwd()
+  if err:
+    raise OSError(err.Error())
+  return dir
 
 
 def remove(filepath):

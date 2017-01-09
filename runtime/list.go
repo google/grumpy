@@ -162,7 +162,7 @@ func listAppend(f *Frame, args Args, kwargs KWArgs) (*Object, *BaseException) {
 }
 
 func listContains(f *Frame, l, v *Object) (*Object, *BaseException) {
-	return seqContains(f, toListUnsafe(l).elems, v)
+	return seqContains(f, l, v)
 }
 
 func listEq(f *Frame, v, w *Object) (*Object, *BaseException) {

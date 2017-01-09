@@ -17,6 +17,7 @@ package grumpy
 import (
 	"fmt"
 	"math/big"
+	"os"
 	"unicode"
 )
 
@@ -184,6 +185,49 @@ func initBuiltinType(typ *Type, info *builtinTypeInfo) {
 	}
 }
 
+func builtinAbs(f *Frame, args Args, _ KWArgs) (*Object, *BaseException) {
+	if raised := checkFunctionArgs(f, "abs", args, ObjectType); raised != nil {
+		return nil, raised
+	}
+	return Abs(f, args[0])
+}
+
+func builtinAll(f *Frame, args Args, _ KWArgs) (*Object, *BaseException) {
+	if raised := checkFunctionArgs(f, "all", args, ObjectType); raised != nil {
+		return nil, raised
+	}
+	pred := func(o *Object) (bool, *BaseException) {
+		ret, raised := IsTrue(f, o)
+		if raised != nil {
+			return false, raised
+		}
+		return !ret, nil
+	}
+	foundFalseItem, raised := seqFindFirst(f, args[0], pred)
+	if raised != nil {
+		return nil, raised
+	}
+	return GetBool(!foundFalseItem).ToObject(), raised
+}
+
+func builtinAny(f *Frame, args Args, _ KWArgs) (*Object, *BaseException) {
+	if raised := checkFunctionArgs(f, "any", args, ObjectType); raised != nil {
+		return nil, raised
+	}
+	pred := func(o *Object) (bool, *BaseException) {
+		ret, raised := IsTrue(f, o)
+		if raised != nil {
+			return false, raised
+		}
+		return ret, nil
+	}
+	foundTrueItem, raised := seqFindFirst(f, args[0], pred)
+	if raised != nil {
+		return nil, raised
+	}
+	return GetBool(foundTrueItem).ToObject(), raised
+}
+
 func builtinBin(f *Frame, args Args, _ KWArgs) (*Object, *BaseException) {
 	if raised := checkFunctionArgs(f, "bin", args, ObjectType); raised != nil {
 		return nil, raised
@@ -197,6 +241,17 @@ func builtinBin(f *Frame, args Args, _ KWArgs) (*Object, *BaseException) {
 		return nil, f.RaiseType(TypeErrorType, fmt.Sprintf(format, args[0].typ.Name()))
 	}
 	return NewStr(numberToBase("0b", 2, index)).ToObject(), nil
+}
+
+func builtinCallable(f *Frame, args Args, _ KWArgs) (*Object, *BaseException) {
+	if raised := checkFunctionArgs(f, "callable", args, ObjectType); raised != nil {
+		return nil, raised
+	}
+	o := args[0]
+	if call := o.Type().slots.Call; call == nil {
+		return False.ToObject(), nil
+	}
+	return True.ToObject(), nil
 }
 
 func builtinChr(f *Frame, args Args, _ KWArgs) (*Object, *BaseException) {
@@ -432,6 +487,33 @@ func builtinOrd(f *Frame, args Args, _ KWArgs) (*Object, *BaseException) {
 	return NewInt(result).ToObject(), nil
 }
 
+func builtinPrint(f *Frame, args Args, kwargs KWArgs) (*Object, *BaseException) {
+	sep := " "
+	end := "\n"
+	file := os.Stdout
+	for _, kwarg := range kwargs {
+		switch kwarg.Name {
+		case "sep":
+			kwsep, raised := ToStr(f, kwarg.Value)
+			if raised != nil {
+				return nil, raised
+			}
+			sep = kwsep.Value()
+		case "end":
+			kwend, raised := ToStr(f, kwarg.Value)
+			if raised != nil {
+				return nil, raised
+			}
+			end = kwend.Value()
+		case "file":
+			// TODO: need to map Python sys.stdout, sys.stderr etc. to os.Stdout,
+			// os.Stderr, but for other file-like objects would need to recover
+			// to the file descriptor probably
+		}
+	}
+	return nil, pyPrint(f, args, sep, end, file)
+}
+
 func builtinRange(f *Frame, args Args, kwargs KWArgs) (*Object, *BaseException) {
 	r, raised := xrangeType.Call(f, args, nil)
 	if raised != nil {
@@ -465,7 +547,11 @@ func builtinUniChr(f *Frame, args Args, _ KWArgs) (*Object, *BaseException) {
 func init() {
 	builtinMap := map[string]*Object{
 		"__frame__":      newBuiltinFunction("__frame__", builtinFrame).ToObject(),
+		"abs":            newBuiltinFunction("abs", builtinAbs).ToObject(),
+		"all":            newBuiltinFunction("all", builtinAll).ToObject(),
+		"any":            newBuiltinFunction("any", builtinAny).ToObject(),
 		"bin":            newBuiltinFunction("bin", builtinBin).ToObject(),
+		"callable":       newBuiltinFunction("callable", builtinCallable).ToObject(),
 		"chr":            newBuiltinFunction("chr", builtinChr).ToObject(),
 		"dir":            newBuiltinFunction("dir", builtinDir).ToObject(),
 		"False":          False.ToObject(),
@@ -487,6 +573,7 @@ func init() {
 		"oct":            newBuiltinFunction("oct", builtinOct).ToObject(),
 		"open":           newBuiltinFunction("open", builtinOpen).ToObject(),
 		"ord":            newBuiltinFunction("ord", builtinOrd).ToObject(),
+		"print":          newBuiltinFunction("print", builtinPrint).ToObject(),
 		"range":          newBuiltinFunction("range", builtinRange).ToObject(),
 		"repr":           newBuiltinFunction("repr", builtinRepr).ToObject(),
 		"True":           True.ToObject(),

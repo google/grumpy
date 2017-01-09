@@ -72,7 +72,7 @@ func tupleAdd(f *Frame, v, w *Object) (*Object, *BaseException) {
 }
 
 func tupleContains(f *Frame, t, v *Object) (*Object, *BaseException) {
-	return seqContains(f, toTupleUnsafe(t).elems, v)
+	return seqContains(f, t, v)
 }
 
 func tupleEq(f *Frame, v, w *Object) (*Object, *BaseException) {

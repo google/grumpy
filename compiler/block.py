@@ -62,6 +62,7 @@ class Block(object):
   _runtime = None
   _strings = None
   imports = None
+  _future_features = None
 
   def __init__(self, parent_block, name):
     self.parent_block = parent_block
@@ -103,6 +104,11 @@ class Block(object):
   @property
   def strings(self):
     return self._module_block._strings  # pylint: disable=protected-access
+
+  @property
+  def future_features(self):
+    # pylint: disable=protected-access
+    return self._module_block._future_features
 
   @abc.abstractmethod
   def bind_var(self, writer, name, value):
@@ -216,7 +222,8 @@ class ModuleBlock(Block):
     imports: A dict mapping fully qualified Go package names to Package objects.
   """
 
-  def __init__(self, full_package_name, runtime, libroot, filename, lines):
+  def __init__(self, full_package_name, runtime, libroot, filename, lines,
+               future_features):
     super(ModuleBlock, self).__init__(None, '<module>')
     self._full_package_name = full_package_name
     self._runtime = runtime
@@ -225,6 +232,7 @@ class ModuleBlock(Block):
     self._lines = lines
     self._strings = set()
     self.imports = {}
+    self._future_features = future_features
 
   def bind_var(self, writer, name, value):
     writer.write_checked_call1(
@@ -440,5 +448,5 @@ class FunctionBlockVisitor(BlockVisitor):
         raise util.ParseError(node, msg)
       self.vars[name] = Var(name, Var.TYPE_PARAM, arg_index=i)
 
-  def visit_Yield(self, unused_node):
+  def visit_Yield(self, unused_node): # pylint: disable=unused-argument
     self.is_generator = True

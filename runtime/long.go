@@ -86,6 +86,10 @@ func (l *Long) Neg() *Long {
 // LongType is the object representing the Python 'long' type.
 var LongType = newBasisType("long", reflect.TypeOf(Long{}), toLongUnsafe, ObjectType)
 
+func longAbs(z, x *big.Int) {
+	z.Abs(x)
+}
+
 func longAdd(z, x, y *big.Int) {
 	z.Add(x, y)
 }
@@ -196,6 +200,10 @@ func longNE(x, y *big.Int) bool {
 	return x.Cmp(y) != 0
 }
 
+func longNeg(z, x *big.Int) {
+	z.Neg(x)
+}
+
 func longNew(f *Frame, t *Type, args Args, _ KWArgs) (*Object, *BaseException) {
 	if t != LongType {
 		// Allocate a plain long and then copy its value into an
@@ -299,6 +307,7 @@ func longXor(z, x, y *big.Int) {
 
 func initLongType(dict map[string]*Object) {
 	dict["__getnewargs__"] = newBuiltinFunction("__getnewargs__", longGetNewArgs).ToObject()
+	LongType.slots.Abs = longUnaryOpSlot(longAbs)
 	LongType.slots.Add = longBinaryOpSlot(longAdd)
 	LongType.slots.And = longBinaryOpSlot(longAnd)
 	LongType.slots.Div = longDivModOpSlot(longDiv)
@@ -318,6 +327,7 @@ func initLongType(dict map[string]*Object) {
 	LongType.slots.Mul = longBinaryOpSlot(longMul)
 	LongType.slots.Native = &nativeSlot{longNative}
 	LongType.slots.NE = longBinaryBoolOpSlot(longNE)
+	LongType.slots.Neg = longUnaryOpSlot(longNeg)
 	LongType.slots.New = &newSlot{longNew}
 	LongType.slots.NonZero = longUnaryBoolOpSlot(longNonZero)
 	LongType.slots.Or = longBinaryOpSlot(longOr)

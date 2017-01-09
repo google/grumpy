@@ -14,15 +14,71 @@
 
 # pylint: disable=g-import-not-at-top
 
+import os
 import os.path
 path = os.path
 
 import weetest
+import tempfile
+
+
+def _AssertEqual(a, b):
+  assert a == b
+  assert type(a) is type(b)
+
+
+def TestAbspath():
+  _AssertEqual(path.abspath('/a/b/c'), '/a/b/c')
+  _AssertEqual(path.abspath(u'/a/b/c'), u'/a/b/c')
+  _AssertEqual(path.abspath('/a/b/c/'), '/a/b/c')
+  _AssertEqual(path.abspath(u'/a/b/c/'), u'/a/b/c')
+  _AssertEqual(path.abspath('a/b/c'), path.normpath(os.getcwd() + '/a/b/c'))
+
+
+def TestDirname():
+  assert path.dirname('/a/b/c') == '/a/b'
+  assert path.dirname('/a/b/c/') == '/a/b/c'
+
+
+def TestExists():
+  _, file_path = tempfile.mkstemp()
+  dir_path = tempfile.mkdtemp()
+  try:
+    assert path.exists(file_path)
+    assert path.exists(dir_path)
+    assert not path.exists('path/does/not/exist')
+  finally:
+    os.remove(file_path)
+    os.rmdir(dir_path)
 
 
 def TestIsAbs():
   assert path.isabs('/abc')
   assert not path.isabs('abc/123')
+
+
+def TestIsDir():
+  _, file_path = tempfile.mkstemp()
+  dir_path = tempfile.mkdtemp()
+  try:
+    assert not path.isdir(file_path)
+    assert path.isdir(dir_path)
+    assert not path.isdir('path/does/not/exist')
+  finally:
+    os.remove(file_path)
+    os.rmdir(dir_path)
+
+
+def TestIsFile():
+  _, file_path = tempfile.mkstemp()
+  dir_path = tempfile.mkdtemp()
+  try:
+    assert path.isfile(file_path)
+    assert not path.isfile(dir_path)
+    assert not path.isfile('path/does/not/exist')
+  finally:
+    os.remove(file_path)
+    os.rmdir(dir_path)
 
 
 def TestJoin():
@@ -42,11 +98,16 @@ def TestJoin():
 
 
 def TestNormPath():
-  assert path.normpath('abc/') == 'abc'
-  assert path.normpath('/a//b') == '/a/b'
-  assert path.normpath('abc/../123') == '123'
-  assert path.normpath('../abc/123') == '../abc/123'
-  assert path.normpath('x/y/./z') == 'x/y/z'
+  _AssertEqual(path.normpath('abc/'), 'abc')
+  _AssertEqual(path.normpath('/a//b'), '/a/b')
+  _AssertEqual(path.normpath('abc/../123'), '123')
+  _AssertEqual(path.normpath('../abc/123'), '../abc/123')
+  _AssertEqual(path.normpath('x/y/./z'), 'x/y/z')
+  _AssertEqual(path.normpath(u'abc/'), u'abc')
+  _AssertEqual(path.normpath(u'/a//b'), u'/a/b')
+  _AssertEqual(path.normpath(u'abc/../123'), u'123')
+  _AssertEqual(path.normpath(u'../abc/123'), u'../abc/123')
+  _AssertEqual(path.normpath(u'x/y/./z'), u'x/y/z')
 
 
 if __name__ == '__main__':
