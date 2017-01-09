@@ -1,3 +1,17 @@
+# Copyright 2016 Google Inc. All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 from __go__.math import (Pi, E, Ceil, Copysign, Abs, Floor, Mod, Frexp, IsInf,
     IsNaN, Exp2, Modf, Trunc, Exp, Expm1, Log, Log1p, Log10, Pow, Sqrt, Acos,
     Asin, Atan, Atan2, Hypot, Sin, Cos, Tan, Acosh, Asinh, Atanh, Sinh, Cosh,
@@ -49,37 +63,15 @@ def factorial(x):
     
     x = xi
     
-    # The rest of this implementation is taken from PyPy
-    if x <= 100:
-        if x < 0:
-            raise ValueError("x must be >= 0")
-        res = 1
-        for i in range(2, x + 1):
-            res *= i
-        return res
-
-    # Experimentally this gap seems good
-    gap = max(100, x >> 7)
-    def _fac_odd(low, high):
-        if low + gap >= high:
-            t = 1
-            for i in range(low, high, 2):
-                t *= i
-            return t
-
-        mid = ((low + high) >> 1) | 1
-        return _fac_odd(low, mid) * _fac_odd(mid, high)
-
-    def _fac1(x):
-        if x <= 2:
-            return 1, 1, x - 1
-        x2 = x >> 1
-        f, g, shift = _fac1(x2)
-        g *= _fac_odd((x2 + 1) | 1, x + 1)
-        return (f * g, g, shift + x2)
-
-    res, _, shift = _fac1(x)
-    return res << shift
+    if x < 0:
+        raise ValueError("factorial() not defined for negative values")
+    
+    acc = 1
+    
+    for value in range(2,x+1):
+        acc *= value
+    
+    return acc
 
 
 def floor(x):
