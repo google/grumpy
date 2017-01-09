@@ -108,21 +108,45 @@ func seqClampIndex(i, seqLen int) int {
 	return i
 }
 
-func seqContains(f *Frame, elems []*Object, v *Object) (*Object, *BaseException) {
-	for _, i := range elems {
-		eq, raised := Eq(f, v, i)
+func seqContains(f *Frame, iterable *Object, v *Object) (*Object, *BaseException) {
+	pred := func(o *Object) (bool, *BaseException) {
+		eq, raised := Eq(f, v, o)
 		if raised != nil {
-			return nil, raised
+			return false, raised
 		}
 		ret, raised := IsTrue(f, eq)
 		if raised != nil {
-			return nil, raised
+			return false, raised
+		}
+		return ret, nil
+	}
+	foundEqItem, raised := seqFindFirst(f, iterable, pred)
+	if raised != nil {
+		return nil, raised
+	}
+	return GetBool(foundEqItem).ToObject(), raised
+}
+
+func seqFindFirst(f *Frame, iterable *Object, pred func(*Object) (bool, *BaseException)) (bool, *BaseException) {
+	iter, raised := Iter(f, iterable)
+	if raised != nil {
+		return false, raised
+	}
+	item, raised := Next(f, iter)
+	for ; raised == nil; item, raised = Next(f, iter) {
+		ret, raised := pred(item)
+		if raised != nil {
+			return false, raised
 		}
 		if ret {
-			return True.ToObject(), nil
+			return true, nil
 		}
 	}
-	return False.ToObject(), nil
+	if !raised.isInstance(StopIterationType) {
+		return false, raised
+	}
+	f.RestoreExc(nil, nil)
+	return false, nil
 }
 
 func seqForEach(f *Frame, iterable *Object, callback func(*Object) *BaseException) *BaseException {

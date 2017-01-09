@@ -25,8 +25,8 @@ supported).
 2. C extension modules: Grumpy has a different API and object layout than
    CPython and so supporting C extensions would be difficult. In principle it's
    possible to support them via an API bridge layer like the one that
-   [JyNI](http://jyni.org/) provides for Jython but it would be hard to maintain and
-   would add significant overhead when calling into and out of extension
+   [JyNI](http://jyni.org/) provides for Jython but it would be hard to maintain
+   and would add significant overhead when calling into and out of extension
    modules.
 
 ### Things that Grumpy will support but doesn't yet

@@ -194,25 +194,36 @@ func builtinAll(f *Frame, args Args, _ KWArgs) (*Object, *BaseException) {
 	if raised := checkFunctionArgs(f, "all", args, ObjectType); raised != nil {
 		return nil, raised
 	}
-	iter, raised := Iter(f, args[0])
+	pred := func(o *Object) (bool, *BaseException) {
+		ret, raised := IsTrue(f, o)
+		if raised != nil {
+			return false, raised
+		}
+		return !ret, nil
+	}
+	foundFalseItem, raised := seqFindFirst(f, args[0], pred)
 	if raised != nil {
 		return nil, raised
 	}
-	o, raised := Next(f, iter)
-	for ; raised == nil; o, raised = Next(f, iter) {
-		ret, raised := IsTrue(f, o)
-		if raised != nil {
-			return nil, raised
-		}
-		if !ret {
-			return False.ToObject(), nil
-		}
-	}
-	if !raised.isInstance(StopIterationType) {
+	return GetBool(!foundFalseItem).ToObject(), raised
+}
+
+func builtinAny(f *Frame, args Args, _ KWArgs) (*Object, *BaseException) {
+	if raised := checkFunctionArgs(f, "any", args, ObjectType); raised != nil {
 		return nil, raised
 	}
-	f.RestoreExc(nil, nil)
-	return True.ToObject(), nil
+	pred := func(o *Object) (bool, *BaseException) {
+		ret, raised := IsTrue(f, o)
+		if raised != nil {
+			return false, raised
+		}
+		return ret, nil
+	}
+	foundTrueItem, raised := seqFindFirst(f, args[0], pred)
+	if raised != nil {
+		return nil, raised
+	}
+	return GetBool(foundTrueItem).ToObject(), raised
 }
 
 func builtinBin(f *Frame, args Args, _ KWArgs) (*Object, *BaseException) {
@@ -509,6 +520,7 @@ func init() {
 		"__frame__":      newBuiltinFunction("__frame__", builtinFrame).ToObject(),
 		"abs":            newBuiltinFunction("abs", builtinAbs).ToObject(),
 		"all":            newBuiltinFunction("all", builtinAll).ToObject(),
+		"any":            newBuiltinFunction("any", builtinAny).ToObject(),
 		"bin":            newBuiltinFunction("bin", builtinBin).ToObject(),
 		"callable":       newBuiltinFunction("callable", builtinCallable).ToObject(),
 		"chr":            newBuiltinFunction("chr", builtinChr).ToObject(),

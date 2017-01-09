@@ -55,6 +55,29 @@ except TypeError as e:
 else:
   raise AssertionError('this was supposed to raise an exception')
 
+
+# any(iterable)
+
+assert any([1, 2, 3])
+assert not any([])
+assert any([1, 1, 1, 0, 1])
+assert not any([0, 0, 0])
+
+assert any([True, True])
+assert any([False, True, True])
+assert not any([False, False, False])
+
+assert not any('')
+assert any('abc')
+
+try:
+  any(13)
+except TypeError as e:
+  assert str(e) == "'int' object is not iterable"
+else:
+  raise AssertionError('this was supposed to raise an exception')
+
+
 # callable(x)
 
 assert not callable(1)
