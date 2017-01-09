@@ -17,6 +17,31 @@ import random
 import weetest
 
 
+def TestGrumpyRandom():
+  assert len(random._gorandom(5)) == 5
+
+  assert random._int_bit_length(0) == 0
+  assert random._int_bit_length(1) == 1
+  assert random._int_bit_length(8) == 4
+  assert random._int_bit_length(256) == 9
+
+  assert random._int_from_bytes([1, 0, 0, 0]) == 1
+  assert random._int_from_bytes([0, 0, 0, 0]) == 0
+  assert random._int_from_bytes([255, 255, 0, 0]) == 65535
+  assert random._int_from_bytes([0, 0, 0, 1]) == 16777216
+
+  r = random.GrumpyRandom()
+  assert 0.0 <= r.random() < 1.0
+
+  assert 0 <= r.getrandbits(1) <= 1
+  assert 0 <= r.getrandbits(2) <= 3
+  assert 0 <= r.getrandbits(8) <= 255
+
+  assert 0 <= r._randbelow(1) < 1
+  assert 0 <= r._randbelow(3) < 3
+  assert 0 <= r._randbelow(1000) < 1000
+
+
 def TestSeed():
   random.seed()
   try:
@@ -38,9 +63,9 @@ def TestRandom():
 
 def TestRandomInt():
   for _ in range(10):
-    a = random.randint(0, 5)
+    a = random.randint(0, 1000000)
     assert isinstance(a, int)
-    assert 0 <= a <= 5
+    assert 0 <= a <= 1000000
 
   b = random.randint(1, 1)
   assert b == 1
