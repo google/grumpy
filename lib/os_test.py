@@ -20,6 +20,20 @@ import tempfile
 import weetest
 
 
+def TestChdirAndGetCwd():
+  path = os.getcwd()
+  os.chdir('.')
+  assert os.getcwd() == path
+  tempdir = tempfile.mkdtemp()
+  try:
+    os.chdir(tempdir)
+    assert tempdir in os.getcwd()
+  finally:
+    os.chdir(path)
+    os.rmdir(tempdir)
+    assert os.getcwd() == path
+
+
 def TestChmod():
   fd, path = tempfile.mkstemp()
   os.close(fd)
