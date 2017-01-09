@@ -24,7 +24,7 @@ import (
 
 func TestNativeMetaclassNew(t *testing.T) {
 	var i int16
-	intType := &newNativeType(reflect.TypeOf(i), IntType, NewDict()).Type
+	intType := &newNativeType(reflect.TypeOf(i), IntType).Type
 	fun := wrapFuncForTest(func(f *Frame, args ...*Object) *BaseException {
 		newFunc, raised := GetAttr(f, intType.ToObject(), NewStr("new"), nil)
 		if raised != nil {
@@ -410,6 +410,33 @@ func TestNativeTypeName(t *testing.T) {
 		if got := nativeTypeName(cas.rtype); got != cas.want {
 			t.Errorf("nativeTypeName(%v) = %q, want %q", cas.rtype, got, cas.want)
 		}
+	}
+}
+
+func TestNewNativeFieldChecksInstanceType(t *testing.T) {
+	f := newFrame(nil)
+
+	// Given a native object
+	native, raised := WrapNative(f, reflect.ValueOf(struct{ foo string }{}))
+	if raised != nil {
+		t.Fatal("Unexpected exception:", raised)
+	}
+
+	// When its field property is assigned to a different type
+	property, raised := native.typ.dict.GetItemString(f, "foo")
+	if raised != nil {
+		t.Fatal("Unexpected exception:", raised)
+	}
+	if raised := IntType.dict.SetItemString(f, "foo", property); raised != nil {
+		t.Fatal("Unexpected exception:", raised)
+	}
+
+	// And we try to access that property on an object of the new type
+	_, raised = GetAttr(f, NewInt(1).ToObject(), NewStr("foo"), nil)
+
+	// Then expect a TypeError was raised
+	if raised == nil || raised.Type() != TypeErrorType {
+		t.Fatal("Wanted TypeError; got:", raised)
 	}
 }
 

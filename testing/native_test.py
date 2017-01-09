@@ -16,6 +16,9 @@
 
 from __go__.math import MaxInt32, Pow10, Signbit
 from __go__.strings import Count, IndexAny, Repeat
+from __go__.encoding.csv import NewReader as NewCSVReader
+from __go__.image import Pt
+from __go__.strings import NewReader as NewStringReader
 
 assert Count('foo,bar,baz', ',') == 2
 assert IndexAny('foobar', 'obr') == 1
@@ -23,3 +26,10 @@ assert Repeat('foo', 3) == 'foofoofoo'
 assert MaxInt32 == 2147483647
 assert Pow10(2.0) == 100.0
 assert Signbit(-42.0) == True  # pylint: disable=g-explicit-bool-comparison
+
+# Can access field on unreferenced struct (Pt returns an image.Point struct)
+assert Pt(1, 0).X == 1
+
+# Can access field on pointer to struct (NewCSVReader returns a pointer to a
+# csv.Reader struct)
+assert NewCSVReader(NewStringReader("foo")).LazyQuotes == False

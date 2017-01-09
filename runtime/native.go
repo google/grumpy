@@ -64,10 +64,10 @@ func toNativeMetaclassUnsafe(o *Object) *nativeMetaclass {
 	return (*nativeMetaclass)(o.toPointer())
 }
 
-func newNativeType(rtype reflect.Type, base *Type, d *Dict) *nativeMetaclass {
+func newNativeType(rtype reflect.Type, base *Type) *nativeMetaclass {
 	return &nativeMetaclass{
 		Type{
-			Object: Object{typ: nativeMetaclassType, dict: d},
+			Object: Object{typ: nativeMetaclassType},
 			name:   nativeTypeName(rtype),
 			basis:  base.basis,
 			bases:  []*Type{base},
@@ -337,7 +337,21 @@ func getNativeType(rtype reflect.Type) *Type {
 				d[meth.Name] = newNativeMethod(meth.Name, meth.Func)
 			}
 		}
-		t = &newNativeType(rtype, base, newStringDict(d)).Type
+
+		t = &newNativeType(rtype, base).Type
+
+		derefed := rtype
+		for derefed.Kind() == reflect.Ptr {
+			derefed = derefed.Elem()
+		}
+		if derefed.Kind() == reflect.Struct {
+			for i := 0; i < derefed.NumField(); i++ {
+				name := derefed.Field(i).Name
+				d[name] = newNativeField(name, i, t)
+			}
+		}
+		t.dict = newStringDict(d)
+
 		// This cannot fail since we're defining simple classes.
 		if err := prepareType(t); err != "" {
 			logFatal(err)
@@ -346,6 +360,21 @@ func getNativeType(rtype reflect.Type) *Type {
 	nativeTypes[rtype] = t
 	nativeTypesMutex.Unlock()
 	return t
+}
+
+func newNativeField(name string, i int, t *Type) *Object {
+	nativeFieldGet := func(f *Frame, args Args, _ KWArgs) (*Object, *BaseException) {
+		if raised := checkFunctionArgs(f, name, args, t); raised != nil {
+			return nil, raised
+		}
+		v := toNativeUnsafe(args[0]).value
+		for v.Type().Kind() == reflect.Ptr {
+			v = v.Elem()
+		}
+		return WrapNative(f, v.Field(i))
+	}
+	get := newBuiltinFunction(name, nativeFieldGet).ToObject()
+	return newProperty(get, nil, nil).ToObject()
 }
 
 func newNativeMethod(name string, fun reflect.Value) *Object {
