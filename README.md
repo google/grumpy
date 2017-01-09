@@ -46,6 +46,9 @@ There are three basic categories of incomplete functionality:
    modules will just work. But there are also a number of libraries in CPython
    that are C extension modules that need to be rewritten. This includes `re`,
    `itertools` and others.
+   
+ To see the status of a particular feature or standard library module, click
+ [here](https://github.com/google/grumpy/wiki/Missing-Features).
 
 ## Running Grumpy Programs
 
