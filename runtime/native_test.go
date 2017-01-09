@@ -24,7 +24,7 @@ import (
 
 func TestNativeMetaclassNew(t *testing.T) {
 	var i int16
-	intType := &newNativeType(reflect.TypeOf(i), IntType).Type
+	intType := newNativeType(reflect.TypeOf(i), IntType)
 	fun := wrapFuncForTest(func(f *Frame, args ...*Object) *BaseException {
 		newFunc, raised := GetAttr(f, intType.ToObject(), NewStr("new"), nil)
 		if raised != nil {
