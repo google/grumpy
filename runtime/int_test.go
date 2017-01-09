@@ -63,6 +63,7 @@ func TestIntBinaryOps(t *testing.T) {
 		{Or, NewInt(-100).ToObject(), NewInt(50).ToObject(), NewInt(-66).ToObject(), nil},
 		{Or, NewInt(MaxInt).ToObject(), NewInt(MinInt).ToObject(), NewInt(-1).ToObject(), nil},
 		{Or, newObject(ObjectType), NewInt(-100).ToObject(), nil, mustCreateException(TypeErrorType, "unsupported operand type(s) for |: 'object' and 'int'")},
+		{Pow, NewInt(2).ToObject(), NewInt(128).ToObject(), NewLong(big.NewInt(0).Exp(big.NewInt(2), big.NewInt(128), nil)).ToObject(), nil},
 		{Sub, NewInt(22).ToObject(), NewInt(18).ToObject(), NewInt(4).ToObject(), nil},
 		{Sub, IntType.ToObject(), NewInt(42).ToObject(), nil, mustCreateException(TypeErrorType, "unsupported operand type(s) for -: 'type' and 'int'")},
 		{Sub, NewInt(MinInt).ToObject(), NewInt(1).ToObject(), NewLong(new(big.Int).Sub(minIntBig, big.NewInt(1))).ToObject(), nil},

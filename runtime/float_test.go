@@ -78,6 +78,7 @@ func TestFloatArithmeticOps(t *testing.T) {
 		{Mul, NewFloat(math.Inf(1)).ToObject(), NewInt(-5).ToObject(), NewFloat(math.Inf(-1)).ToObject(), nil},
 		{Mul, False.ToObject(), NewFloat(math.Inf(1)).ToObject(), NewFloat(math.NaN()).ToObject(), nil},
 		{Mul, None, NewFloat(1.5).ToObject(), nil, mustCreateException(TypeErrorType, "unsupported operand type(s) for *: 'NoneType' and 'float'")},
+		{Pow, NewFloat(2.0).ToObject(), NewInt(10).ToObject(), NewFloat(1024.0).ToObject(), nil},
 		{Sub, NewFloat(21.3).ToObject(), NewFloat(35.6).ToObject(), NewFloat(-14.3).ToObject(), nil},
 		{Sub, True.ToObject(), NewFloat(1.5).ToObject(), NewFloat(-0.5).ToObject(), nil},
 		{Sub, NewFloat(1.0).ToObject(), NewList().ToObject(), nil, mustCreateException(TypeErrorType, "unsupported operand type(s) for -: 'float' and 'list'")},

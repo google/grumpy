@@ -228,9 +228,8 @@ func intOr(f *Frame, v, w *Object) (*Object, *BaseException) {
 }
 
 func intPow(f *Frame, v, w *Object) (*Object, *BaseException) {
-	return intAddMulOp(f, "__pow__", v, w, intCheckedPow, nil)
+	return intAddMulOp(f, "__pow__", v, w, intCheckedPow, longPow)
 }
-
 
 func intRAdd(f *Frame, v, w *Object) (*Object, *BaseException) {
 	return intAddMulOp(f, "__radd__", v, w, intCheckedAdd, longAdd)
@@ -262,6 +261,10 @@ func intRMul(f *Frame, v, w *Object) (*Object, *BaseException) {
 
 func intRLShift(f *Frame, v, w *Object) (*Object, *BaseException) {
 	return intShiftOp(f, v, w, func(v, w int) (int, int, bool) { return w, v, false })
+}
+
+func intRPow(f *Frame, v, w *Object) (*Object, *BaseException) {
+	return intAddMulOp(f, "__pow__", w, v, intCheckedPow, longPow)
 }
 
 func intRRShift(f *Frame, v, w *Object) (*Object, *BaseException) {
@@ -323,6 +326,7 @@ func initIntType(dict map[string]*Object) {
 	IntType.slots.RMod = &binaryOpSlot{intRMod}
 	IntType.slots.RMul = &binaryOpSlot{intRMul}
 	IntType.slots.ROr = &binaryOpSlot{intOr}
+	IntType.slots.RPow = &binaryOpSlot{intRPow}
 	IntType.slots.RLShift = &binaryOpSlot{intRLShift}
 	IntType.slots.RRShift = &binaryOpSlot{intRRShift}
 	IntType.slots.RShift = &binaryOpSlot{intRShift}
@@ -438,9 +442,17 @@ func intCheckedMul(v, w int) (int, bool) {
 }
 
 func intCheckedPow(v, w int) (int, bool) {
-	// FIXME: this is probably very incomplete and just a hack
-	res := math.Pow(float64(v), float64(w))
-	return int(res), true
+	// first try the shortcut - assuming the this operation is
+	// faster on float on the CPU then on LongInt
+	if 0 <= v && v <= MaxInt && 0 <= w && w <= MaxInt {
+		res := math.Pow(float64(v), float64(w))
+		// can the result be interpreted as an int?
+		if !math.IsNaN(res) && !math.IsInf(res, 0) && res <=  MaxInt {
+			return int(res), true
+		}
+	}
+	// fall back to alternative implementation
+	return 0, false
 }
 
 func intCheckedSub(v, w int) (int, bool) {
