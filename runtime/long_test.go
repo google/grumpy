@@ -67,7 +67,8 @@ func TestLongNew(t *testing.T) {
 	}))
 	strictEqType := newTestClassStrictEq("StrictEq", LongType)
 	newStrictEq := func(i *big.Int) *Object {
-		l := Long{Object: Object{typ: strictEqType}}
+		l := &Long{Object: Object{typ: strictEqType}}
+		l.self = l
 		l.value.Set(i)
 		return l.ToObject()
 	}

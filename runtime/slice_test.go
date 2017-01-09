@@ -59,11 +59,15 @@ func TestSliceCompare(t *testing.T) {
 }
 
 func TestSliceNew(t *testing.T) {
+	setSliceSelf := func(s *Slice) *Slice {
+		s.self = s
+		return s
+	}
 	cases := []invokeTestCase{
 		{args: nil, wantExc: mustCreateException(TypeErrorType, "'__new__' of 'object' requires 3 arguments")},
-		{args: wrapArgs(10), want: (&Slice{Object{typ: SliceType}, nil, NewInt(10).ToObject(), nil}).ToObject()},
-		{args: wrapArgs(1.2, "foo"), want: (&Slice{Object{typ: SliceType}, NewFloat(1.2).ToObject(), NewStr("foo").ToObject(), nil}).ToObject()},
-		{args: wrapArgs(None, None, true), want: (&Slice{Object{typ: SliceType}, None, None, True.ToObject()}).ToObject()},
+		{args: wrapArgs(10), want: setSliceSelf(&Slice{Object{typ: SliceType}, nil, NewInt(10).ToObject(), nil}).ToObject()},
+		{args: wrapArgs(1.2, "foo"), want: setSliceSelf(&Slice{Object{typ: SliceType}, NewFloat(1.2).ToObject(), NewStr("foo").ToObject(), nil}).ToObject()},
+		{args: wrapArgs(None, None, true), want: setSliceSelf(&Slice{Object{typ: SliceType}, None, None, True.ToObject()}).ToObject()},
 		{args: wrapArgs(1, 2, 3, 4), wantExc: mustCreateException(TypeErrorType, "'__new__' of 'object' requires 3 arguments")},
 	}
 	for _, cas := range cases {

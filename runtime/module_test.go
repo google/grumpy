@@ -20,6 +20,11 @@ import (
 	"testing"
 )
 
+func setModuleSelf(m *Module) *Module {
+	m.self = m
+	return m
+}
+
 func TestImportModule(t *testing.T) {
 	f := NewRootFrame()
 	invalidModule := newObject(ObjectType)
@@ -219,7 +224,7 @@ func TestModuleGetNameAndFilename(t *testing.T) {
 	cases := []invokeTestCase{
 		{args: wrapArgs(newModule("foo", "foo.py")), want: newTestTuple("foo", "foo.py").ToObject()},
 		{args: Args{mustNotRaise(ModuleType.Call(NewRootFrame(), wrapArgs("foo"), nil))}, wantExc: mustCreateException(SystemErrorType, "module filename missing")},
-		{args: wrapArgs(&Module{Object: Object{typ: ModuleType, dict: NewDict()}}), wantExc: mustCreateException(SystemErrorType, "nameless module")},
+		{args: wrapArgs(setModuleSelf(&Module{Object: Object{typ: ModuleType, dict: NewDict()}})), wantExc: mustCreateException(SystemErrorType, "nameless module")},
 	}
 	for _, cas := range cases {
 		if err := runInvokeTestCase(fun, &cas); err != "" {
@@ -262,7 +267,7 @@ func TestModuleStrRepr(t *testing.T) {
 		{args: wrapArgs(newModule("foo", "<test>")), want: NewStr("<module 'foo' from '<test>'>").ToObject()},
 		{args: wrapArgs(newModule("foo.bar.baz", "<test>")), want: NewStr("<module 'foo.bar.baz' from '<test>'>").ToObject()},
 		{args: Args{mustNotRaise(ModuleType.Call(NewRootFrame(), wrapArgs("foo"), nil))}, want: NewStr("<module 'foo' (built-in)>").ToObject()},
-		{args: wrapArgs(&Module{Object: Object{typ: ModuleType, dict: newTestDict("__file__", "foo.py")}}), want: NewStr("<module '?' from 'foo.py'>").ToObject()},
+		{args: wrapArgs(setModuleSelf(&Module{Object: Object{typ: ModuleType, dict: newTestDict("__file__", "foo.py")}})), want: NewStr("<module '?' from 'foo.py'>").ToObject()},
 	}
 	for _, cas := range cases {
 		if err := runInvokeTestCase(wrapFuncForTest(ToStr), &cas); err != "" {
@@ -380,5 +385,5 @@ func init() {
 }
 
 func newTestModule(name, filename string) *Module {
-	return &Module{Object: Object{typ: testModuleType, dict: newTestDict("__name__", name, "__file__", filename)}}
+	return setModuleSelf(&Module{Object: Object{typ: testModuleType, dict: newTestDict("__name__", name, "__file__", filename)}})
 }

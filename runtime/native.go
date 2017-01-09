@@ -61,11 +61,11 @@ type nativeMetaclass struct {
 }
 
 func toNativeMetaclassUnsafe(o *Object) *nativeMetaclass {
-	return (*nativeMetaclass)(o.toPointer())
+	return o.self.(*nativeMetaclass)
 }
 
 func newNativeType(rtype reflect.Type, base *Type, d *Dict) *nativeMetaclass {
-	return &nativeMetaclass{
+	n := &nativeMetaclass{
 		Type{
 			Object: Object{typ: nativeMetaclassType, dict: d},
 			name:   nativeTypeName(rtype),
@@ -75,6 +75,8 @@ func newNativeType(rtype reflect.Type, base *Type, d *Dict) *nativeMetaclass {
 		},
 		rtype,
 	}
+	n.self = n
+	return n
 }
 
 func nativeMetaclassNew(f *Frame, args Args, kwargs KWArgs) (*Object, *BaseException) {
@@ -95,7 +97,7 @@ type native struct {
 }
 
 func toNativeUnsafe(o *Object) *native {
-	return (*native)(o.toPointer())
+	return o.self.(*native)
 }
 
 // ToObject upcasts n to an Object.
@@ -161,11 +163,12 @@ type sliceIterator struct {
 
 func newSliceIterator(slice reflect.Value) *Object {
 	iter := &sliceIterator{Object: Object{typ: sliceIteratorType}, slice: slice, numElems: slice.Len()}
+	iter.self = iter
 	return &iter.Object
 }
 
 func toSliceIteratorUnsafe(o *Object) *sliceIterator {
-	return (*sliceIterator)(o.toPointer())
+	return o.self.(*sliceIterator)
 }
 
 func sliceIteratorIter(f *Frame, o *Object) (*Object, *BaseException) {
@@ -234,7 +237,9 @@ func WrapNative(f *Frame, v reflect.Value) (*Object, *BaseException) {
 		}
 		// TODO: Make native bool subtypes singletons and add support
 		// for __new__ so we can use t.Call() here.
-		return (&Int{Object{typ: t}, i}).ToObject(), nil
+		v := &Int{Object{typ: t}, i}
+		v.self = v
+		return v.ToObject(), nil
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Uint8, reflect.Uint16:
 		return t.Call(f, Args{NewInt(int(v.Int())).ToObject()}, nil)
 	// Handle potentially large ints separately in case of overflow.
@@ -292,7 +297,21 @@ func WrapNative(f *Frame, v reflect.Value) (*Object, *BaseException) {
 		if basis := v.Elem(); basisTypes[basis.Type()] != nil {
 			// We have a basis type that is binary compatible with
 			// Object.
-			return (*Object)(unsafe.Pointer(basis.UnsafeAddr())), nil
+			if !v.CanInterface() {
+				// In the event we got here with an un-exported field, just force
+				// convert it.
+				// TODO: Find a better/safer solution.
+				return (*Object)(unsafe.Pointer(basis.UnsafeAddr())), nil
+			}
+
+			iface := v.Interface()
+			if o, ok := iface.(*Object); ok {
+				return o, nil
+			}
+			type toObjecter interface {
+				ToObject() *Object
+			}
+			return iface.(toObjecter).ToObject(), nil
 		}
 	case reflect.Struct:
 		if i, ok := v.Interface().(big.Int); ok {
@@ -303,7 +322,9 @@ func WrapNative(f *Frame, v reflect.Value) (*Object, *BaseException) {
 			return None, nil
 		}
 	}
-	return (&native{Object{typ: t}, v}).ToObject(), nil
+	n := &native{Object{typ: t}, v}
+	n.self = n
+	return n.ToObject(), nil
 }
 
 func getNativeType(rtype reflect.Type) *Type {

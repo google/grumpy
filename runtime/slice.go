@@ -32,7 +32,7 @@ type Slice struct {
 }
 
 func toSliceUnsafe(o *Object) *Slice {
-	return (*Slice)(o.toPointer())
+	return o.self.(*Slice)
 }
 
 // calcSlice returns the three range indices (start, stop, step) and the length

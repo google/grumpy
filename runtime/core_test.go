@@ -157,14 +157,14 @@ func TestBinaryOps(t *testing.T) {
 func TestCompareDefault(t *testing.T) {
 	o1, o2 := newObject(ObjectType), newObject(ObjectType)
 	// Make sure uintptr(o1) < uintptr(o2).
-	if uintptr(o1.toPointer()) > uintptr(o2.toPointer()) {
+	if reflect.ValueOf(o1).Pointer() > reflect.ValueOf(o2).Pointer() {
 		o1, o2 = o2, o1
 	}
 	// When type names are equal, comparison should fall back to comparing
 	// the pointer values of the types of the objects.
 	fakeObjectType := newTestClass("object", []*Type{ObjectType}, NewDict())
 	o3, o4 := newObject(fakeObjectType), newObject(ObjectType)
-	if uintptr(o3.typ.toPointer()) > uintptr(o4.typ.toPointer()) {
+	if reflect.ValueOf(o3.typ).Pointer() > reflect.ValueOf(o4.typ).Pointer() {
 		o3, o4 = o4, o3
 	}
 	// An int subtype that equals anything, but doesn't override other
@@ -331,7 +331,7 @@ func TestHash(t *testing.T) {
 	cases := []invokeTestCase{
 		{args: wrapArgs("foo"), want: hashFoo},
 		{args: wrapArgs(123), want: NewInt(123).ToObject()},
-		{args: wrapArgs(o), want: NewInt(int(uintptr(o.toPointer()))).ToObject()},
+		{args: wrapArgs(o), want: NewInt(int(reflect.ValueOf(o).Pointer())).ToObject()},
 		{args: wrapArgs(NewList()), wantExc: mustCreateException(TypeErrorType, "unhashable type: 'list'")},
 		{args: wrapArgs(NewDict()), wantExc: mustCreateException(TypeErrorType, "unhashable type: 'dict'")},
 		{args: wrapArgs(newObject(badHash)), wantExc: mustCreateException(TypeErrorType, "an integer is required")},

@@ -313,11 +313,12 @@ type seqIterator struct {
 
 func newSeqIterator(seq *Object) *Object {
 	iter := &seqIterator{Object: Object{typ: seqIteratorType}, seq: seq}
+	iter.self = iter
 	return &iter.Object
 }
 
 func toSeqIteratorUnsafe(o *Object) *seqIterator {
-	return (*seqIterator)(o.toPointer())
+	return o.self.(*seqIterator)
 }
 
 func seqIteratorIter(f *Frame, o *Object) (*Object, *BaseException) {

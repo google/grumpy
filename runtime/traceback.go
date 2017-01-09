@@ -27,11 +27,13 @@ type Traceback struct {
 }
 
 func newTraceback(f *Frame, next *Traceback) *Traceback {
-	return &Traceback{Object{typ: TracebackType}, f, next, f.lineno}
+	t := &Traceback{Object{typ: TracebackType}, f, next, f.lineno}
+	t.self = t
+	return t
 }
 
 func toTracebackUnsafe(o *Object) *Traceback {
-	return (*Traceback)(o.toPointer())
+	return o.self.(*Traceback)
 }
 
 // ToObject upcasts f to an Object.

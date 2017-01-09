@@ -113,9 +113,13 @@ func TestIntNew(t *testing.T) {
 			return args[0], nil
 		}).ToObject(),
 	}))
+	setIntSelf := func(i *Int) *Int {
+		i.self = i
+		return i
+	}
 	strictEqType := newTestClassStrictEq("StrictEq", IntType)
 	subType := newTestClass("SubType", []*Type{IntType}, newStringDict(map[string]*Object{}))
-	subTypeObject := (&Int{Object: Object{typ: subType}, value: 3}).ToObject()
+	subTypeObject := setIntSelf(&Int{Object: Object{typ: subType}, value: 3}).ToObject()
 	goodSlotType := newTestClass("GoodSlot", []*Type{ObjectType}, newStringDict(map[string]*Object{
 		"__int__": newBuiltinFunction("__int__", func(_ *Frame, _ Args, _ KWArgs) (*Object, *BaseException) {
 			return NewInt(3).ToObject(), nil
@@ -145,11 +149,11 @@ func TestIntNew(t *testing.T) {
 		{args: wrapArgs(IntType, "102", 0), want: NewInt(102).ToObject()},
 		{args: wrapArgs(IntType, 42), want: NewInt(42).ToObject()},
 		{args: wrapArgs(IntType, -3.14), want: NewInt(-3).ToObject()},
-		{args: wrapArgs(strictEqType, 42), want: (&Int{Object{typ: strictEqType}, 42}).ToObject()},
+		{args: wrapArgs(strictEqType, 42), want: setIntSelf(&Int{Object{typ: strictEqType}, 42}).ToObject()},
 		{args: wrapArgs(IntType, newObject(goodSlotType)), want: NewInt(3).ToObject()},
 		{args: wrapArgs(IntType, newObject(badSlotType)), wantExc: mustCreateException(TypeErrorType, "__int__ returned non-int (type object)")},
 		{args: wrapArgs(IntType, newObject(slotSubTypeType)), want: subTypeObject},
-		{args: wrapArgs(strictEqType, newObject(goodSlotType)), want: (&Int{Object{typ: strictEqType}, 3}).ToObject()},
+		{args: wrapArgs(strictEqType, newObject(goodSlotType)), want: setIntSelf(&Int{Object{typ: strictEqType}, 3}).ToObject()},
 		{args: wrapArgs(strictEqType, newObject(badSlotType)), wantExc: mustCreateException(TypeErrorType, "__int__ returned non-int (type object)")},
 		{args: wrapArgs(IntType, "0xff"), wantExc: mustCreateException(ValueErrorType, "invalid literal for int() with base 10: 0xff")},
 		{args: wrapArgs(IntType, ""), wantExc: mustCreateException(ValueErrorType, "invalid literal for int() with base 10: ")},

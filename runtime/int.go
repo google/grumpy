@@ -26,9 +26,13 @@ const (
 	internedIntMax = 300
 )
 
-var (
-	internedInts = makeInternedInts()
-)
+var internedInts [internedIntMax - internedIntMin + 1]Int
+
+func init() {
+	for i := internedIntMin; i <= internedIntMax; i++ {
+		internedInts[i-internedIntMin] = Int{Object{typ: IntType, self: &internedInts[i-internedIntMin]}, i}
+	}
+}
 
 // Int represents Python 'int' objects.
 type Int struct {
@@ -41,11 +45,13 @@ func NewInt(value int) *Int {
 	if value >= internedIntMin && value <= internedIntMax {
 		return &internedInts[value-internedIntMin]
 	}
-	return &Int{Object{typ: IntType}, value}
+	i := &Int{Object{typ: IntType}, value}
+	i.self = i
+	return i
 }
 
 func toIntUnsafe(o *Object) *Int {
-	return (*Int)(o.toPointer())
+	return o.self.(*Int)
 }
 
 // ToObject upcasts i to an Object.
@@ -509,12 +515,4 @@ func intFromObject(f *Frame, o *Object) (*Object, *BaseException) {
 
 func intToLong(o *Int) *Long {
 	return NewLong(big.NewInt(int64(o.Value())))
-}
-
-func makeInternedInts() [internedIntMax - internedIntMin + 1]Int {
-	var ints [internedIntMax - internedIntMin + 1]Int
-	for i := internedIntMin; i <= internedIntMax; i++ {
-		ints[i-internedIntMin] = Int{Object{typ: IntType}, i}
-	}
-	return ints
 }

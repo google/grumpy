@@ -161,10 +161,14 @@ func TestFloatIsTrue(t *testing.T) {
 }
 
 func TestFloatNew(t *testing.T) {
+	setFloatSelf := func(f *Float) *Float {
+		f.self = f
+		return f
+	}
 	floatNew := mustNotRaise(GetAttr(NewRootFrame(), FloatType.ToObject(), NewStr("__new__"), nil))
 	strictEqType := newTestClassStrictEq("StrictEq", FloatType)
 	subType := newTestClass("SubType", []*Type{FloatType}, newStringDict(map[string]*Object{}))
-	subTypeObject := (&Float{Object: Object{typ: subType}, value: 3.14}).ToObject()
+	subTypeObject := setFloatSelf(&Float{Object: Object{typ: subType}, value: 3.14}).ToObject()
 	goodSlotType := newTestClass("GoodSlot", []*Type{ObjectType}, newStringDict(map[string]*Object{
 		"__float__": newBuiltinFunction("__float__", func(_ *Frame, _ Args, _ KWArgs) (*Object, *BaseException) {
 			return NewFloat(3.14).ToObject(), nil
@@ -199,8 +203,8 @@ func TestFloatNew(t *testing.T) {
 		{args: wrapArgs(FloatType, newObject(goodSlotType)), want: NewFloat(3.14).ToObject()},
 		{args: wrapArgs(FloatType, newObject(badSlotType)), wantExc: mustCreateException(TypeErrorType, "__float__ returned non-float (type object)")},
 		{args: wrapArgs(FloatType, newObject(slotSubTypeType)), want: subTypeObject},
-		{args: wrapArgs(strictEqType, 3.14), want: (&Float{Object{typ: strictEqType}, 3.14}).ToObject()},
-		{args: wrapArgs(strictEqType, newObject(goodSlotType)), want: (&Float{Object{typ: strictEqType}, 3.14}).ToObject()},
+		{args: wrapArgs(strictEqType, 3.14), want: setFloatSelf(&Float{Object{typ: strictEqType}, 3.14}).ToObject()},
+		{args: wrapArgs(strictEqType, newObject(goodSlotType)), want: setFloatSelf(&Float{Object{typ: strictEqType}, 3.14}).ToObject()},
 		{args: wrapArgs(strictEqType, newObject(badSlotType)), wantExc: mustCreateException(TypeErrorType, "__float__ returned non-float (type object)")},
 		{args: wrapArgs(), wantExc: mustCreateException(TypeErrorType, "'__new__' requires 1 arguments")},
 		{args: wrapArgs(IntType), wantExc: mustCreateException(TypeErrorType, "float.__new__(int): int is not a subtype of float")},

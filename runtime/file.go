@@ -45,12 +45,13 @@ type File struct {
 func NewFileFromFD(fd uintptr) *File {
 	// TODO: Use fcntl or something to get the mode of the descriptor.
 	file := &File{Object: Object{typ: FileType}, mode: "?", open: true, file: os.NewFile(fd, "<fdopen>")}
+	file.self = file
 	file.reader = bufio.NewReader(file.file)
 	return file
 }
 
 func toFileUnsafe(o *Object) *File {
-	return (*File)(o.toPointer())
+	return o.self.(*File)
 }
 
 // ToObject upcasts f to an Object.

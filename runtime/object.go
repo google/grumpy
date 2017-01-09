@@ -17,7 +17,6 @@ package grumpy
 import (
 	"fmt"
 	"reflect"
-	"unsafe"
 )
 
 var (
@@ -36,11 +35,16 @@ var (
 	}
 )
 
+func init() {
+	ObjectType.self = ObjectType
+}
+
 // Object represents Python 'object' objects.
 type Object struct {
 	typ  *Type `attr:"__class__"`
 	dict *Dict `attr:"__dict__"`
 	ref  *WeakRef
+	self interface{}
 }
 
 func newObject(t *Type) *Object {
@@ -48,7 +52,18 @@ func newObject(t *Type) *Object {
 	if t != ObjectType {
 		dict = NewDict()
 	}
-	o := (*Object)(unsafe.Pointer(reflect.New(t.basis).Pointer()))
+	outside := reflect.New(t.basis).Interface()
+	type toObjecter interface {
+		ToObject() *Object
+	}
+
+	var o *Object
+	if obj, ok := outside.(*Object); ok {
+		o = obj
+	} else {
+		o = outside.(toObjecter).ToObject()
+	}
+	o.self = outside
 	o.typ = t
 	o.dict = dict
 	return o
@@ -84,10 +99,6 @@ func (o *Object) String() string {
 // Type returns the Python type of o.
 func (o *Object) Type() *Type {
 	return o.typ
-}
-
-func (o *Object) toPointer() unsafe.Pointer {
-	return unsafe.Pointer(o)
 }
 
 func (o *Object) isInstance(t *Type) bool {
@@ -157,7 +168,7 @@ func objectGetAttribute(f *Frame, o *Object, name *Str) (*Object, *BaseException
 }
 
 func objectHash(f *Frame, o *Object) (*Object, *BaseException) {
-	return NewInt(int(uintptr(o.toPointer()))).ToObject(), nil
+	return NewInt(int(reflect.ValueOf(o).Pointer())).ToObject(), nil
 }
 
 func objectNew(f *Frame, t *Type, _ Args, _ KWArgs) (*Object, *BaseException) {

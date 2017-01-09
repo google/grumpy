@@ -17,6 +17,7 @@ package grumpy
 import (
 	"fmt"
 	"math/big"
+	"reflect"
 	"testing"
 )
 
@@ -146,7 +147,7 @@ func TestBuiltinFuncs(t *testing.T) {
 		{f: "hex", args: wrapArgs(0.1), wantExc: mustCreateException(TypeErrorType, "hex() argument can't be converted to hex")},
 		{f: "hex", args: wrapArgs(1, 2, 3), wantExc: mustCreateException(TypeErrorType, "'hex' requires 1 arguments")},
 		{f: "hex", args: wrapArgs(newObject(hexOctType)), want: NewStr("0xhexadecimal").ToObject()},
-		{f: "id", args: wrapArgs(foo), want: NewInt(int(uintptr(foo.toPointer()))).ToObject()},
+		{f: "id", args: wrapArgs(foo), want: NewInt(int(reflect.ValueOf(foo).Pointer())).ToObject()},
 		{f: "id", args: wrapArgs(), wantExc: mustCreateException(TypeErrorType, "'id' requires 1 arguments")},
 		{f: "isinstance", args: wrapArgs(NewInt(42).ToObject(), IntType.ToObject()), want: True.ToObject()},
 		{f: "isinstance", args: wrapArgs(NewStr("foo").ToObject(), TupleType.ToObject()), want: False.ToObject()},

@@ -21,6 +21,11 @@ import (
 	"unicode"
 )
 
+func setUnicodeSelf(u *Unicode) *Unicode {
+	u.self = u
+	return u
+}
+
 func TestUnicodeNewUnicode(t *testing.T) {
 	cases := []struct {
 		s    string
@@ -256,7 +261,7 @@ func TestUnicodeNew(t *testing.T) {
 		{args: wrapArgs(UnicodeType, "foo\xffbar", "utf8", "replace"), want: NewUnicode("foo\ufffdbar").ToObject()},
 		{args: wrapArgs(UnicodeType, "\xff", "utf-8", "noexist"), wantExc: mustCreateException(LookupErrorType, "unknown error handler name 'noexist'")},
 		{args: wrapArgs(UnicodeType, "\xff", "utf16"), wantExc: mustCreateException(LookupErrorType, "unknown encoding: utf16")},
-		{args: wrapArgs(strictEqType, NewUnicode("foo")), want: (&Unicode{Object{typ: strictEqType}, bytes.Runes([]byte("foo"))}).ToObject()},
+		{args: wrapArgs(strictEqType, NewUnicode("foo")), want: setUnicodeSelf(&Unicode{Object{typ: strictEqType}, bytes.Runes([]byte("foo"))}).ToObject()},
 	}
 	for _, cas := range cases {
 		if err := runInvokeMethodTestCase(UnicodeType, "__new__", &cas); err != "" {
@@ -274,7 +279,7 @@ func TestUnicodeNewNotSubtype(t *testing.T) {
 
 func TestUnicodeNewSubclass(t *testing.T) {
 	fooType := newTestClass("Foo", []*Type{UnicodeType}, NewDict())
-	bar := (&Unicode{Object{typ: fooType}, bytes.Runes([]byte("bar"))}).ToObject()
+	bar := setUnicodeSelf(&Unicode{Object{typ: fooType}, bytes.Runes([]byte("bar"))}).ToObject()
 	fun := wrapFuncForTest(func(f *Frame) *BaseException {
 		got, raised := UnicodeType.Call(f, []*Object{bar}, nil)
 		if raised != nil {

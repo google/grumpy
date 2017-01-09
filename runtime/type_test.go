@@ -23,7 +23,7 @@ import (
 
 func TestNewClass(t *testing.T) {
 	type strBasisStruct struct{ Str }
-	strBasisStructFunc := func(o *Object) *strBasisStruct { return (*strBasisStruct)(o.toPointer()) }
+	strBasisStructFunc := func(o *Object) *strBasisStruct { return o.self.(*strBasisStruct) }
 	fooType := newBasisType("Foo", reflect.TypeOf(strBasisStruct{}), strBasisStructFunc, StrType)
 	defer delete(basisTypes, fooType.basis)
 	fooType.dict = NewDict()
@@ -57,9 +57,12 @@ func TestNewClass(t *testing.T) {
 	}
 }
 
+type basisStruct struct{ Object }
+
+func (b *basisStruct) ToObject() *Object { return &b.Object }
+
 func TestNewBasisType(t *testing.T) {
-	type basisStruct struct{ Object }
-	basisStructFunc := func(o *Object) *basisStruct { return (*basisStruct)(o.toPointer()) }
+	basisStructFunc := func(o *Object) *basisStruct { return o.self.(*basisStruct) }
 	basis := reflect.TypeOf(basisStruct{})
 	typ := newBasisType("Foo", basis, basisStructFunc, ObjectType)
 	defer delete(basisTypes, basis)
@@ -79,7 +82,7 @@ func TestNewBasisType(t *testing.T) {
 	if name := typ.Name(); name != "Foo" {
 		t.Errorf(`Foo.Name() = %q, want "Foo"`, name)
 	}
-	foo := (*basisStruct)(newObject(typ).toPointer())
+	foo := newObject(typ).self.(*basisStruct)
 	if typ.slots.Basis == nil {
 		t.Error("type's Basis slot is nil")
 	} else if got := typ.slots.Basis.Fn(&foo.Object); got.Type() != basis || got.Addr().Interface().(*basisStruct) != foo {
@@ -136,9 +139,9 @@ func TestInvalidBasisType(t *testing.T) {
 
 func TestPrepareType(t *testing.T) {
 	type objectBasisStruct struct{ Object }
-	objectBasisStructFunc := func(o *Object) *objectBasisStruct { return (*objectBasisStruct)(o.toPointer()) }
+	objectBasisStructFunc := func(o *Object) *objectBasisStruct { return o.self.(*objectBasisStruct) }
 	type strBasisStruct struct{ Str }
-	strBasisStructFunc := func(o *Object) *strBasisStruct { return (*strBasisStruct)(o.toPointer()) }
+	strBasisStructFunc := func(o *Object) *strBasisStruct { return o.self.(*strBasisStruct) }
 	cases := []struct {
 		basis     reflect.Type
 		basisFunc interface{}
@@ -334,6 +337,7 @@ func TestTypeGetAttribute(t *testing.T) {
 	//   __metaclass__ = BarMeta
 	// bar = Bar()
 	barType := &Type{Object: Object{typ: barMetaType}, name: "Bar", basis: fooType.basis, bases: []*Type{fooType}}
+	barType.self = barType
 	barType.dict = newTestDict("bar", "Bar's bar", "foo", 101, "barsetter", setter, "barmetasetter", "NOT setter")
 	bar := newObject(barType)
 	prepareType(barType)

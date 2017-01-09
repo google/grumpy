@@ -31,11 +31,13 @@ type Method struct {
 // NewMethod returns a method wrapping the given function belonging to class.
 // When self is None the method is unbound, otherwise it is bound to self.
 func NewMethod(function *Function, self *Object, class *Type) *Method {
-	return &Method{Object{typ: MethodType}, function, self, class, function.Name()}
+	m := &Method{Object{typ: MethodType}, function, self, class, function.Name()}
+	m.Object.self = m
+	return m
 }
 
 func toMethodUnsafe(o *Object) *Method {
-	return (*Method)(o.toPointer())
+	return o.self.(*Method)
 }
 
 // ToObject upcasts m to an Object.
