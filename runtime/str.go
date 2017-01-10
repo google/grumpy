@@ -201,9 +201,8 @@ func strGE(f *Frame, v, w *Object) (*Object, *BaseException) {
 	return strCompare(v, w, False, True, True), nil
 }
 
-// strGetItem returns a slice of string
-// depending on whether index is an integer or a slice. If index is neither of
-// those types then a TypeError is returned.
+// strGetItem returns a slice of string depending on whether index is an integer
+// or a slice. If index is neither of those types then a TypeError is returned.
 func strGetItem(f *Frame, o, key *Object) (*Object, *BaseException) {
 	s := toStrUnsafe(o).Value()
 	switch {
