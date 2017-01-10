@@ -39,7 +39,7 @@ def _MakeLiteralTest(lit):
   def Test(self):
     status, output = _GrumpRun('print repr({!r}),'.format(lit))
     self.assertEqual(0, status, output)
-    self.assertEqual(lit, eval(output))  # pylint: disable=eval-used
+    self.assertEqual(lit, ast.literal_eval(output))
   return Test
 
 
