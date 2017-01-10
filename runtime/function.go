@@ -25,6 +25,9 @@ var (
 	// StaticMethodType is the object representing the Python
 	// 'staticmethod' type.
 	StaticMethodType = newBasisType("staticmethod", reflect.TypeOf(staticMethod{}), toStaticMethodUnsafe, ObjectType)
+	// ClassMethodType is the object representing the Python
+	// 'classmethod' type.
+	ClassMethodType = newBasisType("classmethod", reflect.TypeOf(classMethod{}), toClassMethodUnsafe, ObjectType)
 )
 
 // Args represent positional parameters in a call to a Python function.
@@ -181,4 +184,44 @@ func staticMethodInit(f *Frame, o *Object, args Args, _ KWArgs) (*Object, *BaseE
 func initStaticMethodType(map[string]*Object) {
 	StaticMethodType.slots.Get = &getSlot{staticMethodGet}
 	StaticMethodType.slots.Init = &initSlot{staticMethodInit}
+}
+
+// classMethod represents Python 'classmethod' objects.
+type classMethod struct {
+	Object
+	callable *Object
+}
+
+func newClassMethod(callable *Object) *classMethod {
+	return &classMethod{Object{typ: ClassMethodType}, callable}
+}
+
+func toClassMethodUnsafe(o *Object) *classMethod {
+	return (*classMethod)(o.toPointer())
+}
+
+// ToObject upcasts f to an Object.
+func (m *classMethod) ToObject() *Object {
+	return &m.Object
+}
+
+func classMethodGet(f *Frame, desc, _ *Object, owner *Type) (*Object, *BaseException) {
+	m := toClassMethodUnsafe(desc)
+	if m.callable == nil {
+		return nil, f.RaiseType(RuntimeErrorType, "uninitialized classmethod object")
+	}
+	return NewMethod(toFunctionUnsafe(m.callable), owner.ToObject(), owner).ToObject(), nil
+}
+
+func classMethodInit(f *Frame, o *Object, args Args, _ KWArgs) (*Object, *BaseException) {
+	if raised := checkFunctionArgs(f, "__init__", args, ObjectType); raised != nil {
+		return nil, raised
+	}
+	toClassMethodUnsafe(o).callable = args[0]
+	return None, nil
+}
+
+func initClassMethodType(map[string]*Object) {
+	ClassMethodType.slots.Get = &getSlot{classMethodGet}
+	ClassMethodType.slots.Init = &initSlot{classMethodInit}
 }
