@@ -128,11 +128,16 @@ func TestUnicodeEncode(t *testing.T) {
 func TestUnicodeGetItem(t *testing.T) {
 	cases := []invokeTestCase{
 		{args: wrapArgs(NewUnicode("bar"), 1), want: NewUnicode("a").ToObject()},
-		{args: wrapArgs(NewUnicode("foo"), 3.14), wantExc: mustCreateException(TypeErrorType, "string index out of range")},
+		{args: wrapArgs(NewUnicode("foo"), 3.14), wantExc: mustCreateException(TypeErrorType, "unicode indices must be integers or slice, not float")},
 		{args: wrapArgs(NewUnicode("baz"), -1), want: NewUnicode("z").ToObject()},
 		{args: wrapArgs(NewUnicode("baz"), -4), wantExc: mustCreateException(IndexErrorType, "index out of range")},
 		{args: wrapArgs(NewUnicode(""), 0), wantExc: mustCreateException(IndexErrorType, "index out of range")},
 		{args: wrapArgs(NewUnicode("foo"), 3), wantExc: mustCreateException(IndexErrorType, "index out of range")},
+		{args: wrapArgs(NewUnicode("bar"), newTestSlice(None, 2)), want: NewStr("ba").ToObject()},
+		{args: wrapArgs(NewUnicode("bar"), newTestSlice(1, 3)), want: NewStr("ar").ToObject()},
+		{args: wrapArgs(NewUnicode("bar"), newTestSlice(1, None)), want: NewStr("ar").ToObject()},
+		{args: wrapArgs(NewUnicode("foobarbaz"), newTestSlice(1, 8, 2)), want: NewStr("obra").ToObject()},
+		{args: wrapArgs(NewUnicode("bar"), newTestSlice(1, 2, 0)), wantExc: mustCreateException(ValueErrorType, "slice step cannot be zero")},
 	}
 	for _, cas := range cases {
 		if err := runInvokeMethodTestCase(UnicodeType, "__getitem__", &cas); err != "" {
