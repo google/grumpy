@@ -24,7 +24,7 @@ import (
 
 func TestNativeMetaclassNew(t *testing.T) {
 	var i int16
-	intType := &newNativeType(reflect.TypeOf(i), IntType).Type
+	intType := newNativeType(reflect.TypeOf(i), IntType)
 	fun := wrapFuncForTest(func(f *Frame, args ...*Object) *BaseException {
 		newFunc, raised := GetAttr(f, intType.ToObject(), NewStr("new"), nil)
 		if raised != nil {
@@ -137,6 +137,39 @@ func TestNativeFuncStrRepr(t *testing.T) {
 			return nil
 		})
 		if err := runInvokeTestCase(fun, &invokeTestCase{args: cas.args, want: None}); err != "" {
+			t.Error(err)
+		}
+	}
+}
+
+func TestNativeNew(t *testing.T) {
+	fun := wrapFuncForTest(func(f *Frame, t *Type, args ...*Object) (*Tuple, *BaseException) {
+		o, raised := t.Call(f, args, nil)
+		if raised != nil {
+			return nil, raised
+		}
+		return newTestTuple(o, o.Type()), nil
+	})
+	type testBool bool
+	testBoolType := getNativeType(reflect.TypeOf(testBool(false)))
+	type testFloat float32
+	testFloatType := getNativeType(reflect.TypeOf(testFloat(0)))
+	type testString string
+	testStringType := getNativeType(reflect.TypeOf(testString("")))
+	cases := []invokeTestCase{
+		{args: wrapArgs(testBoolType), want: newTestTuple(false, testBoolType).ToObject()},
+		{args: wrapArgs(testBoolType, ""), want: newTestTuple(false, testBoolType).ToObject()},
+		{args: wrapArgs(testBoolType, 123), want: newTestTuple(true, testBoolType).ToObject()},
+		{args: wrapArgs(testBoolType, "foo", "bar"), wantExc: mustCreateException(TypeErrorType, "testBool() takes at most 1 argument (2 given)")},
+		{args: wrapArgs(testFloatType), want: newTestTuple(0.0, testFloatType).ToObject()},
+		{args: wrapArgs(testFloatType, 3.14), want: newTestTuple(3.14, testFloatType).ToObject()},
+		{args: wrapArgs(testFloatType, "foo", "bar"), wantExc: mustCreateException(TypeErrorType, "'__new__' of 'float' requires 0 or 1 arguments")},
+		{args: wrapArgs(testStringType), want: newTestTuple("", testStringType).ToObject()},
+		{args: wrapArgs(testStringType, "foo"), want: newTestTuple("foo", testStringType).ToObject()},
+		{args: wrapArgs(testStringType, "foo", "bar"), wantExc: mustCreateException(TypeErrorType, "str() takes at most 1 argument (2 given)")},
+	}
+	for _, cas := range cases {
+		if err := runInvokeTestCase(fun, &cas); err != "" {
 			t.Error(err)
 		}
 	}
@@ -384,6 +417,29 @@ func TestMaybeConvertValue(t *testing.T) {
 			testCase.want = None
 		}
 		if err := runInvokeTestCase(fun, &testCase); err != "" {
+			t.Error(err)
+		}
+	}
+}
+
+func TestNativeTypedefNative(t *testing.T) {
+	fun := wrapFuncForTest(func(f *Frame, o *Object, wantType reflect.Type) (bool, *BaseException) {
+		val, raised := ToNative(f, o)
+		if raised != nil {
+			return false, raised
+		}
+		return val.Type() == wantType, nil
+	})
+	type testBool bool
+	testBoolRType := reflect.TypeOf(testBool(false))
+	type testInt int
+	testIntRType := reflect.TypeOf(testInt(0))
+	cases := []invokeTestCase{
+		{args: wrapArgs(mustNotRaise(getNativeType(testBoolRType).Call(NewRootFrame(), wrapArgs(true), nil)), testBoolRType), want: True.ToObject()},
+		{args: wrapArgs(mustNotRaise(getNativeType(testIntRType).Call(NewRootFrame(), wrapArgs(123), nil)), testIntRType), want: True.ToObject()},
+	}
+	for _, cas := range cases {
+		if err := runInvokeTestCase(fun, &cas); err != "" {
 			t.Error(err)
 		}
 	}
