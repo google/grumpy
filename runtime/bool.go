@@ -15,6 +15,7 @@
 package grumpy
 
 import (
+	"fmt"
 	"reflect"
 )
 
@@ -34,8 +35,12 @@ func boolNative(_ *Frame, o *Object) (reflect.Value, *BaseException) {
 }
 
 func boolNew(f *Frame, _ *Type, args Args, _ KWArgs) (*Object, *BaseException) {
-	if len(args) == 0 {
+	argc := len(args)
+	if argc == 0 {
 		return False.ToObject(), nil
+	}
+	if argc != 1 {
+		return nil, f.RaiseType(TypeErrorType, fmt.Sprintf("bool() takes at most 1 argument (%d given)", argc))
 	}
 	ret, raised := IsTrue(f, args[0])
 	if raised != nil {

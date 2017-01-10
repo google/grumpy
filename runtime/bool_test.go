@@ -43,6 +43,7 @@ func TestBoolCreate(t *testing.T) {
 		{args: wrapArgs(BoolType, true), want: True.ToObject()},
 		{args: wrapArgs(BoolType, newObject(ObjectType)), want: True.ToObject()},
 		{args: wrapArgs(ObjectType), wantExc: mustCreateException(TypeErrorType, "bool.__new__(object): object is not a subtype of bool")},
+		{args: wrapArgs(BoolType, "foo", "bar"), wantExc: mustCreateException(TypeErrorType, "bool() takes at most 1 argument (2 given)")},
 	}
 	for _, cas := range cases {
 		if err := runInvokeMethodTestCase(BoolType, "__new__", &cas); err != "" {
