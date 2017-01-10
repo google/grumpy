@@ -205,15 +205,12 @@ func (m *classMethod) ToObject() *Object {
 	return &m.Object
 }
 
-func classMethodGet(f *Frame, desc, _ *Object, typ *Type) (*Object, *BaseException) {
+func classMethodGet(f *Frame, desc, _ *Object, owner *Type) (*Object, *BaseException) {
 	m := toClassMethodUnsafe(desc)
 	if m.callable == nil {
 		return nil, f.RaiseType(RuntimeErrorType, "uninitialized classmethod object")
 	}
-	return newBuiltinFunction("_classMethodGet", func(f *Frame, args Args, kwargs KWArgs) (*Object, *BaseException) {
-		args = append(Args{typ.ToObject()}, args...)
-		return m.callable.Call(f, args, kwargs)
-	}).ToObject(), nil
+	return NewMethod(toFunctionUnsafe(m.callable), owner.ToObject(), owner).ToObject(), nil
 }
 
 func classMethodInit(f *Frame, o *Object, args Args, _ KWArgs) (*Object, *BaseException) {
