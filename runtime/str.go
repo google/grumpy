@@ -201,20 +201,37 @@ func strGE(f *Frame, v, w *Object) (*Object, *BaseException) {
 	return strCompare(v, w, False, True, True), nil
 }
 
+// strGetItem returns a slice of string depending on whether index is an integer
+// or a slice. If index is neither of those types then a TypeError is returned.
 func strGetItem(f *Frame, o, key *Object) (*Object, *BaseException) {
 	s := toStrUnsafe(o).Value()
-	if key.typ.slots.Index == nil {
-		return nil, f.RaiseType(TypeErrorType, fmt.Sprintf("string indices must be integers, not %s", key.typ.Name()))
+	switch {
+	case key.typ.slots.Index != nil:
+		index, raised := IndexInt(f, key)
+		if raised != nil {
+			return nil, raised
+		}
+		index, raised = seqCheckedIndex(f, len(s), index)
+		if raised != nil {
+			return nil, raised
+		}
+		return NewStr(s[index : index+1]).ToObject(), nil
+	case key.isInstance(SliceType):
+		slice := toSliceUnsafe(key)
+		start, stop, step, sliceLen, raised := slice.calcSlice(f, len(s))
+		if raised != nil {
+			return nil, raised
+		}
+		if step == 1 {
+			return NewStr(s[start:stop]).ToObject(), nil
+		}
+		result := make([]byte, 0, sliceLen)
+		for j := start; j < stop; j += step {
+			result = append(result, s[j])
+		}
+		return NewStr(string(result)).ToObject(), nil
 	}
-	index, raised := IndexInt(f, key)
-	if raised != nil {
-		return nil, raised
-	}
-	index, raised = seqCheckedIndex(f, len(s), index)
-	if raised != nil {
-		return nil, raised
-	}
-	return NewStr(s[index : index+1]).ToObject(), nil
+	return nil, f.RaiseType(TypeErrorType, fmt.Sprintf("string indices must be integers or slice, not %s", key.typ.Name()))
 }
 
 func strGetNewArgs(f *Frame, args Args, _ KWArgs) (*Object, *BaseException) {

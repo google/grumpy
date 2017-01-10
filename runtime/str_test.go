@@ -159,7 +159,7 @@ func TestStrGetItem(t *testing.T) {
 	}))
 	cases := []invokeTestCase{
 		{args: wrapArgs("bar", 1), want: NewStr("a").ToObject()},
-		{args: wrapArgs("foo", 3.14), wantExc: mustCreateException(TypeErrorType, "string indices must be integers, not float")},
+		{args: wrapArgs("foo", 3.14), wantExc: mustCreateException(TypeErrorType, "string indices must be integers or slice, not float")},
 		{args: wrapArgs("bar", big.NewInt(1)), want: NewStr("a").ToObject()},
 		{args: wrapArgs("baz", -1), want: NewStr("z").ToObject()},
 		{args: wrapArgs("baz", newObject(intIndexType)), want: NewStr("z").ToObject()},
@@ -167,6 +167,11 @@ func TestStrGetItem(t *testing.T) {
 		{args: wrapArgs("baz", -4), wantExc: mustCreateException(IndexErrorType, "index out of range")},
 		{args: wrapArgs("", 0), wantExc: mustCreateException(IndexErrorType, "index out of range")},
 		{args: wrapArgs("foo", 3), wantExc: mustCreateException(IndexErrorType, "index out of range")},
+		{args: wrapArgs("bar", newTestSlice(None, 2)), want: NewStr("ba").ToObject()},
+		{args: wrapArgs("bar", newTestSlice(1, 3)), want: NewStr("ar").ToObject()},
+		{args: wrapArgs("bar", newTestSlice(1, None)), want: NewStr("ar").ToObject()},
+		{args: wrapArgs("foobarbaz", newTestSlice(1, 8, 2)), want: NewStr("obra").ToObject()},
+		{args: wrapArgs("bar", newTestSlice(1, 2, 0)), wantExc: mustCreateException(ValueErrorType, "slice step cannot be zero")},
 	}
 	for _, cas := range cases {
 		if err := runInvokeMethodTestCase(StrType, "__getitem__", &cas); err != "" {
