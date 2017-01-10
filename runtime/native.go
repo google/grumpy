@@ -144,8 +144,12 @@ func nativeBoolNative(f *Frame, o *Object) (reflect.Value, *BaseException) {
 
 func nativeBoolNew(f *Frame, t *Type, args Args, kwargs KWArgs) (*Object, *BaseException) {
 	meta := toNativeBoolMetaclassUnsafe(t.ToObject())
-	if len(args) == 0 {
+	argc := len(args)
+	if argc == 0 {
 		return meta.falseValue, nil
+	}
+	if argc != 1 {
+		return nil, f.RaiseType(TypeErrorType, fmt.Sprintf("%s() takes at most 1 argument (%d given)", t.Name(), argc))
 	}
 	ret, raised := IsTrue(f, args[0])
 	if raised != nil {
