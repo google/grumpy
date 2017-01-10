@@ -124,3 +124,38 @@ func TestStaticMethodInit(t *testing.T) {
 		}
 	}
 }
+
+func TestClassMethodGet(t *testing.T) {
+	cases := []invokeTestCase{
+		// {args: wrapArgs(newClassMethod(NewStr("abc").ToObject()), 123, IntType), want: NewStr("abc").ToObject()},
+		{args: wrapArgs(newClassMethod(nil), 123, IntType), wantExc: mustCreateException(RuntimeErrorType, "uninitialized classmethod object")},
+	}
+	for _, cas := range cases {
+		if err := runInvokeMethodTestCase(ClassMethodType, "__get__", &cas); err != "" {
+			t.Error(err)
+		}
+	}
+}
+
+func TestClassMethodInit(t *testing.T) {
+	fun := wrapFuncForTest(func(f *Frame, args ...*Object) (*Object, *BaseException) {
+		m, raised := ClassMethodType.Call(f, args, nil)
+		if raised != nil {
+			return nil, raised
+		}
+		get, raised := GetAttr(f, m, NewStr("__get__"), nil)
+		if raised != nil {
+			return nil, raised
+		}
+		return get.Call(f, wrapArgs(123, IntType), nil)
+	})
+	cases := []invokeTestCase{
+		// {args: wrapArgs(3.14), want: NewFloat(3.14).ToObject()},
+		{wantExc: mustCreateException(TypeErrorType, "'__init__' requires 1 arguments")},
+	}
+	for _, cas := range cases {
+		if err := runInvokeTestCase(fun, &cas); err != "" {
+			t.Error(err)
+		}
+	}
+}
