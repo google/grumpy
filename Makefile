@@ -21,7 +21,14 @@ GOOS ?= $(word 1,$(GO_ENV))
 GOARCH ?= $(word 2,$(GO_ENV))
 ROOT_DIR := $(realpath .)
 PKG_DIR := build/pkg/$(GOOS)_$(GOARCH)
+PYTHON ?= python
+PYTHON_BIN := $(shell which $(PYTHON))
+PYTHON_VER := $(word 2,$(shell $(PYTHON) -V 2>&1))
 PY_DIR := build/lib/python2.7/site-packages
+
+ifeq ($(filter 2.7.%,$(PYTHON_VER)),)
+  $(error unsupported Python version $(PYTHON_VER), Grumpy only supports 2.7.x. To use a different python binary such as python2, run: 'make PYTHON=python2 ...')
+endif
 
 export GOPATH := $(ROOT_DIR)/build
 export PYTHONPATH := $(ROOT_DIR)/$(PY_DIR)
@@ -90,30 +97,32 @@ precommit: cover gofmt lint test
 $(COMPILER_BIN) $(RUNNER_BIN) $(TOOL_BINS): build/bin/%: tools/%
 	@mkdir -p build/bin
 	@cp -f $< $@
+	@sed -i.bak -e '1s@/usr/bin/env python@$(PYTHON_BIN)@' $@
+	@rm -f $@.bak
 
 $(COMPILER_SRCS) $(COMPILER_TEST_SRCS) $(COMPILER_SHARDED_TEST_SRCS): $(PY_DIR)/grumpy/%.py: %.py
 	@mkdir -p $(PY_DIR)/grumpy/compiler
 	@cp -f $< $@
 
 $(COMPILER_PASS_FILES): %.pass: %.py $(COMPILER)
-	@python $< -q
+	@$(PYTHON) $< -q
 	@touch $@
 	@echo compiler/`basename $*` PASS
 
 $(COMPILER_D_FILES): $(PY_DIR)/%.d: $(PY_DIR)/%.py $(COMPILER_SRCS)
-	@python -m modulefinder $< | awk '{if (match($$2, /^grumpy\>/)) { print "$(PY_DIR)/$*.pass: " substr($$3, length("$(ROOT_DIR)/") + 1) }}' > $@
+	@$(PYTHON) -m modulefinder $< | awk '{if (match($$2, /^grumpy\>/)) { print "$(PY_DIR)/$*.pass: " substr($$3, length("$(ROOT_DIR)/") + 1) }}' > $@
 
 -include $(COMPILER_D_FILES)
 
 # Does not depend on stdlibs since it makes minimal use of them.
 $(COMPILER_EXPR_VISITOR_PASS_FILES): $(PY_DIR)/grumpy/compiler/expr_visitor_test.%.pass: $(PY_DIR)/grumpy/compiler/expr_visitor_test.py $(RUNNER_BIN) $(COMPILER) $(RUNTIME)
-	@python $< --shard=$*
+	@$(PYTHON) $< --shard=$*
 	@touch $@
 	@echo 'compiler/expr_visitor_test $* PASS'
 
 # Does not depend on stdlibs since it makes minimal use of them.
 $(COMPILER_STMT_PASS_FILES): $(PY_DIR)/grumpy/compiler/stmt_test.%.pass: $(PY_DIR)/grumpy/compiler/stmt_test.py $(RUNNER_BIN) $(COMPILER) $(RUNTIME)
-	@python $< --shard=$*
+	@$(PYTHON) $< --shard=$*
 	@touch $@
 	@echo 'compiler/stmt_test $* PASS'
 
@@ -179,7 +188,7 @@ build/src/grumpy/lib/$(2)/module.go: $(1) $(COMPILER)
 
 build/src/grumpy/lib/$(2)/module.d: $(1)
 	@mkdir -p build/src/grumpy/lib/$(2)
-	@python -m modulefinder -p $(ROOT_DIR)/lib:$(ROOT_DIR)/third_party/stdlib $$< | awk '{if (($$$$1 == "m" || $$$$1 == "P") && $$$$2 != "__main__" && $$$$2 != "$(2)") {gsub(/\./, "/", $$$$2); print "$(PKG_DIR)/grumpy/lib/$(2).a: $(PKG_DIR)/grumpy/lib/" $$$$2 ".a"}}' > $$@
+	@$(PYTHON) -m modulefinder -p $(ROOT_DIR)/lib:$(ROOT_DIR)/third_party/stdlib $$< | awk '{if (($$$$1 == "m" || $$$$1 == "P") && $$$$2 != "__main__" && $$$$2 != "$(2)") {gsub(/\./, "/", $$$$2); print "$(PKG_DIR)/grumpy/lib/$(2).a: $(PKG_DIR)/grumpy/lib/" $$$$2 ".a"}}' > $$@
 
 $(PKG_DIR)/grumpy/lib/$(2).a: build/src/grumpy/lib/$(2)/module.go $(RUNTIME)
 	@mkdir -p $(PKG_DIR)/grumpy/lib/$(dir $(2))
