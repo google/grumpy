@@ -17,12 +17,12 @@
 import _collections
 import sys
 
-def _from_iterable(cls, iterable):
-        return cls(*iterable)
-
 class chain(object):
 
-    from_iterable = classmethod(_from_iterable)
+    def from_iterable(cls, iterable):
+        return cls(*iterable)
+
+    from_iterable = classmethod(from_iterable)
 
     def __init__(self, *iterables):
         self.iterables = iterables
