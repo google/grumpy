@@ -28,7 +28,14 @@ from grumpy.compiler import util
 
 _NATIVE_MODULE_PREFIX = '__go__.'
 _NATIVE_TYPE_PREFIX = 'type_'
-_KNOWN_DOMAINS = ['github.com', 'golang.org']
+
+# Partial list of known vcs for go module import
+# Full list can be found at https://golang.org/src/cmd/go/vcs.go
+# TODO: Use official vcs.go module instead of partial list
+_KNOWN_VCS = [
+    'golang.org', 'github.com', 'bitbucket.org', 'git.apache.org',
+    'git.openstack.org', 'launchpad.net'
+]
 
 _nil_expr = expr.nil_expr
 
@@ -686,13 +693,16 @@ class StatementVisitor(ast.NodeVisitor):
   def _import_native(self, name, values):
     reflect_package = self.block.add_native_import('reflect')
     import_name = name[len(_NATIVE_MODULE_PREFIX):]
+    # Work-around for importing go module from VCS
+    # TODO: support bzr|git|hg|svn from any server
     package_name = None
-    for x in _KNOWN_DOMAINS:
+    for x in _KNOWN_VCS:
       if import_name.startswith(x):
         package_name = x + import_name[len(x):].replace('.', '/')
         break
     if not package_name:
       package_name = import_name.replace('.', '/')
+
     package = self.block.add_native_import(package_name)
     mod = self.block.alloc_temp()
     with self.block.alloc_temp('map[string]*πg.Object') as members:
