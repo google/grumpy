@@ -1,4 +1,7 @@
 language: go
+os:
+  - linux
+  - osx
 # Upgrade default Travis pip which is old and doesn't work the way we expect.
 # Need sudo to do that.
 sudo: required
