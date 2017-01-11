@@ -12,25 +12,26 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import _random
 import random
 
 import weetest
 
 
 def TestGrumpyRandom():
-  assert len(random._gorandom(5)) == 5
+  assert len(_random._gorandom(5)) == 5
 
-  assert random._int_bit_length(0) == 0
-  assert random._int_bit_length(1) == 1
-  assert random._int_bit_length(8) == 4
-  assert random._int_bit_length(256) == 9
+  assert _random._int_bit_length(0) == 0
+  assert _random._int_bit_length(1) == 1
+  assert _random._int_bit_length(8) == 4
+  assert _random._int_bit_length(256) == 9
 
-  assert random._int_from_bytes([1, 0, 0, 0]) == 1
-  assert random._int_from_bytes([0, 0, 0, 0]) == 0
-  assert random._int_from_bytes([255, 255, 0, 0]) == 65535
-  assert random._int_from_bytes([0, 0, 0, 1]) == 16777216
+  assert _random._int_from_bytes([1, 0, 0, 0]) == 1
+  assert _random._int_from_bytes([0, 0, 0, 0]) == 0
+  assert _random._int_from_bytes([255, 255, 0, 0]) == 65535
+  assert _random._int_from_bytes([0, 0, 0, 1]) == 16777216
 
-  r = random.GrumpyRandom()
+  r = _random.GrumpyRandom()
   assert 0.0 <= r.random() < 1.0
 
   assert 0 <= r.getrandbits(1) <= 1
