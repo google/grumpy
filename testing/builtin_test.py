@@ -101,3 +101,16 @@ class bar(object):
 assert callable(bar)
 assert callable(bar())
 
+# tuple(iterable)
+
+assert tuple([1, 2, 3]) == (1, 2, 3)
+assert tuple([]) == ()
+assert tuple({}) == ()
+assert tuple([None, 1, "foo", 1.0]) == (None, 1, "foo", 1.0)
+
+try:
+  tuple(42)
+except TypeError as e:
+  assert str(e) == "'int' object is not iterable"
+else:
+  raise AssertionError('this was supposed to raise an exception')
