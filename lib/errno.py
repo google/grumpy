@@ -32,4 +32,4 @@ from __go__.syscall import (
     EPROTOTYPE, ERANGE, EREMCHG, EREMOTE, EREMOTEIO, ERESTART, ERFKILL, EROFS,
     ESHUTDOWN, ESOCKTNOSUPPORT, ESPIPE, ESRCH, ESRMNT, ESTALE, ESTRPIPE, ETIME,
     ETIMEDOUT, ETOOMANYREFS, ETXTBSY, EUCLEAN, EUNATCH, EUSERS, EWOULDBLOCK,
-    EXDEV, EXFULL) # pylint: disable=g-multiple-import,unused-import
+    EXDEV, EXFULL)  # pylint: disable=g-multiple-import,unused-import
