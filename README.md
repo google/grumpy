@@ -85,7 +85,7 @@ export PYTHONPATH=$PWD/build/lib/python2.7/site-packages
 Finally, compile the Python script and build a binary from it:
 
 ```
-tools/grumpc hello.py > hello.go
+build/bin/grumpc hello.py > hello.go
 go build -o hello hello.go
 ```
 
