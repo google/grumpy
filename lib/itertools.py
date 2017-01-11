@@ -17,10 +17,20 @@
 import _collections
 import sys
 
-def chain(*iterables):
-  for it in iterables:
-    for element in it:
-      yield element
+class chain(object):
+
+    def from_iterable(cls, iterable):
+        return cls(*iterable)
+
+    from_iterable = classmethod(from_iterable)
+
+    def __init__(self, *iterables):
+        self.iterables = iterables
+
+    def __iter__(self):
+        for it in self.iterables:
+            for element in it:
+                yield element
 
 def compress(data, selectors):
   return (d for d,s in izip(data, selectors) if s)
@@ -48,11 +58,6 @@ def dropwhile(predicate, iterable):
       break
   for x in iterable:
     yield x
-
-def from_iterable(iterables):
-  for it in iterables:
-    for element in it:
-      yield element
 
 def ifilter(predicate, iterable):
   if predicate is None:
