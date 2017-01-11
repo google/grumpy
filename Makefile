@@ -97,7 +97,8 @@ precommit: cover gofmt lint test
 $(COMPILER_BIN) $(RUNNER_BIN) $(TOOL_BINS): build/bin/%: tools/%
 	@mkdir -p build/bin
 	@cp -f $< $@
-	@sed -i '' '1s@/usr/bin/env python@$(PYTHON_BIN)@' $@
+	@sed -i.bak -e '1s@/usr/bin/env python@$(PYTHON_BIN)@' $@
+	@rm -f $@.bak
 
 $(COMPILER_SRCS) $(COMPILER_TEST_SRCS) $(COMPILER_SHARDED_TEST_SRCS): $(PY_DIR)/grumpy/%.py: %.py
 	@mkdir -p $(PY_DIR)/grumpy/compiler
