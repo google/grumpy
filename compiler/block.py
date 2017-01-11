@@ -36,7 +36,7 @@ class Package(object):
     if not alias:
       # Use Γ as a separator since it provides readability with a low
       # probability of name collisions.
-      alias = 'π_' + name.replace('/', 'Γ')
+      alias = 'π_' + name.replace('/', 'Γ').replace('.', 'Γ')
     self.alias = alias
 
 
