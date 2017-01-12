@@ -114,7 +114,9 @@ func (l *List) Sort(f *Frame) (raised *BaseException) {
 		}
 		raised = sorter.raised
 	}()
-	sort.Sort(sorter)
+	// Python guarantees stability.  See note (9) in:
+	// https://docs.python.org/2/library/stdtypes.html#mutable-sequence-types
+	sort.Stable(sorter)
 	return nil
 }
 
