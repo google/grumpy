@@ -16,6 +16,7 @@ package grumpy
 
 import (
 	"fmt"
+	"math"
 	"math/big"
 	"os"
 	"unicode"
@@ -565,6 +566,37 @@ func builtinUniChr(f *Frame, args Args, _ KWArgs) (*Object, *BaseException) {
 	return NewUnicodeFromRunes([]rune{rune(i)}).ToObject(), nil
 }
 
+func builtinZip(f *Frame, args Args, _ KWArgs) (*Object, *BaseException) {
+	seqs := [][]*Object{}
+	lenHint := math.MaxInt64
+	for _, arg := range args {
+		if raised := checkFunctionArgs(f, "zip", Args{arg}, ObjectType); raised != nil {
+			return nil, raised
+		}
+		seq, raised := seqNew(f, Args{arg})
+		if raised != nil {
+			return nil, raised
+		}
+		seqs = append(seqs, seq)
+		if len(seq) < lenHint {
+			lenHint = len(seq)
+		}
+	}
+	list := make([]*Object, lenHint)
+	for i := 0; i < lenHint; i++ {
+		tuple := make([]*Object, len(args))
+		for j := 0; j < len(args); j++ {
+			tuple[j] = seqs[j][i]
+		}
+		t := toTupleUnsafe(newObject(TupleType))
+		t.elems = tuple
+		list[i] = t.ToObject()
+	}
+	l := toListUnsafe(newObject(ListType))
+	l.elems = list
+	return l.ToObject(), nil
+}
+
 func init() {
 	builtinMap := map[string]*Object{
 		"__frame__":      newBuiltinFunction("__frame__", builtinFrame).ToObject(),
@@ -601,6 +633,7 @@ func init() {
 		"sorted":         newBuiltinFunction("sorted", builtinSorted).ToObject(),
 		"True":           True.ToObject(),
 		"unichr":         newBuiltinFunction("unichr", builtinUniChr).ToObject(),
+		"zip":            newBuiltinFunction("zip", builtinZip).ToObject(),
 	}
 	// Do type initialization in two phases so that we don't have to think
 	// about hard-to-understand cycles.
