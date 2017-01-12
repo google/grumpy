@@ -193,6 +193,26 @@ func builtinAbs(f *Frame, args Args, _ KWArgs) (*Object, *BaseException) {
 	return Abs(f, args[0])
 }
 
+func builtinMapFn(f *Frame, args Args, _ KWArgs) (*Object, *BaseException) {
+	if raised := checkFunctionArgs(f, "map", args, ObjectType, ObjectType); raised != nil {
+		return nil, raised
+	}
+	result := []*Object{}
+	pred := toFunctionUnsafe(args[0])
+	raised := seqForEach(f, args[1], func(k *Object) *BaseException {
+		ret, raised := pred.Call(f, Args{k}, KWArgs{})
+		if raised != nil {
+			return raised
+		}
+		result = append(result, ret)
+		return nil
+	})
+	if raised != nil {
+		return nil, raised
+	}
+	return NewList(result...).ToObject(), nil
+}
+
 func builtinAll(f *Frame, args Args, _ KWArgs) (*Object, *BaseException) {
 	if raised := checkFunctionArgs(f, "all", args, ObjectType); raised != nil {
 		return nil, raised
@@ -621,6 +641,7 @@ func init() {
 		"issubclass":     newBuiltinFunction("issubclass", builtinIsSubclass).ToObject(),
 		"iter":           newBuiltinFunction("iter", builtinIter).ToObject(),
 		"len":            newBuiltinFunction("len", builtinLen).ToObject(),
+		"map":            newBuiltinFunction("map", builtinMapFn).ToObject(),
 		"max":            newBuiltinFunction("max", builtinMax).ToObject(),
 		"min":            newBuiltinFunction("min", builtinMin).ToObject(),
 		"next":           newBuiltinFunction("next", builtinNext).ToObject(),
