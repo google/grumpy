@@ -408,6 +408,8 @@ func TestListSort(t *testing.T) {
 		{args: wrapArgs(newTestList(true, false)), want: newTestList(false, true).ToObject()},
 		{args: wrapArgs(newTestList(1, 2, 0, 3)), want: newTestRange(4).ToObject()},
 		{args: wrapArgs(newTestRange(100)), want: newTestRange(100).ToObject()},
+		{args: wrapArgs(1), wantExc: mustCreateException(TypeErrorType, "'TestListSort' requires a 'list' object but received a \"int\"")},
+		{args: wrapArgs(newTestList("foo", "bar"), 2), wantExc: mustCreateException(TypeErrorType, "'TestListSort' requires 1 arguments")},
 	}
 	for _, cas := range cases {
 		if err := runInvokeTestCase(fun, &cas); err != "" {
