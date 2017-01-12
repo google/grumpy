@@ -101,3 +101,133 @@ class bar(object):
 assert callable(bar)
 assert callable(bar())
 
+# cmp(x)
+
+# Test simple cases.
+assert cmp(1, 2) == -1
+assert cmp(3, 3) == 0
+assert cmp(5, 4) == 1
+
+class Lt(object):
+   def __init__(self, x):
+      self.lt_called = False
+      self.x = x
+
+   def __lt__(self, other):
+      self.lt_called = True
+      return self.x < other.x
+
+class Eq(object):
+   def __init__(self, x):
+      self.eq_called = False
+      self.x = x
+
+   def __eq__(self, other):
+     self.eq_called = True
+     return self.x == other.x
+
+class Gt(object):
+   def __init__(self, x):
+      self.gt_called = False
+      self.x = x
+
+   def __gt__(self, other):
+      self.gt_called = True
+      return self.x > other.x
+
+class RichCmp(Lt, Eq, Gt):
+   def __init__(self, x):
+      self.x = x
+
+class Cmp(object):
+   def __init__(self, x):
+      self.cmp_called = False
+      self.x = x
+
+   def __cmp__(self, other):
+      self.cmp_called = True
+      if self.x < other.x:
+         return -1
+      elif self.x > other.x:
+         return 1
+      else:
+         return 0
+
+class NoCmp(object):
+   def __init__(self, x):
+      self.x = x
+
+# Test 3-way compare in terms of rich compare.
+
+a, b = RichCmp(1), RichCmp(2)
+
+assert cmp(a, b) == -1
+assert a.lt_called
+
+a, b = RichCmp(3), RichCmp(3)
+
+assert cmp(a, b) == 0
+assert a.eq_called
+
+a, b = RichCmp(5), RichCmp(4)
+
+assert cmp(a, b) == 1
+assert a.gt_called
+
+# Test pure 3-way compare.
+
+a, b = Cmp(1), Cmp(2)
+
+assert cmp(a, b) == -1
+assert a.cmp_called
+
+a, b = Cmp(3), Cmp(3)
+
+assert cmp(a, b) == 0
+assert a.cmp_called
+
+a, b = Cmp(5), Cmp(4)
+
+assert cmp(a, b) == 1
+
+# Test mixed 3-way and rich compare.
+
+a, b = RichCmp(1), Cmp(2)
+assert cmp(a, b) == -1
+assert a.lt_called
+assert not b.cmp_called
+
+a, b = Cmp(1), RichCmp(2)
+assert cmp(a, b) == -1
+assert not a.cmp_called
+assert b.gt_called
+
+a, b = RichCmp(3), Cmp(3)
+assert cmp(a, b) == 0
+assert a.eq_called
+assert not b.cmp_called
+
+a, b = Cmp(3), RichCmp(3)
+assert cmp(a, b) == 0
+assert not a.cmp_called
+assert b.eq_called
+
+a, b = RichCmp(5), Cmp(4)
+assert cmp(a, b) == 1
+assert a.gt_called
+assert not b.cmp_called
+
+a, b = Cmp(5), RichCmp(4)
+assert cmp(a, b) == 1
+assert not a.cmp_called
+assert b.gt_called
+
+# Test compare on only one object.
+
+a, b = Cmp(1), NoCmp(2)
+assert cmp(a, b) == -1
+assert a.cmp_called
+
+a, b = NoCmp(1), Cmp(2)
+assert cmp(a, b) == -1
+assert b.cmp_called
