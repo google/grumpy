@@ -392,8 +392,8 @@ func TestListSetItem(t *testing.T) {
 }
 
 func TestListSort(t *testing.T) {
-	fun := newBuiltinFunction("TestListSetItem", func(f *Frame, args Args, _ KWArgs) (*Object, *BaseException) {
-		if raised := checkFunctionArgs(f, "TestListSetItem", args, ListType); raised != nil {
+	fun := newBuiltinFunction("TestListSort", func(f *Frame, args Args, _ KWArgs) (*Object, *BaseException) {
+		if raised := checkFunctionArgs(f, "TestListSort", args, ListType); raised != nil {
 			return nil, raised
 		}
 		l := toListUnsafe(args[0])
