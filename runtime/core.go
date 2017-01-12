@@ -65,7 +65,7 @@ func Assert(f *Frame, cond *Object, msg *Object) *BaseException {
 	return raised
 }
 
-// compare implements a 3-way comparison which returns:
+// Compare implements a 3-way comparison which returns:
 //
 //   -1 if v < w
 //    0 if v == w
