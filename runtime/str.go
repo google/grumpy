@@ -314,6 +314,15 @@ func strLen(f *Frame, o *Object) (*Object, *BaseException) {
 	return NewInt(len(toStrUnsafe(o).Value())).ToObject(), nil
 }
 
+func strLower(f *Frame, args Args, kwargs KWArgs) (*Object, *BaseException) {
+	expectedTypes := []*Type{StrType}
+	if raised := checkMethodArgs(f, "lower", args, expectedTypes...); raised != nil {
+		return nil, raised
+	}
+	s := toStrUnsafe(args[0]).Value()
+	return NewStr(strings.ToLower(s)).ToObject(), nil
+}
+
 func strLT(f *Frame, v, w *Object) (*Object, *BaseException) {
 	return strCompare(v, w, True, False, False), nil
 }
@@ -520,9 +529,12 @@ func initStrType(dict map[string]*Object) {
 	dict["decode"] = newBuiltinFunction("decode", strDecode).ToObject()
 	dict["endswith"] = newBuiltinFunction("endswith", strEndsWith).ToObject()
 	dict["join"] = newBuiltinFunction("join", strJoin).ToObject()
+	dict["lower"] = newBuiltinFunction("lower", strLower).ToObject()
 	dict["split"] = newBuiltinFunction("split", strSplit).ToObject()
 	dict["startswith"] = newBuiltinFunction("startswith", strStartsWith).ToObject()
 	dict["strip"] = newBuiltinFunction("strip", strStrip).ToObject()
+	dict["title"] = newBuiltinFunction("title", strTitle).ToObject()
+	dict["upper"] = newBuiltinFunction("upper", strUpper).ToObject()
 	StrType.slots.Add = &binaryOpSlot{strAdd}
 	StrType.slots.Contains = &binaryOpSlot{strContains}
 	StrType.slots.Eq = &binaryOpSlot{strEq}
@@ -729,6 +741,24 @@ func strStartsEndsWith(f *Frame, method string, args Args) (*Object, *BaseExcept
 		}
 	}
 	return False.ToObject(), nil
+}
+
+func strTitle(f *Frame, args Args, kwargs KWArgs) (*Object, *BaseException) {
+	expectedTypes := []*Type{StrType}
+	if raised := checkMethodArgs(f, "title", args, expectedTypes...); raised != nil {
+		return nil, raised
+	}
+	s := toStrUnsafe(args[0]).Value()
+	return NewStr(strings.Title(strings.ToLower(s))).ToObject(), nil
+}
+
+func strUpper(f *Frame, args Args, kwargs KWArgs) (*Object, *BaseException) {
+	expectedTypes := []*Type{StrType}
+	if raised := checkMethodArgs(f, "upper", args, expectedTypes...); raised != nil {
+		return nil, raised
+	}
+	s := toStrUnsafe(args[0]).Value()
+	return NewStr(strings.ToUpper(s)).ToObject(), nil
 }
 
 func init() {
