@@ -163,7 +163,6 @@ golint: $(GOLINT_BIN) $(PYLINT_BIN)
 	@$(GOLINT_BIN) -set_exit_status runtime
 
 $(PYLINT_BIN):
-	cat /usr/lib/python2.7/distutils/distutils.cfg
 	cat $HOME/.pydistutils.cfg
 	@PYTHONUSERBASE=$(ROOT_DIR)/build pip install --user pylint
 
