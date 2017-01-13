@@ -167,6 +167,9 @@ $(PYLINT_BIN):
 	@PYTHONUSERBASE=$(ROOT_DIR)/build pip install --user pylint
 
 pylint: $(PYLINT_BIN)
+	which python
+	head $(PYLINT_BIN)
+	python -c 'import sys; print sys.prefix'
 	@$(PYLINT_BIN) compiler/*.py $(addprefix tools/,benchcmp coverparse diffrange grumpc grumprun)
 
 lint: golint pylint
