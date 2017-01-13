@@ -87,16 +87,19 @@ assert not callable([1, 2, 3])
 assert not callable((1, 2, 3))
 assert not callable({'foo': 1, 'bar': 2})
 
-assert callable(lambda x: x+1)
+assert callable(lambda x: x + 1)
+
 
 def foo(x):
-    pass
+  pass
 
 assert callable(foo)
 
+
 class bar(object):
-    def __call__(self, *args, **kwargs):
-        pass
+
+  def __call__(self, *args, **kwargs):
+    pass
 
 assert callable(bar)
 assert callable(bar())
@@ -108,54 +111,66 @@ assert cmp(1, 2) == -1
 assert cmp(3, 3) == 0
 assert cmp(5, 4) == 1
 
-class Lt(object):
-   def __init__(self, x):
-      self.lt_called = False
-      self.x = x
 
-   def __lt__(self, other):
-      self.lt_called = True
-      return self.x < other.x
+class Lt(object):
+
+  def __init__(self, x):
+    self.lt_called = False
+    self.x = x
+
+  def __lt__(self, other):
+    self.lt_called = True
+    return self.x < other.x
+
 
 class Eq(object):
-   def __init__(self, x):
-      self.eq_called = False
-      self.x = x
 
-   def __eq__(self, other):
-     self.eq_called = True
-     return self.x == other.x
+  def __init__(self, x):
+    self.eq_called = False
+    self.x = x
+
+  def __eq__(self, other):
+    self.eq_called = True
+    return self.x == other.x
+
 
 class Gt(object):
-   def __init__(self, x):
-      self.gt_called = False
-      self.x = x
 
-   def __gt__(self, other):
-      self.gt_called = True
-      return self.x > other.x
+  def __init__(self, x):
+    self.gt_called = False
+    self.x = x
+
+  def __gt__(self, other):
+    self.gt_called = True
+    return self.x > other.x
+
 
 class RichCmp(Lt, Eq, Gt):
-   def __init__(self, x):
-      self.x = x
+
+  def __init__(self, x):
+    self.x = x
+
 
 class Cmp(object):
-   def __init__(self, x):
-      self.cmp_called = False
-      self.x = x
 
-   def __cmp__(self, other):
-      self.cmp_called = True
-      if self.x < other.x:
-         return -1
-      elif self.x > other.x:
-         return 1
-      else:
-         return 0
+  def __init__(self, x):
+    self.cmp_called = False
+    self.x = x
+
+  def __cmp__(self, other):
+    self.cmp_called = True
+    if self.x < other.x:
+      return -1
+    elif self.x > other.x:
+      return 1
+    else:
+      return 0
+
 
 class NoCmp(object):
-   def __init__(self, x):
-      self.x = x
+
+  def __init__(self, x):
+    self.x = x
 
 # Test 3-way compare in terms of rich compare.
 
@@ -231,3 +246,11 @@ assert a.cmp_called
 a, b = NoCmp(1), Cmp(2)
 assert cmp(a, b) == -1
 assert b.cmp_called
+
+# Test sorted
+
+assert sorted([3, 2, 4, 1]) == [1, 2, 3, 4]
+assert sorted([]) == []
+assert sorted(["a", "e", "c", "b"]) == ["a", "b", "c", "e"]
+assert sorted((3, 1, 5, 2, 4)) == [1, 2, 3, 4, 5]
+assert sorted({"foo": 1, "bar": 2}) == ["bar", "foo"]

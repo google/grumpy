@@ -541,6 +541,19 @@ func builtinRepr(f *Frame, args Args, kwargs KWArgs) (*Object, *BaseException) {
 	return s.ToObject(), nil
 }
 
+func builtinSorted(f *Frame, args Args, _ KWArgs) (*Object, *BaseException) {
+	// TODO: Support (cmp=None, key=None, reverse=False)
+	if raised := checkFunctionArgs(f, "sorted", args, ObjectType); raised != nil {
+		return nil, raised
+	}
+	result, raised := ListType.Call(f, Args{args[0]}, nil)
+	if raised != nil {
+		return nil, raised
+	}
+	toListUnsafe(result).Sort(f)
+	return result, nil
+}
+
 func builtinUniChr(f *Frame, args Args, _ KWArgs) (*Object, *BaseException) {
 	if raised := checkFunctionArgs(f, "unichr", args, IntType); raised != nil {
 		return nil, raised
@@ -585,6 +598,7 @@ func init() {
 		"print":          newBuiltinFunction("print", builtinPrint).ToObject(),
 		"range":          newBuiltinFunction("range", builtinRange).ToObject(),
 		"repr":           newBuiltinFunction("repr", builtinRepr).ToObject(),
+		"sorted":         newBuiltinFunction("sorted", builtinSorted).ToObject(),
 		"True":           True.ToObject(),
 		"unichr":         newBuiltinFunction("unichr", builtinUniChr).ToObject(),
 	}
