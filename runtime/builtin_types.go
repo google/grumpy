@@ -567,34 +567,41 @@ func builtinUniChr(f *Frame, args Args, _ KWArgs) (*Object, *BaseException) {
 }
 
 func builtinZip(f *Frame, args Args, _ KWArgs) (*Object, *BaseException) {
-	seqs := [][]*Object{}
-	lenHint := math.MaxInt64
-	for _, arg := range args {
-		if raised := checkFunctionArgs(f, "zip", Args{arg}, ObjectType); raised != nil {
-			return nil, raised
-		}
-		seq, raised := seqNew(f, Args{arg})
+	argc := len(args)
+	maxLen := math.MaxInt64
+	list := [][]*Object{}
+	for i := 0; i < argc; i++ {
+		k := 0
+		iter, raised := Iter(f, args[i])
 		if raised != nil {
 			return nil, raised
 		}
-		seqs = append(seqs, seq)
-		if len(seq) < lenHint {
-			lenHint = len(seq)
+		item, raised := Next(f, iter)
+		for ; raised == nil; item, raised = Next(f, iter) {
+			if len(list) <= k {
+				tuple := make([]*Object, argc)
+				list = append(list, tuple)
+			}
+			list[k][i] = item
+			k++
+		}
+		if !raised.isInstance(StopIterationType) {
+			return nil, raised
+		}
+		if k < maxLen {
+			maxLen = k
 		}
 	}
-	list := make([]*Object, lenHint)
-	for i := 0; i < lenHint; i++ {
-		tuple := make([]*Object, len(args))
-		for j := 0; j < len(args); j++ {
-			tuple[j] = seqs[j][i]
-		}
-		t := toTupleUnsafe(newObject(TupleType))
-		t.elems = tuple
-		list[i] = t.ToObject()
+
+	if len(list) > maxLen {
+		list = list[:maxLen]
 	}
-	l := toListUnsafe(newObject(ListType))
-	l.elems = list
-	return l.ToObject(), nil
+
+	results := make([]*Object, len(list))
+	for i := range list {
+		results[i] = NewTuple(list[i]...).ToObject()
+	}
+	return NewList(results...).ToObject(), nil
 }
 
 func init() {
