@@ -270,9 +270,9 @@ class Random(_random.GrumpyRandom):
 
 ## -------------------- uniform distribution -------------------
 
-    # def uniform(self, a, b):
-    #     "Get a random number in the range [a, b) or [a, b] depending on rounding."
-    #     return a + (b-a) * self.random()
+    def uniform(self, a, b):
+        "Get a random number in the range [a, b) or [a, b] depending on rounding."
+        return a + (b-a) * self.random()
 
 ## -------------------- triangular --------------------
 
@@ -622,22 +622,26 @@ randrange = _inst.randrange
 getrandbits = _inst.getrandbits
 getstate = _inst.getstate
 setstate = _inst.setstate
+uniform = _inst.uniform
 
 
-shuffle = _random._notimplemented
-choices = _random._notimplemented
-sample = _random._notimplemented
-uniform = _random._notimplemented
-triangular = _random._notimplemented
-normalvariate = _random._notimplemented
-lognormvariate = _random._notimplemented
-expovariate = _random._notimplemented
-vonmisesvariate = _random._notimplemented
-gammavariate = _random._notimplemented
-gauss = _random._notimplemented
-betavariate = _random._notimplemented
-paretovariate = _random._notimplemented
-weibullvariate = _random._notimplemented
+def _notimplemented(*args, **kwargs):
+  raise NotImplementedError
+
+
+shuffle = _notimplemented
+choices = _notimplemented
+sample = _notimplemented
+triangular = _notimplemented
+normalvariate = _notimplemented
+lognormvariate = _notimplemented
+expovariate = _notimplemented
+vonmisesvariate = _notimplemented
+gammavariate = _notimplemented
+gauss = _notimplemented
+betavariate = _notimplemented
+paretovariate = _notimplemented
+weibullvariate = _notimplemented
 
 
 if __name__ == '__main__':

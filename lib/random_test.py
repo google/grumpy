@@ -62,6 +62,13 @@ def TestRandom():
   assert not a == b == c
 
 
+def TestRandomUniform():
+  for _ in range(10):
+    a = random.uniform(0, 1000)
+    assert isinstance(a, float)
+    assert 0 <= a <= 1000
+
+
 def TestRandomInt():
   for _ in range(10):
     a = random.randint(0, 1000000)

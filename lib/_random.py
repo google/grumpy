@@ -23,12 +23,11 @@ BPF = 53  # Number of bits in a float
 RECIP_BPF = Pow(2, -BPF)
 
 
-# TODO
-# The random byte generator currently uses math.rand.Uint32 to generate 4
-# bytes at a time. We should use math.rand.Read to generate the correct
+# TODO: The random byte generator currently uses math.rand.Uint32 to generate
+# 4 bytes at a time. We should use math.rand.Read to generate the correct
 # number of bytes needed. This can be changed once there is a way to
 # allocate the needed []byte for Read from python and cast it to a list of
-# integers once it is filled. 
+# integers once it is filled.
 def _gorandom(nbytes):
   byte_arr = []
   while len(byte_arr) < nbytes:
@@ -39,10 +38,6 @@ def _gorandom(nbytes):
     byte_arr.append(i >> 24 & 0xff)
   byte_arr = byte_arr[0:nbytes]
   return byte_arr
-
-
-def _notimplemented(*args, **kwargs):
-  raise NotImplementedError
 
 
 # This is a slow replacement for int.bit_length.
