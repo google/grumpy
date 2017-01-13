@@ -336,10 +336,21 @@ func listSetItem(f *Frame, o, key, value *Object) *BaseException {
 	return f.RaiseType(TypeErrorType, fmt.Sprintf("list indices must be integers, not %s", key.Type().Name()))
 }
 
+func listSort(f *Frame, args Args, _ KWArgs) (*Object, *BaseException) {
+	// TODO: Support (cmp=None, key=None, reverse=False)
+	if raised := checkMethodArgs(f, "sort", args, ListType); raised != nil {
+		return nil, raised
+	}
+	l := toListUnsafe(args[0])
+	l.Sort(f)
+	return None, nil
+}
+
 func initListType(dict map[string]*Object) {
 	dict["append"] = newBuiltinFunction("append", listAppend).ToObject()
 	dict["insert"] = newBuiltinFunction("insert", listInsert).ToObject()
 	dict["reverse"] = newBuiltinFunction("reverse", listReverse).ToObject()
+	dict["sort"] = newBuiltinFunction("sort", listSort).ToObject()
 	ListType.slots.Add = &binaryOpSlot{listAdd}
 	ListType.slots.Contains = &binaryOpSlot{listContains}
 	ListType.slots.Eq = &binaryOpSlot{listEq}
