@@ -163,13 +163,12 @@ golint: $(GOLINT_BIN) $(PYLINT_BIN)
 	@$(GOLINT_BIN) -set_exit_status runtime
 
 $(PYLINT_BIN):
-	cat $HOME/.pydistutils.cfg
-	@PYTHONUSERBASE=$(ROOT_DIR)/build pip install --user pylint
-
-pylint: $(PYLINT_BIN)
 	which python
 	head $(PYLINT_BIN)
 	python -c 'import sys; print sys.prefix'
+	@PYTHONUSERBASE=$(ROOT_DIR)/build pip install --user pylint
+
+pylint: $(PYLINT_BIN)
 	@$(PYLINT_BIN) compiler/*.py $(addprefix tools/,benchcmp coverparse diffrange grumpc grumprun)
 
 lint: golint pylint
