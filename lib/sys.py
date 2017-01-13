@@ -27,10 +27,12 @@ maxint = MaxInt
 modules = SysModules
 py3kwarning = False
 warnoptions = []
+# TODO: Support actual byteorder
+byteorder = 'little'
 
-stdin  =  NewFileFromFD(Stdin.Fd())
-stdout =  NewFileFromFD(Stdout.Fd())
-stderr =  NewFileFromFD(Stderr.Fd())
+stdin = NewFileFromFD(Stdin.Fd())
+stdout = NewFileFromFD(Stdout.Fd())
+stderr = NewFileFromFD(Stderr.Fd())
 
 
 class _Flags(object):
