@@ -163,7 +163,7 @@ golint: $(GOLINT_BIN) $(PYLINT_BIN)
 	@$(GOLINT_BIN) -set_exit_status runtime
 
 $(PYLINT_BIN):
-	@PYTHONUSERBASE=$(ROOT_DIR)/build pip install pylint
+	@PYTHONUSERBASE=$(ROOT_DIR)/build pip install --user pylint
 
 pylint: $(PYLINT_BIN)
 	@$(PYLINT_BIN) compiler/*.py $(addprefix tools/,benchcmp coverparse diffrange grumpc grumprun)
