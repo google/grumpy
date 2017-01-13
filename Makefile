@@ -24,7 +24,7 @@ PKG_DIR := build/pkg/$(GOOS)_$(GOARCH)
 PYTHON ?= python
 PYTHON_BIN := $(shell which $(PYTHON))
 PYTHON_VER := $(word 2,$(shell $(PYTHON) -V 2>&1))
-PY_DIR := build/lib/python/site-packages
+PY_DIR := build/lib/python2.7/site-packages
 
 ifeq ($(filter 2.7.%,$(PYTHON_VER)),)
   $(error unsupported Python version $(PYTHON_VER), Grumpy only supports 2.7.x. To use a different python binary such as python2, run: 'make PYTHON=python2 ...')
@@ -163,6 +163,8 @@ golint: $(GOLINT_BIN) $(PYLINT_BIN)
 	@$(GOLINT_BIN) -set_exit_status runtime
 
 $(PYLINT_BIN):
+	cat /usr/lib/python2.7/distutils/distutils.cfg
+	cat $HOME/.pydistutils.cfg
 	@PYTHONUSERBASE=$(ROOT_DIR)/build pip install --user pylint
 
 pylint: $(PYLINT_BIN)
