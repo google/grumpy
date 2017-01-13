@@ -542,10 +542,11 @@ func builtinRepr(f *Frame, args Args, kwargs KWArgs) (*Object, *BaseException) {
 }
 
 func builtinSorted(f *Frame, args Args, _ KWArgs) (*Object, *BaseException) {
+	//TODO: Support (cmp=None, key=None, reverse=False)
 	if raised := checkFunctionArgs(f, "sorted", args, ObjectType); raised != nil {
 		return nil, raised
 	}
-	result, raised := listNew(f, ListType, Args{args[0]}, KWArgs{})
+	result, raised := ListType.Call(f, Args{args[0]}, nil)
 	if raised != nil {
 		return nil, raised
 	}

@@ -233,6 +233,8 @@ func TestBuiltinFuncs(t *testing.T) {
 		{f: "sorted", args: wrapArgs(newTestList(true, false)), want: newTestList(false, true).ToObject()},
 		{f: "sorted", args: wrapArgs(newTestList(1, 2, 0, 3)), want: newTestRange(4).ToObject()},
 		{f: "sorted", args: wrapArgs(newTestRange(100)), want: newTestRange(100).ToObject()},
+		{f: "sorted", args: wrapArgs(newTestTuple(1, 2, 0, 3)), want: newTestRange(4).ToObject()},
+		{f: "sorted", args: wrapArgs(newTestDict("foo", 1, "bar", 2)), want: newTestList("bar", "foo").ToObject()},
 		{f: "sorted", args: wrapArgs(1), wantExc: mustCreateException(TypeErrorType, "'int' object is not iterable")},
 		{f: "sorted", args: wrapArgs(newTestList("foo", "bar"), 2), wantExc: mustCreateException(TypeErrorType, "'sorted' requires 1 arguments")},
 		{f: "unichr", args: wrapArgs(0), want: NewUnicode("\x00").ToObject()},
