@@ -267,3 +267,17 @@ assert [pair for pair in zip('abc', 'def')] == zip('abc', 'def')
 assert zip({'b': 1, 'a': 2}) == [('a',), ('b',)]
 assert zip(range(5)) == [(0,), (1,), (2,), (3,), (4,)]
 assert zip(xrange(5)) == [(0,), (1,), (2,), (3,), (4,)]
+assert zip([1, 2, 3], [1], [4, 5, 6]) == [(1, 1, 4)]
+assert zip([1], [1, 2, 3], [4, 5, 6]) == [(1, 1, 4)]
+assert zip([4, 5, 6], [1], [1, 2, 3]) == [(4, 1, 1)]
+assert zip([1], [1, 2, 3], [4]) == [(1, 1, 4)]
+assert zip([1, 2], [1, 2, 3], [4]) == [(1, 1, 4)]
+assert zip([1, 2, 3, 4], [1, 2, 3], [4]) == [(1, 1, 4)]
+assert zip([1], [1, 2], [4, 2, 4]) == [(1, 1, 4)]
+assert zip([1, 2, 3], [1, 2], [4]) == [(1, 1, 4)]
+assert zip([1, 2, 3], [1, 2], [4], []) == []
+assert zip([], [1], [1, 2], [1, 2, 3]) == []
+try:
+  zip([1, 2, 3], [1, 2], [4], None)
+except TypeError as e:
+  assert str(e) == "'NoneType' object is not iterable"
