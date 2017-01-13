@@ -54,8 +54,8 @@ RUNNER = $(RUNNER_BIN) $(COMPILER) $(RUNTIME) $(STDLIB)
 
 GRUMPY_STDLIB_SRCS := $(shell find lib -name '*.py')
 GRUMPY_STDLIB_PACKAGES := $(foreach x,$(GRUMPY_STDLIB_SRCS),$(patsubst lib/%.py,%,$(patsubst lib/%/__init__.py,%,$(x))))
-THIRD_PARTY_STDLIB_SRCS := $(wildcard third_party/stdlib/*.py)
-THIRD_PARTY_STDLIB_PACKAGES := $(foreach x,$(THIRD_PARTY_STDLIB_SRCS),$(patsubst third_party/stdlib/%.py,%,$(x)))
+THIRD_PARTY_STDLIB_SRCS := $(wildcard third_party/stdlib/*.py) $(wildcard third_party/pypy/*.py)
+THIRD_PARTY_STDLIB_PACKAGES := $(foreach x,$(THIRD_PARTY_STDLIB_SRCS),$(patsubst third_party/stdlib/%.py,%,$(patsubst third_party/pypy/%.py,%,$(x))))
 STDLIB_SRCS := $(GRUMPY_STDLIB_SRCS) $(THIRD_PARTY_STDLIB_SRCS)
 STDLIB_PACKAGES := $(GRUMPY_STDLIB_PACKAGES) $(THIRD_PARTY_STDLIB_PACKAGES)
 STDLIB := $(patsubst %,$(PKG_DIR)/grumpy/lib/%.a,$(STDLIB_PACKAGES))
@@ -188,7 +188,7 @@ build/src/grumpy/lib/$(2)/module.go: $(1) $(COMPILER)
 
 build/src/grumpy/lib/$(2)/module.d: $(1)
 	@mkdir -p build/src/grumpy/lib/$(2)
-	@$(PYTHON) -m modulefinder -p $(ROOT_DIR)/lib:$(ROOT_DIR)/third_party/stdlib $$< | awk '{if (($$$$1 == "m" || $$$$1 == "P") && $$$$2 != "__main__" && $$$$2 != "$(2)") {gsub(/\./, "/", $$$$2); print "$(PKG_DIR)/grumpy/lib/$(2).a: $(PKG_DIR)/grumpy/lib/" $$$$2 ".a"}}' > $$@
+	@$(PYTHON) -m modulefinder -p $(ROOT_DIR)/lib:$(ROOT_DIR)/third_party/stdlib:$(ROOT_DIR)/third_party/pypy $$< | awk '{if (($$$$1 == "m" || $$$$1 == "P") && $$$$2 != "__main__" && $$$$2 != "$(2)") {gsub(/\./, "/", $$$$2); print "$(PKG_DIR)/grumpy/lib/$(2).a: $(PKG_DIR)/grumpy/lib/" $$$$2 ".a"}}' > $$@
 
 $(PKG_DIR)/grumpy/lib/$(2).a: build/src/grumpy/lib/$(2)/module.go $(RUNTIME)
 	@mkdir -p $(PKG_DIR)/grumpy/lib/$(dir $(2))
