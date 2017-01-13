@@ -337,6 +337,7 @@ func listSetItem(f *Frame, o, key, value *Object) *BaseException {
 }
 
 func listSort(f *Frame, args Args, _ KWArgs) (*Object, *BaseException) {
+	// TODO: Support (cmp=None, key=None, reverse=False)
 	if raised := checkMethodArgs(f, "sort", args, ListType); raised != nil {
 		return nil, raised
 	}

@@ -393,14 +393,10 @@ func TestListSetItem(t *testing.T) {
 
 func TestListSort(t *testing.T) {
 	fun := newBuiltinFunction("TestListSort", func(f *Frame, args Args, _ KWArgs) (*Object, *BaseException) {
-		if raised := checkFunctionArgs(f, "TestListSort", args, ListType); raised != nil {
+		if _, raised := listSort(f, args, KWArgs{}); raised != nil {
 			return nil, raised
 		}
-		l := toListUnsafe(args[0])
-		if raised := l.Sort(f); raised != nil {
-			return nil, raised
-		}
-		return l.ToObject(), nil
+		return args[0], nil
 	}).ToObject()
 	cases := []invokeTestCase{
 		{args: wrapArgs(NewList()), want: NewList().ToObject()},
@@ -408,6 +404,8 @@ func TestListSort(t *testing.T) {
 		{args: wrapArgs(newTestList(true, false)), want: newTestList(false, true).ToObject()},
 		{args: wrapArgs(newTestList(1, 2, 0, 3)), want: newTestRange(4).ToObject()},
 		{args: wrapArgs(newTestRange(100)), want: newTestRange(100).ToObject()},
+		{args: wrapArgs(1), wantExc: mustCreateException(TypeErrorType, "'sort' requires a 'list' object but received a 'int'")},
+		{args: wrapArgs(NewList(), 1), wantExc: mustCreateException(TypeErrorType, "'sort' of 'list' requires 1 arguments")},
 	}
 	for _, cas := range cases {
 		if err := runInvokeTestCase(fun, &cas); err != "" {
