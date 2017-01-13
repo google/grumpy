@@ -542,7 +542,7 @@ func builtinRepr(f *Frame, args Args, kwargs KWArgs) (*Object, *BaseException) {
 }
 
 func builtinSorted(f *Frame, args Args, _ KWArgs) (*Object, *BaseException) {
-	//TODO: Support (cmp=None, key=None, reverse=False)
+	// TODO: Support (cmp=None, key=None, reverse=False)
 	if raised := checkFunctionArgs(f, "sorted", args, ObjectType); raised != nil {
 		return nil, raised
 	}
