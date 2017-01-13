@@ -571,25 +571,25 @@ func builtinZip(f *Frame, args Args, _ KWArgs) (*Object, *BaseException) {
 	maxLen := math.MaxInt64
 	list := [][]*Object{}
 	for i := 0; i < argc; i++ {
-		k := 0
+		tupleIndex := 0
 		iter, raised := Iter(f, args[i])
 		if raised != nil {
 			return nil, raised
 		}
 		item, raised := Next(f, iter)
 		for ; raised == nil; item, raised = Next(f, iter) {
-			if len(list) <= k {
+			if len(list) <= tupleIndex {
 				tuple := make([]*Object, argc)
 				list = append(list, tuple)
 			}
-			list[k][i] = item
-			k++
+			list[tupleIndex][i] = item
+			tupleIndex++
 		}
 		if !raised.isInstance(StopIterationType) {
 			return nil, raised
 		}
-		if k < maxLen {
-			maxLen = k
+		if tupleIndex < maxLen {
+			maxLen = tupleIndex
 		}
 	}
 
