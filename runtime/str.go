@@ -616,7 +616,8 @@ func strInterpolate(f *Frame, format string, values *Tuple) (*Object, *BaseExcep
 			} else {
 				return nil, f.RaiseType(TypeErrorType, fmt.Sprintf("float argument required, not %s", o.typ.Name()))
 			}
-		case "d":
+		case "d", "x", "X":
+			var val string
 			o := values.elems[valueIndex]
 			if o.typ.slots.Int == nil {
 				return nil, f.RaiseType(TypeErrorType, "%d format: a number is required, not "+o.typ.Name())
@@ -625,11 +626,19 @@ func strInterpolate(f *Frame, format string, values *Tuple) (*Object, *BaseExcep
 			if raised != nil {
 				return nil, raised
 			}
-			s, raised := ToStr(f, i)
-			if raised != nil {
-				return nil, raised
+			if matches[7] == "d" {
+				s, raised := ToStr(f, i)
+				if raised != nil {
+					return nil, raised
+				}
+				val = s.Value()
+			} else {
+				val = strconv.FormatInt(int64(toIntUnsafe(i).Value()), 16)
+				if matches[7] == "X" {
+					val = strings.ToUpper(val)
+				}
 			}
-			buf.WriteString(s.Value())
+			buf.WriteString(val)
 			valueIndex++
 		case "%":
 			buf.WriteString("%")
