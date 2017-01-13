@@ -87,7 +87,7 @@ def pack_int(number, size, le):
     x = x >> 8
   if le == 'big':
     res.reverse()
-  return str(res)
+  return ''.join(chr(x) for x in res)
 
 
 def pack_signed_int(number, size, le):
@@ -127,7 +127,7 @@ def pack_float(x, size, le):
     result.append((unsigned >> (i * 8)) & 0xFF)
   if le == "big":
     result.reverse()
-  return str(result)
+  return ''.join(chr(x) for x in result)
 
 
 def unpack_float(data, index, size, le):
