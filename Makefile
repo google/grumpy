@@ -162,10 +162,8 @@ $(GOLINT_BIN):
 golint: $(GOLINT_BIN) $(PYLINT_BIN)
 	@$(GOLINT_BIN) -set_exit_status runtime
 
-# Old versions of pip don't support the --prefix param so specify the bin dir
-# (--install-scripts) and the Python dir (--target) separately.
 $(PYLINT_BIN):
-	@pip install --install-option=--install-scripts='$(ROOT_DIR)/build/bin' --target '$(PY_DIR)' pylint
+	@PYTHONUSERBASE=$(ROOT_DIR)/build pip install pylint
 
 pylint: $(PYLINT_BIN)
 	@$(PYLINT_BIN) compiler/*.py $(addprefix tools/,benchcmp coverparse diffrange grumpc grumprun)
