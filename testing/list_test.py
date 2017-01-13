@@ -12,10 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-l0_3 = [0, 1, 2, 3]
-l0_3_bis = list(l0_3)
-assert l0_3 == l0_3_bis
-assert l0_3 is not l0_3_bis
+a = [0, 1, 2, 3]
+b = list(a)
+assert a == b
+assert a is not b
 assert list(()) == []
 assert list((0, 1, 2, 3)) == [0, 1, 2, 3]
 assert list('') == []
