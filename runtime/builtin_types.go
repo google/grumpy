@@ -200,7 +200,24 @@ func builtinMapFn(f *Frame, args Args, _ KWArgs) (*Object, *BaseException) {
 	}
 	pred := toFunctionUnsafe(args[0])
 	result := []*Object{}
-	if argc >= 2 {
+	if argc == 2 {
+		raised := seqForEach(f, args[1], func(k *Object) *BaseException {
+			if pred.Type() == NoneType {
+				result = append(result, k)
+			} else {
+				ret, raised := pred.Call(f, Args{k}, nil)
+				if raised != nil {
+					return raised
+				}
+				result = append(result, ret)
+			}
+			return nil
+		})
+		if raised != nil {
+			return nil, raised
+		}
+	}
+	if argc > 2 {
 		args = args[1:]
 		argc = len(args)
 		maxLen := 0
