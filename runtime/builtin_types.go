@@ -589,11 +589,11 @@ Outer:
 				if raised.isInstance(StopIterationType) {
 					break Outer
 				}
+				f.RestoreExc(nil, nil)
 				return nil, raised
 			}
 			elems[i] = elem
 		}
-		// NOTE: append does the capacity doubling logic as needed
 		result = append(result, NewTuple(elems...).ToObject())
 	}
 	return NewList(result...).ToObject(), nil
