@@ -194,21 +194,62 @@ func builtinAbs(f *Frame, args Args, _ KWArgs) (*Object, *BaseException) {
 }
 
 func builtinMapFn(f *Frame, args Args, _ KWArgs) (*Object, *BaseException) {
-	if raised := checkFunctionArgs(f, "map", args, ObjectType, ObjectType); raised != nil {
-		return nil, raised
+	argc := len(args)
+	if argc < 2 {
+		return nil, f.RaiseType(TypeErrorType, "map() requires at least two args")
 	}
-	result := []*Object{}
 	pred := toFunctionUnsafe(args[0])
-	raised := seqForEach(f, args[1], func(k *Object) *BaseException {
-		ret, raised := pred.Call(f, Args{k}, KWArgs{})
-		if raised != nil {
-			return raised
+	result := []*Object{}
+	if argc >= 2 {
+		args = args[1:]
+		argc = len(args)
+		maxLen := 0
+		list := make([]*Object, argc*2)
+		for i := 0; i < argc; i++ {
+			tupleIndex := 0
+			iter, raised := Iter(f, args[i])
+			if raised != nil {
+				return nil, raised
+			}
+			item, raised := Next(f, iter)
+			for ; raised == nil; item, raised = Next(f, iter) {
+				if cap(list) <= tupleIndex*argc {
+					// Growth slice by doubling
+					newSlice := make([]*Object, 2*cap(list), 2*cap(list))
+					copy(newSlice, list)
+					list = newSlice
+				}
+				list[tupleIndex*argc+i] = item
+				tupleIndex++
+			}
+			if !raised.isInstance(StopIterationType) {
+				return nil, raised
+			}
+			if tupleIndex > maxLen {
+				maxLen = tupleIndex
+			}
 		}
-		result = append(result, ret)
-		return nil
-	})
-	if raised != nil {
-		return nil, raised
+
+		list = list[:argc*maxLen]
+		// Replace nil with None
+		if len(list) > 1 {
+			lastIndex := len(list) - 1
+			for list[lastIndex] == nil {
+				list[lastIndex] = None
+				lastIndex--
+			}
+		}
+		for i := 0; i < maxLen; i++ {
+			if pred.Type() == NoneType {
+				result = append(result, list[i*argc:i*argc+argc]...)
+			} else {
+				ret, raised := pred.Call(f, Args(list[i*argc:i*argc+argc]), nil)
+				if raised != nil {
+					return nil, raised
+				}
+				result = append(result, ret)
+			}
+		}
 	}
 	return NewList(result...).ToObject(), nil
 }

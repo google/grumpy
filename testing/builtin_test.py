@@ -281,3 +281,23 @@ try:
   zip([1, 2, 3], [1, 2], [4], None)
 except TypeError as e:
   assert str(e) == "'NoneType' object is not iterable"
+
+# Test map
+
+assert map(str, []) == []
+assert map(str, [1, 2, 3]) == ["1", "2", "3"]
+assert map(str, (1, 2, 3)) == ["1", "2", "3"]
+# assert map(str, (1.0, 2.0, 3.0)) == ["1", "2", "3"]
+assert map(str, range(3)) == ["0", "1", "2"]
+assert map(str, xrange(3)) == ["0", "1", "2"]
+assert map(int, ["1", "2", "3"]) == [1, 2, 3]
+assert map(int, "123") == [1, 2, 3]
+assert map(int, {"1": "a", "2": "b"}) == [1, 2]
+assert map(int, {1: "a", 2: "b"}) == [1, 2]
+assert map(lambda a, b: (str(a), float(b or 0) + 0.1),
+           [1, 2, 3], [1, 2]) == [('1', 1.1), ('2', 2.1), ('3', 0.1)]
+assert map(None, [1, 2, 3]) == [1, 2, 3]
+a = [1, 2, 3]
+assert map(None, a) == a
+assert map(None, a) is not a
+assert map(None, (1, 2, 3)) == [1, 2, 3]
