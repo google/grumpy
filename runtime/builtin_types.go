@@ -16,7 +16,6 @@ package grumpy
 
 import (
 	"fmt"
-	"math"
 	"math/big"
 	"os"
 	"unicode"
@@ -571,38 +570,33 @@ func builtinZip(f *Frame, args Args, _ KWArgs) (*Object, *BaseException) {
 	if argc == 0 {
 		return NewList().ToObject(), nil
 	}
-	maxLen := math.MaxInt64
-	list := make([]*Object, argc*2)
-	for i := 0; i < argc; i++ {
-		tupleIndex := 0
-		iter, raised := Iter(f, args[i])
+	result := make([]*Object, 0, 2)
+	iters := make([]*Object, argc)
+	for i, arg := range args {
+		iter, raised := Iter(f, arg)
 		if raised != nil {
 			return nil, raised
 		}
-		item, raised := Next(f, iter)
-		for ; raised == nil; item, raised = Next(f, iter) {
-			if cap(list) <= tupleIndex*argc {
-				// Growth slice by doubling
-				newSlice := make([]*Object, 2*cap(list), 2*cap(list))
-				copy(newSlice, list)
-				list = newSlice
-			}
-			list[tupleIndex*argc+i] = item
-			tupleIndex++
-		}
-		if !raised.isInstance(StopIterationType) {
-			return nil, raised
-		}
-		if tupleIndex < maxLen {
-			maxLen = tupleIndex
-		}
+		iters[i] = iter
 	}
 
-	results := make([]*Object, maxLen)
-	for i := 0; i < maxLen; i++ {
-		results[i] = NewTuple(list[i*argc : i*argc+argc]...).ToObject()
+Outer:
+	for {
+		elems := make([]*Object, argc)
+		for i, iter := range iters {
+			elem, raised := Next(f, iter)
+			if raised != nil {
+				if raised.isInstance(StopIterationType) {
+					break Outer
+				}
+				return nil, raised
+			}
+			elems[i] = elem
+		}
+		// NOTE: append does the capacity doubling logic as needed
+		result = append(result, NewTuple(elems...).ToObject())
 	}
-	return NewList(results...).ToObject(), nil
+	return NewList(result...).ToObject(), nil
 }
 
 func init() {
