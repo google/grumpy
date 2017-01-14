@@ -193,49 +193,6 @@ func builtinAbs(f *Frame, args Args, _ KWArgs) (*Object, *BaseException) {
 	return Abs(f, args[0])
 }
 
-func zipLongestImpl(f *Frame, args Args) ([]*Object, *BaseException) {
-	argc := len(args)
-	result := make([]*Object, 0, 2)
-	iters := make([]*Object, argc)
-	for i, arg := range args {
-		iter, raised := Iter(f, arg)
-		if raised != nil {
-			return nil, raised
-		}
-		iters[i] = iter
-	}
-
-	for {
-		noItems := true
-		elems := make([]*Object, argc)
-		for i, iter := range iters {
-			elem, raised := Next(f, iter)
-			if raised != nil {
-				if raised.isInstance(StopIterationType) {
-					continue
-				}
-				return nil, raised
-			}
-			noItems = false
-			elems[i] = elem
-		}
-		if noItems {
-			break
-		}
-		// Replace nil with None
-		if len(elems) > 1 {
-			lastIndex := len(elems) - 1
-			for elems[lastIndex] == nil {
-				elems[lastIndex] = None
-				lastIndex--
-			}
-		}
-		// NOTE: append does the capacity doubling logic as needed
-		result = append(result, NewTuple(elems...).ToObject())
-	}
-	return result, nil
-}
-
 func builtinMapFn(f *Frame, args Args, _ KWArgs) (*Object, *BaseException) {
 	argc := len(args)
 	if argc < 2 {
@@ -245,19 +202,19 @@ func builtinMapFn(f *Frame, args Args, _ KWArgs) (*Object, *BaseException) {
 	pred := toFunctionUnsafe(args[0])
 	result := make([]*Object, 0, 2)
 
-	z, raised := zipLongestImpl(f, args[1:])
+	z, raised := zipLongest(f, args[1:])
 	if raised != nil {
 		return nil, raised
 	}
 	for _, tuple := range z {
-		if pred.Type() == NoneType {
+		if args[0] == None {
 			if argc == 2 {
-				result = append(result, toTupleUnsafe(tuple).GetItem(0))
+				result = append(result, tuple[0])
 			} else {
-				result = append(result, tuple)
+				result = append(result, NewTuple(tuple...).ToObject())
 			}
 		} else {
-			ret, raised := pred.Call(f, toTupleUnsafe(tuple).elems, nil)
+			ret, raised := pred.Call(f, tuple, nil)
 			if raised != nil {
 				return nil, raised
 			}
@@ -812,4 +769,58 @@ func numberToBase(prefix string, base int, o *Object) string {
 		return "-" + prefix + s[1:]
 	}
 	return prefix + s
+}
+
+// initIters return list of initiated Iter instances from the list of
+// iterables.
+func initIters(f *Frame, items []*Object) ([]*Object, *BaseException) {
+	l := len(items)
+	iters := make([]*Object, l)
+	for i, arg := range items {
+		iter, raised := Iter(f, arg)
+		if raised != nil {
+			return nil, raised
+		}
+		iters[i] = iter
+	}
+	return iters, nil
+}
+
+// zipLongest return the list of aggregates elements from each of the
+// iterables. If the iterables are of uneven length, missing values are
+// filled-in with None.
+func zipLongest(f *Frame, args Args) ([][]*Object, *BaseException) {
+	argc := len(args)
+	result := make([][]*Object, 0, 2)
+	iters, raised := initIters(f, args)
+	if raised != nil {
+		return nil, raised
+	}
+
+	for {
+		noItems := true
+		elems := make([]*Object, argc)
+		for i, iter := range iters {
+			if iter == nil {
+				continue
+			}
+			elem, raised := Next(f, iter)
+			if raised != nil {
+				if raised.isInstance(StopIterationType) {
+					iters[i] = nil
+					elems[i] = None
+					continue
+				}
+				f.RestoreExc(nil, nil)
+				return nil, raised
+			}
+			noItems = false
+			elems[i] = elem
+		}
+		if noItems {
+			break
+		}
+		result = append(result, elems)
+	}
+	return result, nil
 }
