@@ -45,7 +45,11 @@ There are three basic categories of incomplete functionality:
    is pure Python, so as the language features and builtins get filled out, many
    modules will just work. But there are also a number of libraries in CPython
    that are C extension modules that need to be rewritten.
-   
+
+4. C locale support: Go doesn't support locales in the same way that C does. As such,
+   some functionality that is locale dependent may not currently work the same as in
+   CPython.
+
  To see the status of a particular feature or standard library module, click
  [here](https://github.com/google/grumpy/wiki/Missing-Features).
 

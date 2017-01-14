@@ -132,3 +132,9 @@ class A(object):
     return 3
 
 assert '3'.zfill(A()) == '003'
+
+# Test capitalize
+assert "".capitalize() == ""
+assert "foo".capitalize() == "Foo"
+assert "Foo".capitalize() == "Foo"
+assert "FOO".capitalize() == "Foo"
