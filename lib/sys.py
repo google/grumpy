@@ -24,6 +24,7 @@ for arg in Args:
 
 goversion = Version()
 maxint = MaxInt
+maxsize = maxint
 modules = SysModules
 py3kwarning = False
 warnoptions = []
