@@ -569,7 +569,7 @@ func builtinUniChr(f *Frame, args Args, _ KWArgs) (*Object, *BaseException) {
 func builtinZip(f *Frame, args Args, _ KWArgs) (*Object, *BaseException) {
 	argc := len(args)
 	if argc == 0 {
-		return NewList([]*Object{}...).ToObject(), nil
+		return NewList().ToObject(), nil
 	}
 	maxLen := math.MaxInt64
 	list := make([]*Object, argc*2)
