@@ -14,6 +14,8 @@
 
 # pylint: disable=redefined-outer-name,W0703
 
+import sys
+
 
 def checkequal(expected, s, attr, *args):
   assert getattr(s, attr)(*args) == expected
@@ -56,6 +58,37 @@ try:
 except TypeError as e:
   assert str(e) == "'find' requires a 'str' object but received a 'int'" or str(
       e) == 'expected a string or other character buffer object'
+
+checkequal(0, 'abcdefghiabc', 'find', 'abc')
+checkequal(9, 'abcdefghiabc', 'find', 'abc', 1)
+checkequal(-1, 'abcdefghiabc', 'find', 'def', 4)
+
+checkequal(0, 'abc', 'find', '', 0)
+checkequal(3, 'abc', 'find', '', 3)
+checkequal(-1, 'abc', 'find', '', 4)
+
+# to check the ability to pass None as defaults
+checkequal(2, 'rrarrrrrrrrra', 'find', 'a')
+checkequal(12, 'rrarrrrrrrrra', 'find', 'a', 4)
+checkequal(-1, 'rrarrrrrrrrra', 'find', 'a', 4, 6)
+# TODO: checkMethodArgs to support MainType + NoneType
+# checkequal(12, 'rrarrrrrrrrra', 'find', 'a', 4, None)
+# checkequal(2, 'rrarrrrrrrrra', 'find', 'a', None, 6)
+
+checkraises(TypeError, 'hello', 'find')
+checkraises(TypeError, 'hello', 'find', 42)
+
+checkequal(0, '', 'find', '')
+checkequal(-1, '', 'find', '', 1, 1)
+checkequal(-1, '', 'find', '', sys.maxint, 0)
+
+checkequal(-1, '', 'find', 'xx')
+checkequal(-1, '', 'find', 'xx', 1, 1)
+checkequal(-1, '', 'find', 'xx', sys.maxint, 0)
+
+# issue 7458
+checkequal(-1, 'ab', 'find', 'xxx', sys.maxsize + 1, 0)
+
 
 # Test index
 assert "".index("") == 0

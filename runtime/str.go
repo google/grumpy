@@ -223,12 +223,16 @@ func strFind(f *Frame, args Args, _ KWArgs) (*Object, *BaseException) {
 	if argc == 4 {
 		end = adjustIndex(toIntUnsafe(args[3]).Value(), l)
 	}
-	if start > end {
+	if start > end || start > l {
 		return NewInt(-1).ToObject(), nil
 	}
 	sep := toStrUnsafe(args[1]).Value()
 	s = s[start:end]
-	return NewInt(strings.Index(s, sep)).ToObject(), nil
+	index := strings.Index(s, sep)
+	if index != -1 {
+		index += start
+	}
+	return NewInt(index).ToObject(), nil
 }
 
 func strGE(f *Frame, v, w *Object) (*Object, *BaseException) {
