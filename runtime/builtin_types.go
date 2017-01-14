@@ -193,81 +193,78 @@ func builtinAbs(f *Frame, args Args, _ KWArgs) (*Object, *BaseException) {
 	return Abs(f, args[0])
 }
 
+func zipLongestImpl(f *Frame, args Args) ([]*Object, *BaseException) {
+	argc := len(args)
+	result := make([]*Object, 0, 2)
+	iters := make([]*Object, argc)
+	for i, arg := range args {
+		iter, raised := Iter(f, arg)
+		if raised != nil {
+			return nil, raised
+		}
+		iters[i] = iter
+	}
+
+	for {
+		noItems := true
+		elems := make([]*Object, argc)
+		for i, iter := range iters {
+			elem, raised := Next(f, iter)
+			if raised != nil {
+				if raised.isInstance(StopIterationType) {
+					continue
+				}
+				return nil, raised
+			}
+			noItems = false
+			elems[i] = elem
+		}
+		if noItems {
+			break
+		}
+		// Replace nil with None
+		if len(elems) > 1 {
+			lastIndex := len(elems) - 1
+			for elems[lastIndex] == nil {
+				elems[lastIndex] = None
+				lastIndex--
+			}
+		}
+		// NOTE: append does the capacity doubling logic as needed
+		result = append(result, NewTuple(elems...).ToObject())
+	}
+	return result, nil
+}
+
 func builtinMapFn(f *Frame, args Args, _ KWArgs) (*Object, *BaseException) {
 	argc := len(args)
 	if argc < 2 {
 		return nil, f.RaiseType(TypeErrorType, "map() requires at least two args")
 	}
+
 	pred := toFunctionUnsafe(args[0])
-	result := []*Object{}
-	if argc == 2 {
-		raised := seqForEach(f, args[1], func(k *Object) *BaseException {
-			if pred.Type() == NoneType {
-				result = append(result, k)
-			} else {
-				ret, raised := pred.Call(f, Args{k}, nil)
-				if raised != nil {
-					return raised
-				}
-				result = append(result, ret)
-			}
-			return nil
-		})
-		if raised != nil {
-			return nil, raised
-		}
+	result := make([]*Object, 0, 2)
+
+	z, raised := zipLongestImpl(f, args[1:])
+	if raised != nil {
+		return nil, raised
 	}
-	if argc > 2 {
-		args = args[1:]
-		argc = len(args)
-		maxLen := 0
-		list := make([]*Object, argc*2)
-		for i := 0; i < argc; i++ {
-			tupleIndex := 0
-			iter, raised := Iter(f, args[i])
+	for _, tuple := range z {
+		if pred.Type() == NoneType {
+			if argc == 2 {
+				result = append(result, toTupleUnsafe(tuple).GetItem(0))
+			} else {
+				result = append(result, tuple)
+			}
+		} else {
+			ret, raised := pred.Call(f, toTupleUnsafe(tuple).elems, nil)
 			if raised != nil {
 				return nil, raised
 			}
-			item, raised := Next(f, iter)
-			for ; raised == nil; item, raised = Next(f, iter) {
-				if cap(list) <= tupleIndex*argc {
-					// Growth slice by doubling
-					newSlice := make([]*Object, 2*cap(list), 2*cap(list))
-					copy(newSlice, list)
-					list = newSlice
-				}
-				list[tupleIndex*argc+i] = item
-				tupleIndex++
-			}
-			if !raised.isInstance(StopIterationType) {
-				return nil, raised
-			}
-			if tupleIndex > maxLen {
-				maxLen = tupleIndex
-			}
-		}
-
-		list = list[:argc*maxLen]
-		// Replace nil with None
-		if len(list) > 1 {
-			lastIndex := len(list) - 1
-			for list[lastIndex] == nil {
-				list[lastIndex] = None
-				lastIndex--
-			}
-		}
-		for i := 0; i < maxLen; i++ {
-			if pred.Type() == NoneType {
-				result = append(result, list[i*argc:i*argc+argc]...)
-			} else {
-				ret, raised := pred.Call(f, Args(list[i*argc:i*argc+argc]), nil)
-				if raised != nil {
-					return nil, raised
-				}
-				result = append(result, ret)
-			}
+			result = append(result, ret)
 		}
 	}
+
 	return NewList(result...).ToObject(), nil
 }
 
