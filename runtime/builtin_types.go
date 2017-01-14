@@ -568,8 +568,11 @@ func builtinUniChr(f *Frame, args Args, _ KWArgs) (*Object, *BaseException) {
 
 func builtinZip(f *Frame, args Args, _ KWArgs) (*Object, *BaseException) {
 	argc := len(args)
+	if argc == 0 {
+		return NewList([]*Object{}...).ToObject(), nil
+	}
 	maxLen := math.MaxInt64
-	list := [][]*Object{}
+	list := make([]*Object, argc*2)
 	for i := 0; i < argc; i++ {
 		tupleIndex := 0
 		iter, raised := Iter(f, args[i])
@@ -578,11 +581,13 @@ func builtinZip(f *Frame, args Args, _ KWArgs) (*Object, *BaseException) {
 		}
 		item, raised := Next(f, iter)
 		for ; raised == nil; item, raised = Next(f, iter) {
-			if len(list) <= tupleIndex {
-				tuple := make([]*Object, argc)
-				list = append(list, tuple)
+			if cap(list) <= tupleIndex*argc {
+				// Growth slice by doubling
+				newSlice := make([]*Object, 2*cap(list), 2*cap(list))
+				copy(newSlice, list)
+				list = newSlice
 			}
-			list[tupleIndex][i] = item
+			list[tupleIndex*argc+i] = item
 			tupleIndex++
 		}
 		if !raised.isInstance(StopIterationType) {
@@ -593,13 +598,13 @@ func builtinZip(f *Frame, args Args, _ KWArgs) (*Object, *BaseException) {
 		}
 	}
 
-	if len(list) > maxLen {
-		list = list[:maxLen]
+	if len(list) > maxLen*argc {
+		list = list[:maxLen*argc]
 	}
 
-	results := make([]*Object, len(list))
-	for i := range list {
-		results[i] = NewTuple(list[i]...).ToObject()
+	results := make([]*Object, maxLen)
+	for i := 0; i < maxLen; i++ {
+		results[i] = NewTuple(list[i*argc : i*argc+argc]...).ToObject()
 	}
 	return NewList(results...).ToObject(), nil
 }

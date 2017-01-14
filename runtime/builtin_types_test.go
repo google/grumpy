@@ -242,6 +242,7 @@ func TestBuiltinFuncs(t *testing.T) {
 		{f: "unichr", args: wrapArgs(0x120000), wantExc: mustCreateException(ValueErrorType, "unichr() arg not in range(0x10ffff)")},
 		{f: "unichr", args: wrapArgs(-1), wantExc: mustCreateException(ValueErrorType, "unichr() arg not in range(0x10ffff)")},
 		{f: "unichr", args: wrapArgs(), wantExc: mustCreateException(TypeErrorType, "'unichr' requires 1 arguments")},
+		{f: "zip", args: wrapArgs(), want: newTestList().ToObject()},
 		{f: "zip", args: wrapArgs(newTestTuple()), want: newTestList().ToObject()},
 		{f: "zip", args: wrapArgs(newTestList()), want: newTestList().ToObject()},
 		{f: "zip", args: wrapArgs(newTestList(1)), want: newTestList(newTestTuple(1).ToObject()).ToObject()},
