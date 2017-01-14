@@ -17,7 +17,6 @@
 from __go__.os import Args, Stdin, Stdout, Stderr
 from __go__.grumpy import SysModules, MaxInt, NewFileFromFD  # pylint: disable=g-multiple-import
 from __go__.runtime import Version
-from __go__.math import MaxInt64
 
 argv = []
 for arg in Args:
@@ -25,7 +24,7 @@ for arg in Args:
 
 goversion = Version()
 maxint = MaxInt
-maxsize = MaxInt64 - 1
+maxsize = maxint
 modules = SysModules
 py3kwarning = False
 warnoptions = []

@@ -206,12 +206,13 @@ func strEq(f *Frame, v, w *Object) (*Object, *BaseException) {
 }
 
 func strFind(f *Frame, args Args, _ KWArgs) (*Object, *BaseException) {
+	// TODO: Support unicode sub string
 	expectedTypes := []*Type{StrType, StrType, IntType, IntType}
 	argc := len(args)
 	if argc == 2 || argc == 3 {
 		expectedTypes = expectedTypes[:argc]
 	}
-	if raised := checkMethodArgs(f, "find", args, expectedTypes...); raised != nil {
+	if raised := checkMethodArgs(f, "find/index", args, expectedTypes...); raised != nil {
 		return nil, raised
 	}
 	s := toStrUnsafe(args[0]).Value()
@@ -803,7 +804,7 @@ func strStartsEndsWith(f *Frame, method string, args Args) (*Object, *BaseExcept
 	if argc == 4 {
 		end = adjustIndex(toIntUnsafe(args[3]).Value(), l)
 	}
-	if start > end {
+	if start > end || start > l {
 		// start == end may still return true when matching ''.
 		return False.ToObject(), nil
 	}

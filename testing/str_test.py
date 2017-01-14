@@ -12,20 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# pylint: disable=redefined-outer-name,W0703
+# pylint: disable=redefined-outer-name,no-value-for-parameter
 
 import sys
 
-
-def checkequal(expected, s, attr, *args):
-  assert getattr(s, attr)(*args) == expected
-
-
-def checkraises(expected, s, attr, *args):
-  try:
-    getattr(s, attr)(*args)
-  except Exception as e:
-    assert e.__class__ == expected
 
 # Test Add
 assert "foo" + "bar" == "foobar"
@@ -46,79 +36,86 @@ assert "%X" % 0xffff == "FFFF"
 assert "".find("") == 0
 assert "".find("", 1) == -1
 assert "foobar".find("bar") == 3
-# TODO: support unicode
-# assert "foobar".find(u"bar") == 3
 assert "foobar".find("bar", 0, -2) == -1
 assert "foobar".find("foo", 0, 3) == 0
 assert "foobar".find("bar", 3, 5) == -1
 assert "foobar".find("bar", 5, 3) == -1
 assert "bar".find("foobar") == -1
+assert 'abcdefghiabc'.find('abc') == 0
+assert 'abcdefghiabc'.find('abc', 1) == 9
+assert 'abcdefghiabc'.find('def', 4) == -1
+assert 'abc'.find('', 0) == 0
+assert 'abc'.find('', 3) == 3
+assert 'abc'.find('', 4) == -1
+assert 'rrarrrrrrrrra'.find('a') == 2
+assert 'rrarrrrrrrrra'.find('a', 4) == 12
+assert 'rrarrrrrrrrra'.find('a', 4, 6) == -1
+assert ''.find('') == 0
+assert ''.find('', 1, 1) == -1
+assert ''.find('', sys.maxint, 0) == -1
+assert ''.find('xx') == -1
+assert ''.find('xx', 1, 1) == -1
+assert ''.find('xx', sys.maxint, 0) == -1
+# TODO: support long
+# assert 'ab'.find('xxx', sys.maxsize + 1, 0) == -1
+# TODO: support unicode
+# assert "foobar".find(u"bar") == 3
+# TODO: support None
+# assert 'rrarrrrrrrrra'.find('a', 4, None) == 12
+# assert 'rrarrrrrrrrra'.find('a', None, 6) == 2
 try:
   "foo".find(123)
-except TypeError as e:
-  assert str(e) == "'find' requires a 'str' object but received a 'int'" or str(
-      e) == 'expected a string or other character buffer object'
+  raise AssertionError
+except TypeError:
+  pass
 
-checkequal(0, 'abcdefghiabc', 'find', 'abc')
-checkequal(9, 'abcdefghiabc', 'find', 'abc', 1)
-checkequal(-1, 'abcdefghiabc', 'find', 'def', 4)
+try:
+  'hello'.find()
+  raise AssertionError
+except TypeError:
+  pass
 
-checkequal(0, 'abc', 'find', '', 0)
-checkequal(3, 'abc', 'find', '', 3)
-checkequal(-1, 'abc', 'find', '', 4)
-
-# to check the ability to pass None as defaults
-checkequal(2, 'rrarrrrrrrrra', 'find', 'a')
-checkequal(12, 'rrarrrrrrrrra', 'find', 'a', 4)
-checkequal(-1, 'rrarrrrrrrrra', 'find', 'a', 4, 6)
-# TODO: checkMethodArgs to support MainType + NoneType
-# checkequal(12, 'rrarrrrrrrrra', 'find', 'a', 4, None)
-# checkequal(2, 'rrarrrrrrrrra', 'find', 'a', None, 6)
-
-checkraises(TypeError, 'hello', 'find')
-checkraises(TypeError, 'hello', 'find', 42)
-
-checkequal(0, '', 'find', '')
-checkequal(-1, '', 'find', '', 1, 1)
-checkequal(-1, '', 'find', '', sys.maxint, 0)
-
-checkequal(-1, '', 'find', 'xx')
-checkequal(-1, '', 'find', 'xx', 1, 1)
-checkequal(-1, '', 'find', 'xx', sys.maxint, 0)
-
-# issue 7458
-checkequal(-1, 'ab', 'find', 'xxx', sys.maxsize + 1, 0)
+try:
+  'hello'.find(42)
+  raise AssertionError
+except TypeError:
+  pass
 
 
 # Test index
 assert "".index("") == 0
-try:
-  "".index("", 1)
-except ValueError as e:
-  assert str(e) == "substring not found"
 assert "foobar".index("bar") == 3
+assert "foobar".index("foo", 0, 3) == 0
 # TODO: support unicode
 # assert "foobar".find(u"bar") == 3
-assert "foobar".index("foo", 0, 3) == 0
+try:
+  "".index("", 1)
+  raise AssertionError
+except ValueError:
+  pass
 try:
   "foo".index(123)
-except TypeError as e:
-  assert str(e) == "'find' requires a 'str' object but received a 'int'" or str(
-      e) == 'expected a string or other character buffer object'
+  raise AssertionError
+except TypeError:
+  pass
 
 
 # Test zfill
-checkequal('123', '123', 'zfill', 2)
-checkequal('123', '123', 'zfill', 3)
-checkequal('0123', '123', 'zfill', 4)
-checkequal('+123', '+123', 'zfill', 3)
-checkequal('+123', '+123', 'zfill', 4)
-checkequal('+0123', '+123', 'zfill', 5)
-checkequal('-123', '-123', 'zfill', 3)
-checkequal('-123', '-123', 'zfill', 4)
-checkequal('-0123', '-123', 'zfill', 5)
-checkequal('000', '', 'zfill', 3)
-checkequal('34', '34', 'zfill', 1)
-checkequal('0034', '34', 'zfill', 4)
+assert '123'.zfill(2) == '123'
+assert '123'.zfill(3) == '123'
+assert '123'.zfill(4) == '0123'
+assert '+123'.zfill(3) == '+123'
+assert '+123'.zfill(4) == '+123'
+assert '+123'.zfill(5) == '+0123'
+assert '-123'.zfill(3) == '-123'
+assert '-123'.zfill(4) == '-123'
+assert '-123'.zfill(5) == '-0123'
+assert ''.zfill(3) == '000'
+assert '34'.zfill(1) == '34'
+assert '34'.zfill(4) == '0034'
 
-checkraises(TypeError, '123', 'zfill')
+try:
+  '123'.zfill()
+  raise AssertionError
+except TypeError:
+  pass
