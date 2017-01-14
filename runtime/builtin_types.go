@@ -565,6 +565,40 @@ func builtinUniChr(f *Frame, args Args, _ KWArgs) (*Object, *BaseException) {
 	return NewUnicodeFromRunes([]rune{rune(i)}).ToObject(), nil
 }
 
+func builtinZip(f *Frame, args Args, _ KWArgs) (*Object, *BaseException) {
+	argc := len(args)
+	if argc == 0 {
+		return NewList().ToObject(), nil
+	}
+	result := make([]*Object, 0, 2)
+	iters := make([]*Object, argc)
+	for i, arg := range args {
+		iter, raised := Iter(f, arg)
+		if raised != nil {
+			return nil, raised
+		}
+		iters[i] = iter
+	}
+
+Outer:
+	for {
+		elems := make([]*Object, argc)
+		for i, iter := range iters {
+			elem, raised := Next(f, iter)
+			if raised != nil {
+				if raised.isInstance(StopIterationType) {
+					break Outer
+				}
+				f.RestoreExc(nil, nil)
+				return nil, raised
+			}
+			elems[i] = elem
+		}
+		result = append(result, NewTuple(elems...).ToObject())
+	}
+	return NewList(result...).ToObject(), nil
+}
+
 func init() {
 	builtinMap := map[string]*Object{
 		"__frame__":      newBuiltinFunction("__frame__", builtinFrame).ToObject(),
@@ -601,6 +635,7 @@ func init() {
 		"sorted":         newBuiltinFunction("sorted", builtinSorted).ToObject(),
 		"True":           True.ToObject(),
 		"unichr":         newBuiltinFunction("unichr", builtinUniChr).ToObject(),
+		"zip":            newBuiltinFunction("zip", builtinZip).ToObject(),
 	}
 	// Do type initialization in two phases so that we don't have to think
 	// about hard-to-understand cycles.

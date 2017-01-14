@@ -254,3 +254,30 @@ assert sorted([]) == []
 assert sorted(["a", "e", "c", "b"]) == ["a", "b", "c", "e"]
 assert sorted((3, 1, 5, 2, 4)) == [1, 2, 3, 4, 5]
 assert sorted({"foo": 1, "bar": 2}) == ["bar", "foo"]
+
+# Test zip
+
+assert zip('abc', (0, 1, 2)) == [('a', 0), ('b', 1), ('c', 2)]
+assert list(zip('abc', range(6))) == zip('abc', range(6))
+assert list(zip('abcdef', range(3))) == zip('abcdef', range(3))
+assert list(zip('abcdef')) == zip('abcdef')
+assert list(zip()) == zip()
+assert [tuple(list(pair)) for pair in zip('abc', 'def')] == zip('abc', 'def')
+assert [pair for pair in zip('abc', 'def')] == zip('abc', 'def')
+assert zip({'b': 1, 'a': 2}) == [('a',), ('b',)]
+assert zip(range(5)) == [(0,), (1,), (2,), (3,), (4,)]
+assert zip(xrange(5)) == [(0,), (1,), (2,), (3,), (4,)]
+assert zip([1, 2, 3], [1], [4, 5, 6]) == [(1, 1, 4)]
+assert zip([1], [1, 2, 3], [4, 5, 6]) == [(1, 1, 4)]
+assert zip([4, 5, 6], [1], [1, 2, 3]) == [(4, 1, 1)]
+assert zip([1], [1, 2, 3], [4]) == [(1, 1, 4)]
+assert zip([1, 2], [1, 2, 3], [4]) == [(1, 1, 4)]
+assert zip([1, 2, 3, 4], [1, 2, 3], [4]) == [(1, 1, 4)]
+assert zip([1], [1, 2], [4, 2, 4]) == [(1, 1, 4)]
+assert zip([1, 2, 3], [1, 2], [4]) == [(1, 1, 4)]
+assert zip([1, 2, 3], [1, 2], [4], []) == []
+assert zip([], [1], [1, 2], [1, 2, 3]) == []
+try:
+  zip([1, 2, 3], [1, 2], [4], None)
+except TypeError as e:
+  assert str(e) == "'NoneType' object is not iterable"

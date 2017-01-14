@@ -242,6 +242,17 @@ func TestBuiltinFuncs(t *testing.T) {
 		{f: "unichr", args: wrapArgs(0x120000), wantExc: mustCreateException(ValueErrorType, "unichr() arg not in range(0x10ffff)")},
 		{f: "unichr", args: wrapArgs(-1), wantExc: mustCreateException(ValueErrorType, "unichr() arg not in range(0x10ffff)")},
 		{f: "unichr", args: wrapArgs(), wantExc: mustCreateException(TypeErrorType, "'unichr' requires 1 arguments")},
+		{f: "zip", args: wrapArgs(), want: newTestList().ToObject()},
+		{f: "zip", args: wrapArgs(newTestTuple()), want: newTestList().ToObject()},
+		{f: "zip", args: wrapArgs(newTestList()), want: newTestList().ToObject()},
+		{f: "zip", args: wrapArgs(newTestList(1)), want: newTestList(newTestTuple(1).ToObject()).ToObject()},
+		{f: "zip", args: wrapArgs(newTestList(1, 2, 3)), want: newTestList(newTestTuple(1).ToObject(), newTestTuple(2).ToObject(), newTestTuple(3).ToObject()).ToObject()},
+		{f: "zip", args: wrapArgs(newTestRange(3)), want: newTestList(newTestTuple(0).ToObject(), newTestTuple(1).ToObject(), newTestTuple(2).ToObject()).ToObject()},
+		{f: "zip", args: wrapArgs(newTestTuple(1, 2, 3), newTestTuple(4, 5, 6)), want: NewList(newTestTuple(1, 4).ToObject(), newTestTuple(2, 5).ToObject(), newTestTuple(3, 6).ToObject()).ToObject()},
+		{f: "zip", args: wrapArgs(newTestTuple(1, 2, 3), newTestTuple(4, 5)), want: NewList(newTestTuple(1, 4).ToObject(), newTestTuple(2, 5).ToObject()).ToObject()},
+		{f: "zip", args: wrapArgs(newTestTuple(1, 2), newTestTuple(4, 5, 5)), want: NewList(newTestTuple(1, 4).ToObject(), newTestTuple(2, 5).ToObject()).ToObject()},
+		{f: "zip", args: wrapArgs(1), wantExc: mustCreateException(TypeErrorType, "'int' object is not iterable")},
+		{f: "zip", args: wrapArgs(newTestDict("foo", 1, "bar", 2)), want: newTestList(newTestTuple("foo").ToObject(), newTestTuple("bar").ToObject()).ToObject()},
 	}
 	for _, cas := range cases {
 		fun := mustNotRaise(Builtins.GetItemString(NewRootFrame(), cas.f))
