@@ -36,6 +36,14 @@ var (
 	internedStrs           = map[string]*Str{}
 )
 
+type stripSide int
+
+const (
+	stripSideLeft stripSide = iota
+	stripSideRight
+	stripSideBoth
+)
+
 // InternStr adds s to the interned string map. Subsequent calls to NewStr()
 // will return the same underlying Str. InternStr is not thread safe and should
 // only be called during module initialization time.
@@ -323,6 +331,10 @@ func strLower(f *Frame, args Args, kwargs KWArgs) (*Object, *BaseException) {
 	return NewStr(strings.ToLower(s)).ToObject(), nil
 }
 
+func strLStrip(f *Frame, args Args, _ KWArgs) (*Object, *BaseException) {
+	return strStripImpl(f, args, stripSideLeft)
+}
+
 func strLT(f *Frame, v, w *Object) (*Object, *BaseException) {
 	return strCompare(v, w, True, False, False), nil
 }
@@ -458,6 +470,14 @@ func strSplit(f *Frame, args Args, kwargs KWArgs) (*Object, *BaseException) {
 }
 
 func strStrip(f *Frame, args Args, _ KWArgs) (*Object, *BaseException) {
+	return strStripImpl(f, args, stripSideBoth)
+}
+
+func strRStrip(f *Frame, args Args, _ KWArgs) (*Object, *BaseException) {
+	return strStripImpl(f, args, stripSideRight)
+}
+
+func strStripImpl(f *Frame, args Args, side stripSide) (*Object, *BaseException) {
 	expectedTypes := []*Type{StrType, ObjectType}
 	argc := len(args)
 	if argc == 1 {
@@ -489,26 +509,30 @@ func strStrip(f *Frame, args Args, _ KWArgs) (*Object, *BaseException) {
 	byteSlice := []byte(s.Value())
 	numBytes := len(byteSlice)
 	lindex := 0
-LeftStrip:
-	for ; lindex < numBytes; lindex++ {
-		b := byteSlice[lindex]
-		for _, c := range chars {
-			if b == c {
-				continue LeftStrip
+	if side == stripSideLeft || side == stripSideBoth {
+	LeftStrip:
+		for ; lindex < numBytes; lindex++ {
+			b := byteSlice[lindex]
+			for _, c := range chars {
+				if b == c {
+					continue LeftStrip
+				}
 			}
+			break
 		}
-		break
 	}
 	rindex := numBytes
-RightStrip:
-	for ; rindex > lindex; rindex-- {
-		b := byteSlice[rindex-1]
-		for _, c := range chars {
-			if b == c {
-				continue RightStrip
+	if side == stripSideRight || side == stripSideBoth {
+	RightStrip:
+		for ; rindex > lindex; rindex-- {
+			b := byteSlice[rindex-1]
+			for _, c := range chars {
+				if b == c {
+					continue RightStrip
+				}
 			}
+			break
 		}
-		break
 	}
 	return NewStr(string(byteSlice[lindex:rindex])).ToObject(), nil
 }
@@ -530,9 +554,11 @@ func initStrType(dict map[string]*Object) {
 	dict["endswith"] = newBuiltinFunction("endswith", strEndsWith).ToObject()
 	dict["join"] = newBuiltinFunction("join", strJoin).ToObject()
 	dict["lower"] = newBuiltinFunction("lower", strLower).ToObject()
+	dict["lstrip"] = newBuiltinFunction("lstrip", strLStrip).ToObject()
 	dict["split"] = newBuiltinFunction("split", strSplit).ToObject()
 	dict["startswith"] = newBuiltinFunction("startswith", strStartsWith).ToObject()
 	dict["strip"] = newBuiltinFunction("strip", strStrip).ToObject()
+	dict["rstrip"] = newBuiltinFunction("rstrip", strRStrip).ToObject()
 	dict["title"] = newBuiltinFunction("title", strTitle).ToObject()
 	dict["upper"] = newBuiltinFunction("upper", strUpper).ToObject()
 	StrType.slots.Add = &binaryOpSlot{strAdd}
