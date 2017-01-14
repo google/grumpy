@@ -36,6 +36,14 @@ var (
 	internedStrs           = map[string]*Str{}
 )
 
+type stripSide int
+
+const (
+	stripSideLeft stripSide = iota
+	stripSideRight
+	stripSideBoth
+)
+
 // InternStr adds s to the interned string map. Subsequent calls to NewStr()
 // will return the same underlying Str. InternStr is not thread safe and should
 // only be called during module initialization time.
@@ -324,7 +332,7 @@ func strLower(f *Frame, args Args, kwargs KWArgs) (*Object, *BaseException) {
 }
 
 func strLStrip(f *Frame, args Args, _ KWArgs) (*Object, *BaseException) {
-	return _strStrip(f, args, 1)
+	return strStripImpl(f, args, stripSideLeft)
 }
 
 func strLT(f *Frame, v, w *Object) (*Object, *BaseException) {
@@ -462,15 +470,14 @@ func strSplit(f *Frame, args Args, kwargs KWArgs) (*Object, *BaseException) {
 }
 
 func strStrip(f *Frame, args Args, _ KWArgs) (*Object, *BaseException) {
-	return _strStrip(f, args, 3)
+	return strStripImpl(f, args, stripSideBoth)
 }
 
 func strRStrip(f *Frame, args Args, _ KWArgs) (*Object, *BaseException) {
-	return _strStrip(f, args, 2)
+	return strStripImpl(f, args, stripSideRight)
 }
 
-// Strip on any side. sideFlag: 1 = lstrip, 2 = rstrip, 3 = strip
-func _strStrip(f *Frame, args Args, sideFlag int) (*Object, *BaseException) {
+func strStripImpl(f *Frame, args Args, side stripSide) (*Object, *BaseException) {
 	expectedTypes := []*Type{StrType, ObjectType}
 	argc := len(args)
 	if argc == 1 {
@@ -502,7 +509,7 @@ func _strStrip(f *Frame, args Args, sideFlag int) (*Object, *BaseException) {
 	byteSlice := []byte(s.Value())
 	numBytes := len(byteSlice)
 	lindex := 0
-	if sideFlag&1 == 1 {
+	if side == stripSideLeft || side == stripSideBoth {
 	LeftStrip:
 		for ; lindex < numBytes; lindex++ {
 			b := byteSlice[lindex]
@@ -515,7 +522,7 @@ func _strStrip(f *Frame, args Args, sideFlag int) (*Object, *BaseException) {
 		}
 	}
 	rindex := numBytes
-	if sideFlag&2 == 2 {
+	if side == stripSideRight || side == stripSideBoth {
 	RightStrip:
 		for ; rindex > lindex; rindex-- {
 			b := byteSlice[rindex-1]
