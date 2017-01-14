@@ -598,10 +598,6 @@ func builtinZip(f *Frame, args Args, _ KWArgs) (*Object, *BaseException) {
 		}
 	}
 
-	if len(list) > maxLen*argc {
-		list = list[:maxLen*argc]
-	}
-
 	results := make([]*Object, maxLen)
 	for i := 0; i < maxLen; i++ {
 		results[i] = NewTuple(list[i*argc : i*argc+argc]...).ToObject()
