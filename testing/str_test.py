@@ -12,7 +12,18 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# pylint: disable=redefined-outer-name
+# pylint: disable=redefined-outer-name,W0703
+
+
+def checkequal(expected, s, attr, *args):
+  assert getattr(s, attr)(*args) == expected
+
+
+def checkraises(expected, s, attr, *args):
+  try:
+    getattr(s, attr)(*args)
+  except Exception as e:
+    assert e.__class__ == expected
 
 # Test Add
 assert "foo" + "bar" == "foobar"
@@ -61,3 +72,20 @@ try:
 except TypeError as e:
   assert str(e) == "'find' requires a 'str' object but received a 'int'" or str(
       e) == 'expected a string or other character buffer object'
+
+
+# Test zfill
+checkequal('123', '123', 'zfill', 2)
+checkequal('123', '123', 'zfill', 3)
+checkequal('0123', '123', 'zfill', 4)
+checkequal('+123', '+123', 'zfill', 3)
+checkequal('+123', '+123', 'zfill', 4)
+checkequal('+0123', '+123', 'zfill', 5)
+checkequal('-123', '-123', 'zfill', 3)
+checkequal('-123', '-123', 'zfill', 4)
+checkequal('-0123', '-123', 'zfill', 5)
+checkequal('000', '', 'zfill', 3)
+checkequal('34', '34', 'zfill', 1)
+checkequal('0034', '34', 'zfill', 4)
+
+checkraises(TypeError, '123', 'zfill')

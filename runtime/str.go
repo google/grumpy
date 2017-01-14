@@ -600,6 +600,7 @@ func initStrType(dict map[string]*Object) {
 	dict["rstrip"] = newBuiltinFunction("rstrip", strRStrip).ToObject()
 	dict["title"] = newBuiltinFunction("title", strTitle).ToObject()
 	dict["upper"] = newBuiltinFunction("upper", strUpper).ToObject()
+	dict["zfill"] = newBuiltinFunction("zfill", strZFill).ToObject()
 	StrType.slots.Add = &binaryOpSlot{strAdd}
 	StrType.slots.Contains = &binaryOpSlot{strContains}
 	StrType.slots.Eq = &binaryOpSlot{strEq}
@@ -831,6 +832,28 @@ func strUpper(f *Frame, args Args, kwargs KWArgs) (*Object, *BaseException) {
 	}
 	s := toStrUnsafe(args[0]).Value()
 	return NewStr(strings.ToUpper(s)).ToObject(), nil
+}
+
+func strZFill(f *Frame, args Args, _ KWArgs) (*Object, *BaseException) {
+	if raised := checkMethodArgs(f, "zfill", args, StrType, IntType); raised != nil {
+		return nil, raised
+	}
+	s := toStrUnsafe(args[0]).Value()
+	l := len(s)
+	width := toIntUnsafe(args[1]).Value()
+	if width <= l {
+		return args[0], nil
+	}
+	buf := bytes.Buffer{}
+	buf.Grow(width)
+	if len(s) > 0 && (s[0] == '-' || s[0] == '+') {
+		buf.WriteByte(s[0])
+		s = s[1:]
+		width--
+	}
+	buf.WriteString(strings.Repeat("0", width-len(s)))
+	buf.WriteString(s)
+	return NewStr(buf.String()).ToObject(), nil
 }
 
 func init() {
