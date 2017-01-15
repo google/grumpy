@@ -397,6 +397,10 @@ class StatementVisitor(ast.NodeVisitor):
       # two cases at compile time and the Google style guide forbids the latter
       # so we support that use case only.
       for alias in node.names:
+        if alias.name == '*':
+          msg = 'wildcard member import is not implemented: from %s import %s' % (
+              node.module, alias.name)
+          raise util.ParseError(node, msg)
         name = '{}.{}'.format(node.module, alias.name)
         with self._import(name, name.count('.')) as mod:
           asname = alias.asname or alias.name
