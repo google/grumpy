@@ -1,224 +1,3 @@
-#
-# Secret Labs' Regular Expression Engine
-#
-# various symbols used by the regular expression engine.
-# run this script to update the _sre include files!
-#
-# Copyright (c) 1998-2001 by Secret Labs AB.  All rights reserved.
-#
-# See the sre.py file for information on usage and redistribution.
-#
-
-"""Internal support module for sre"""
-
-# update when constants are added or removed
-
-MAGIC = 20031017
-
-MAXREPEAT = 2147483648
-#from _sre import MAXREPEAT
-
-# SRE standard exception (access as sre.error)
-# should this really be here?
-
-class error(Exception):
-    pass
-
-# operators
-
-FAILURE = "failure"
-SUCCESS = "success"
-
-ANY = "any"
-ANY_ALL = "any_all"
-ASSERT = "assert"
-ASSERT_NOT = "assert_not"
-AT = "at"
-BIGCHARSET = "bigcharset"
-BRANCH = "branch"
-CALL = "call"
-CATEGORY = "category"
-CHARSET = "charset"
-GROUPREF = "groupref"
-GROUPREF_IGNORE = "groupref_ignore"
-GROUPREF_EXISTS = "groupref_exists"
-IN = "in"
-IN_IGNORE = "in_ignore"
-INFO = "info"
-JUMP = "jump"
-LITERAL = "literal"
-LITERAL_IGNORE = "literal_ignore"
-MARK = "mark"
-MAX_REPEAT = "max_repeat"
-MAX_UNTIL = "max_until"
-MIN_REPEAT = "min_repeat"
-MIN_UNTIL = "min_until"
-NEGATE = "negate"
-NOT_LITERAL = "not_literal"
-NOT_LITERAL_IGNORE = "not_literal_ignore"
-RANGE = "range"
-REPEAT = "repeat"
-REPEAT_ONE = "repeat_one"
-SUBPATTERN = "subpattern"
-MIN_REPEAT_ONE = "min_repeat_one"
-
-# positions
-AT_BEGINNING = "at_beginning"
-AT_BEGINNING_LINE = "at_beginning_line"
-AT_BEGINNING_STRING = "at_beginning_string"
-AT_BOUNDARY = "at_boundary"
-AT_NON_BOUNDARY = "at_non_boundary"
-AT_END = "at_end"
-AT_END_LINE = "at_end_line"
-AT_END_STRING = "at_end_string"
-AT_LOC_BOUNDARY = "at_loc_boundary"
-AT_LOC_NON_BOUNDARY = "at_loc_non_boundary"
-AT_UNI_BOUNDARY = "at_uni_boundary"
-AT_UNI_NON_BOUNDARY = "at_uni_non_boundary"
-
-# categories
-CATEGORY_DIGIT = "category_digit"
-CATEGORY_NOT_DIGIT = "category_not_digit"
-CATEGORY_SPACE = "category_space"
-CATEGORY_NOT_SPACE = "category_not_space"
-CATEGORY_WORD = "category_word"
-CATEGORY_NOT_WORD = "category_not_word"
-CATEGORY_LINEBREAK = "category_linebreak"
-CATEGORY_NOT_LINEBREAK = "category_not_linebreak"
-CATEGORY_LOC_WORD = "category_loc_word"
-CATEGORY_LOC_NOT_WORD = "category_loc_not_word"
-CATEGORY_UNI_DIGIT = "category_uni_digit"
-CATEGORY_UNI_NOT_DIGIT = "category_uni_not_digit"
-CATEGORY_UNI_SPACE = "category_uni_space"
-CATEGORY_UNI_NOT_SPACE = "category_uni_not_space"
-CATEGORY_UNI_WORD = "category_uni_word"
-CATEGORY_UNI_NOT_WORD = "category_uni_not_word"
-CATEGORY_UNI_LINEBREAK = "category_uni_linebreak"
-CATEGORY_UNI_NOT_LINEBREAK = "category_uni_not_linebreak"
-
-OPCODES = [
-
-    # failure=0 success=1 (just because it looks better that way :-)
-    FAILURE, SUCCESS,
-
-    ANY, ANY_ALL,
-    ASSERT, ASSERT_NOT,
-    AT,
-    BRANCH,
-    CALL,
-    CATEGORY,
-    CHARSET, BIGCHARSET,
-    GROUPREF, GROUPREF_EXISTS, GROUPREF_IGNORE,
-    IN, IN_IGNORE,
-    INFO,
-    JUMP,
-    LITERAL, LITERAL_IGNORE,
-    MARK,
-    MAX_UNTIL,
-    MIN_UNTIL,
-    NOT_LITERAL, NOT_LITERAL_IGNORE,
-    NEGATE,
-    RANGE,
-    REPEAT,
-    REPEAT_ONE,
-    SUBPATTERN,
-    MIN_REPEAT_ONE
-
-]
-
-ATCODES = [
-    AT_BEGINNING, AT_BEGINNING_LINE, AT_BEGINNING_STRING, AT_BOUNDARY,
-    AT_NON_BOUNDARY, AT_END, AT_END_LINE, AT_END_STRING,
-    AT_LOC_BOUNDARY, AT_LOC_NON_BOUNDARY, AT_UNI_BOUNDARY,
-    AT_UNI_NON_BOUNDARY
-]
-
-CHCODES = [
-    CATEGORY_DIGIT, CATEGORY_NOT_DIGIT, CATEGORY_SPACE,
-    CATEGORY_NOT_SPACE, CATEGORY_WORD, CATEGORY_NOT_WORD,
-    CATEGORY_LINEBREAK, CATEGORY_NOT_LINEBREAK, CATEGORY_LOC_WORD,
-    CATEGORY_LOC_NOT_WORD, CATEGORY_UNI_DIGIT, CATEGORY_UNI_NOT_DIGIT,
-    CATEGORY_UNI_SPACE, CATEGORY_UNI_NOT_SPACE, CATEGORY_UNI_WORD,
-    CATEGORY_UNI_NOT_WORD, CATEGORY_UNI_LINEBREAK,
-    CATEGORY_UNI_NOT_LINEBREAK
-]
-
-# def makedict(list):
-#     d = {}
-#     i = 0
-#     for item in list:
-#         d[item] = i
-#         i = i + 1
-#     return d
-
-# OPCODES = makedict(OPCODES)
-# ATCODES = makedict(ATCODES)
-# CHCODES = makedict(CHCODES)
-ATCODES = {'at_beginning_string': 2, 'at_uni_non_boundary': 11, 'at_uni_boundary': 10, 'at_non_boundary': 4, 'at_loc_non_boundary': 9, 'at_beginning': 0, 'at_end_string': 7, 'at_end': 5, 'at_end_line': 6, 'at_loc_boundary': 8, 'at_boundary': 3, 'at_beginning_line': 1}
-CHCODES = {'category_uni_space': 12, 'category_uni_digit': 10, 'category_space': 2, 'category_not_digit': 1, 'category_not_space': 3, 'category_digit': 0, 'category_uni_linebreak': 16, 'category_not_word': 5, 'category_loc_not_word': 9, 'category_word': 4, 'category_uni_word': 14, 'category_uni_not_space': 13, 'category_uni_not_word': 15, 'category_not_linebreak': 7, 'category_loc_word': 8, 'category_linebreak': 6, 'category_uni_not_linebreak': 17, 'category_uni_not_digit': 11}
-OPCODES = {'min_until': 23, 'bigcharset': 11, 'min_repeat_one': 31, 'jump': 18, 'at': 6, 'in': 15, 'negate': 26, 'any': 2, 'in_ignore': 16, 'category': 9, 'subpattern': 30, 'charset': 10, 'range': 27, 'max_until': 22, 'mark': 21, 'literal': 19, 'call': 8, 'branch': 7, 'repeat': 28, 'assert': 4, 'failure': 0, 'any_all': 3, 'not_literal_ignore': 25, 'info': 17, 'groupref_ignore': 14, 'groupref_exists': 13, 'success': 1, 'not_literal': 24, 'groupref': 12, 'assert_not': 5, 'repeat_one': 29, 'literal_ignore': 20}
-
-# replacement operations for "ignore case" mode
-OP_IGNORE = {
-    GROUPREF: GROUPREF_IGNORE,
-    IN: IN_IGNORE,
-    LITERAL: LITERAL_IGNORE,
-    NOT_LITERAL: NOT_LITERAL_IGNORE
-}
-
-AT_MULTILINE = {
-    AT_BEGINNING: AT_BEGINNING_LINE,
-    AT_END: AT_END_LINE
-}
-
-AT_LOCALE = {
-    AT_BOUNDARY: AT_LOC_BOUNDARY,
-    AT_NON_BOUNDARY: AT_LOC_NON_BOUNDARY
-}
-
-AT_UNICODE = {
-    AT_BOUNDARY: AT_UNI_BOUNDARY,
-    AT_NON_BOUNDARY: AT_UNI_NON_BOUNDARY
-}
-
-CH_LOCALE = {
-    CATEGORY_DIGIT: CATEGORY_DIGIT,
-    CATEGORY_NOT_DIGIT: CATEGORY_NOT_DIGIT,
-    CATEGORY_SPACE: CATEGORY_SPACE,
-    CATEGORY_NOT_SPACE: CATEGORY_NOT_SPACE,
-    CATEGORY_WORD: CATEGORY_LOC_WORD,
-    CATEGORY_NOT_WORD: CATEGORY_LOC_NOT_WORD,
-    CATEGORY_LINEBREAK: CATEGORY_LINEBREAK,
-    CATEGORY_NOT_LINEBREAK: CATEGORY_NOT_LINEBREAK
-}
-
-CH_UNICODE = {
-    CATEGORY_DIGIT: CATEGORY_UNI_DIGIT,
-    CATEGORY_NOT_DIGIT: CATEGORY_UNI_NOT_DIGIT,
-    CATEGORY_SPACE: CATEGORY_UNI_SPACE,
-    CATEGORY_NOT_SPACE: CATEGORY_UNI_NOT_SPACE,
-    CATEGORY_WORD: CATEGORY_UNI_WORD,
-    CATEGORY_NOT_WORD: CATEGORY_UNI_NOT_WORD,
-    CATEGORY_LINEBREAK: CATEGORY_UNI_LINEBREAK,
-    CATEGORY_NOT_LINEBREAK: CATEGORY_UNI_NOT_LINEBREAK
-}
-
-# flags
-SRE_FLAG_TEMPLATE = 1 # template mode (disable backtracking)
-SRE_FLAG_IGNORECASE = 2 # case insensitive
-SRE_FLAG_LOCALE = 4 # honour system locale
-SRE_FLAG_MULTILINE = 8 # treat target as multiline string
-SRE_FLAG_DOTALL = 16 # treat target as a single string
-SRE_FLAG_UNICODE = 32 # use unicode "locale"
-SRE_FLAG_VERBOSE = 64 # ignore whitespace and comments
-SRE_FLAG_DEBUG = 128 # debugging
-SRE_FLAG_ASCII = 256 # use ascii "locale"
-
-# flags for INFO primitive
-SRE_INFO_PREFIX = 1 # has prefix
-SRE_INFO_LITERAL = 2 # entire pattern is literal (given by prefix)
-SRE_INFO_CHARSET = 4 # pattern starts with character from given set
-
 # NOT_RPYTHON
 """
 A pure Python reimplementation of the _sre module from CPython 2.4
@@ -231,6 +10,11 @@ copyrighted by: Copyright (c) 1997-2001 by Secret Labs AB
 #import array
 import sys
 import operator
+
+# # TODO: Support from foo import * syntax.
+import sre_constants
+for name in sre_constants.__all__:
+  globals()[name] = getattr(sre_constants, name)
 
 # Identifying as _sre from Python 2.3 or 2.4
 #if sys.version_info[:2] >= (2, 4):
@@ -245,16 +29,13 @@ MAGIC = 20031017
 # codesize. But sre_compile will compile some stuff differently depending on the
 # codesize (e.g., charsets).
 # starting with python 3.3  CODESIZE is 4
-#if sys.maxunicode == 65535:
-#    CODESIZE = 2
-#else:
-CODESIZE = 4
+CODESIZE = 2
 
 copyright = "_sre.py 2.4c Copyright 2005 by Nik Haldimann"
 
-
 def getcodesize():
     return CODESIZE
+
 
 def compile(pattern, flags, code, groups=0, groupindex={}, indexgroup=[None]):
     """Compiles (or rather just converts) a pattern descriptor to a SRE_Pattern
@@ -264,8 +45,7 @@ def compile(pattern, flags, code, groups=0, groupindex={}, indexgroup=[None]):
 def getlower(char_ord, flags):
     if (char_ord < 128) or (flags & SRE_FLAG_UNICODE) \
                               or (flags & SRE_FLAG_LOCALE and char_ord < 256):
-        #return ord(unichr(char_ord).lower())
-        return ord(chr(char_ord).lower())
+        return ord(unichr(char_ord).lower())
     else:
         return char_ord
 
@@ -280,16 +60,17 @@ class SRE_Pattern(object):
         self._indexgroup = indexgroup # Maps indices to group names
         self._code = code
 
-    def match(self, string, pos=0, endpos=sys.maxsize):
+    def match(self, string, pos=0, endpos=sys.maxint):
         """If zero or more characters at the beginning of string match this
         regular expression, return a corresponding MatchObject instance. Return
         None if the string does not match the pattern."""
         state = _State(string, pos, endpos, self.flags)
         if state.match(self._code):
             return SRE_Match(self, state)
-        return None
+        else:
+            return None
 
-    def search(self, string, pos=0, endpos=sys.maxsize):
+    def search(self, string, pos=0, endpos=sys.maxint):
         """Scan through string looking for a location where this regular
         expression produces a match, and return a corresponding MatchObject
         instance. Return None if no position in the string matches the
@@ -300,7 +81,7 @@ class SRE_Pattern(object):
         else:
             return None
 
-    def findall(self, string, pos=0, endpos=sys.maxsize):
+    def findall(self, string, pos=0, endpos=sys.maxint):
         """Return a list of all non-overlapping matches of pattern in string."""
         matchlist = []
         state = _State(string, pos, endpos, self.flags)
@@ -323,14 +104,12 @@ class SRE_Pattern(object):
 
     def _subx(self, template, string, count=0, subn=False):
         filter = template
-        # if not callable(template) and "\\" in template:
+        if not callable(template) and "\\" in template:
             # handle non-literal strings ; hand it over to the template compiler
-            #import sre  #sre was renamed to re
-            #fix me brython
-            #print("possible issue at _sre.py line 116")
-            # import re as sre
+            # import sre
             # filter = sre._subx(self, template)
-        state = _State(string, 0, sys.maxsize, self.flags)
+            raise NotImplementedError()
+        state = _State(string, 0, sys.maxint, self.flags)
         sublist = []
 
         n = last_pos = 0
@@ -377,7 +156,7 @@ class SRE_Pattern(object):
     def split(self, string, maxsplit=0):
         """Split string by the occurrences of pattern."""
         splitlist = []
-        state = _State(string, 0, sys.maxsize, self.flags)
+        state = _State(string, 0, sys.maxint, self.flags)
         n = 0
         last = state.start
         while not maxsplit or n < maxsplit:
@@ -394,33 +173,28 @@ class SRE_Pattern(object):
             # add groups (if any)
             if self.groups:
                 match = SRE_Match(self, state)
-                splitlist += list(match.groups(None))
+                # TODO: Use .extend once it is implemented.
+                # splitlist.extend(list(match.groups(None)))
+                splitlist += (list(match.groups(None)))
             n += 1
             last = state.start = state.string_position
         splitlist.append(string[last:state.end])
         return splitlist
 
-    def finditer(self, string, pos=0, endpos=sys.maxsize):
+    def finditer(self, string, pos=0, endpos=sys.maxint):
         """Return a list of all non-overlapping matches of pattern in string."""
-        #scanner = self.scanner(string, pos, endpos)
-        _list=[]
-        _m=self.scanner(string, pos, endpos)
-        _re=SRE_Scanner(self, string, pos, endpos)
-        _m=_re.search()
-        while _m:
-           _list.append(_m)
-           _m=_re.search()
-        return _list
-        #return iter(scanner.search, None)
+        scanner = self.scanner(string, pos, endpos)
+        return iter(scanner.search, None)
 
-    def scanner(self, string, start=0, end=sys.maxsize):
+    def scanner(self, string, start=0, end=sys.maxint):
         return SRE_Scanner(self, string, start, end)
 
     def __copy__(self):
-        raise TypeError("cannot copy this pattern object")
+        raise TypeError, "cannot copy this pattern object"
 
     def __deepcopy__(self):
-        raise TypeError("cannot copy this pattern object")
+        raise TypeError, "cannot copy this pattern object"
+
 
 class SRE_Scanner(object):
     """Undocumented scanner interface of sre."""
@@ -448,6 +222,7 @@ class SRE_Scanner(object):
     def search(self):
         return self._match_search(self._state.search)
 
+
 class SRE_Match(object):
 
     def __init__(self, pattern, state):
@@ -459,10 +234,7 @@ class SRE_Match(object):
         if self.lastindex < 0:
             self.lastindex = None
         self.regs = self._create_regs(state)
-
-        #statement below is not valid under python3 ( 0 <= None)
-        #if pattern._indexgroup and 0 <= self.lastindex < len(pattern._indexgroup):
-        if self.lastindex is not None and pattern._indexgroup and 0 <= self.lastindex < len(pattern._indexgroup):
+        if pattern._indexgroup and 0 <= self.lastindex < len(pattern._indexgroup):
             # The above upper-bound check should not be necessary, as the re
             # compiler is supposed to always provide an _indexgroup list long
             # enough. But the re.Scanner class seems to screw up something
@@ -517,11 +289,12 @@ class SRE_Match(object):
         """Returns the 2-tuple (m.start(group), m.end(group))."""
         return self.start(group), self.end(group)
 
-    # def expand(self, template):
-        # """Return the string obtained by doing backslash substitution and
-        # resolving group references on template."""
-        # import re
-        # return re._expand(self.re, self, template)
+    def expand(self, template):
+        """Return the string obtained by doing backslash substitution and
+        resolving group references on template."""
+        raise NotImplementedError
+        # import sre
+        # return sre._expand(self.re, self, template)
 
     def groups(self, default=None):
         """Returns a tuple containing all the subgroups of the match. The
@@ -558,10 +331,10 @@ class SRE_Match(object):
             return tuple(grouplist)
 
     def __copy__():
-        raise TypeError("cannot copy this pattern object")
+        raise TypeError, "cannot copy this pattern object"
 
     def __deepcopy__():
-        raise TypeError("cannot copy this pattern object")
+        raise TypeError, "cannot copy this pattern object"
 
 
 class _State(object):
@@ -589,12 +362,11 @@ class _State(object):
     def match(self, pattern_codes):
         # Optimization: Check string length. pattern_codes[3] contains the
         # minimum length for a string to possibly match.
-        # brython..  the optimization doesn't work
-        #if pattern_codes[0] == OPCODES["info"] and pattern_codes[3]:
-        #    if self.end - self.string_position < pattern_codes[3]:
-        #        #_log("reject (got %d chars, need %d)"
-        #        #         % (self.end - self.string_position, pattern_codes[3]))
-        #        return False
+        if pattern_codes[0] == OPCODES["info"] and pattern_codes[3]:
+            if self.end - self.string_position < pattern_codes[3]:
+                #_log("reject (got %d chars, need %d)"
+                #         % (self.end - self.string_position, pattern_codes[3]))
+                return False
 
         dispatcher = _OpcodeDispatcher()
         self.context_stack.append(_MatchContext(self, pattern_codes))
@@ -603,6 +375,7 @@ class _State(object):
             context = self.context_stack[-1]
             has_matched = dispatcher.match(context)
             if has_matched is not None: # don't pop if context isn't done
+                # TODO: use .pop once it is implemented
                 # self.context_stack.pop()
                 self.context_stack = self.context_stack[:-1]
         return has_matched
@@ -685,11 +458,11 @@ class _State(object):
     def set_mark(self, mark_nr, position):
         if mark_nr & 1:
             # This id marks the end of a group.
-            # fix python 3 division incompatability
-            #self.lastindex = mark_nr / 2 + 1
-            self.lastindex = mark_nr // 2 + 1
+            self.lastindex = mark_nr / 2 + 1
         if mark_nr >= len(self.marks):
-            self.marks += [None] * (mark_nr - len(self.marks) + 1)
+            # TODO: Use .extend once it is implemented
+            # self.marks.extend([None] * (mark_nr - len(self.marks) + 1))
+            self.marks += ([None] * (mark_nr - len(self.marks) + 1))
         self.marks[mark_nr] = position
 
     def get_marks(self, group_index):
@@ -703,6 +476,8 @@ class _State(object):
         self.marks_stack.append((self.marks[:], self.lastindex))
 
     def marks_pop(self):
+        # TODO: Use .pop once implemented
+        # self.marks, self.lastindex = self.marks_stack.pop()
         self.marks, self.lastindex = self.marks_stack[-1]
         self.marks_stack = self.marks_stack[:-1]
 
@@ -710,7 +485,7 @@ class _State(object):
         self.marks, self.lastindex = self.marks_stack[-1]
 
     def marks_pop_discard(self):
-        # self.marks_stack.pop()
+        # TODO: Use .pop once implemented
         self.marks_stack = self.marks_stack[:-1]
 
     def lower(self, char_ord):
@@ -732,10 +507,6 @@ class _MatchContext(object):
         start interpreting from."""
         child_context = _MatchContext(self.state,
             self.pattern_codes[self.code_position + pattern_offset:])
-        #print("_sre.py:517:pushing new context") #, child_context.has_matched)
-        #print(self.state.string_position)
-        #print(self.pattern_codes[self.code_position + pattern_offset:])
-        #print(pattern_offset)
         self.state.context_stack.append(child_context)
         return child_context
 
@@ -780,7 +551,6 @@ class _RepeatContext(_MatchContext):
         _MatchContext.__init__(self, context.state,
                             context.pattern_codes[context.code_position:])
         self.count = -1
-        #print('569:repeat', context.state.repeat)
         self.previous = context.state.repeat
         self.last_position = None
 
@@ -831,17 +601,16 @@ class _OpcodeDispatcher(_Dispatcher):
     def dispatch(self, opcode, context):
         """Dispatches a context on a given opcode. Returns True if the context
         is done matching, False if it must be resumed when next encountered."""
-        #if self.executing_contexts.has_key(id(context)):
         if id(context) in self.executing_contexts:
             generator = self.executing_contexts[id(context)]
             del self.executing_contexts[id(context)]
-            has_finished = next(generator)
+            has_finished = generator.next()
         else:
             method = self.DISPATCH_TABLE.get(opcode, _OpcodeDispatcher.unknown)
             has_finished = method(self, context)
-            if hasattr(has_finished, "__next__"): # avoid using the types module
+            if hasattr(has_finished, "next"): # avoid using the types module
                 generator = has_finished
-                has_finished = next(generator)
+                has_finished = generator.next()
         if not has_finished:
             self.executing_contexts[id(context)] = generator
         return has_finished
@@ -860,7 +629,6 @@ class _OpcodeDispatcher(_Dispatcher):
         return True
 
     def general_op_literal(self, ctx, compare, decorate=lambda x: x):
-        #print(ctx.peek_char())
         if ctx.at_end() or not compare(decorate(ord(ctx.peek_char())),
                                             decorate(ctx.peek_code(1))):
             ctx.has_matched = False
@@ -901,7 +669,6 @@ class _OpcodeDispatcher(_Dispatcher):
         #self._log(ctx, "AT", ctx.peek_code(1))
         if not self.at_dispatcher.dispatch(ctx.peek_code(1), ctx):
             ctx.has_matched = False
-            #print('_sre.py:line693, update context.has_matched variable')
             return True
         ctx.skip_code(2)
         return True
@@ -912,7 +679,6 @@ class _OpcodeDispatcher(_Dispatcher):
         #self._log(ctx, "CATEGORY", ctx.peek_code(1))
         if ctx.at_end() or not self.ch_dispatcher.dispatch(ctx.peek_code(1), ctx):
             ctx.has_matched = False
-            #print('_sre.py:line703, update context.has_matched variable')
             return True
         ctx.skip_code(2)
         ctx.skip_char(1)
@@ -924,7 +690,6 @@ class _OpcodeDispatcher(_Dispatcher):
         #self._log(ctx, "ANY")
         if ctx.at_end() or ctx.at_linebreak():
             ctx.has_matched = False
-            #print('_sre.py:line714, update context.has_matched variable')
             return True
         ctx.skip_code(1)
         ctx.skip_char(1)
@@ -936,7 +701,6 @@ class _OpcodeDispatcher(_Dispatcher):
         #self._log(ctx, "ANY_ALL")
         if ctx.at_end():
             ctx.has_matched = False
-            #print('_sre.py:line725, update context.has_matched variable')
             return True
         ctx.skip_code(1)
         ctx.skip_char(1)
@@ -944,22 +708,16 @@ class _OpcodeDispatcher(_Dispatcher):
 
     def general_op_in(self, ctx, decorate=lambda x: x):
         #self._log(ctx, "OP_IN")
-        #print('general_op_in')
         if ctx.at_end():
             ctx.has_matched = False
-            #print('_sre.py:line734, update context.has_matched variable')
             return
         skip = ctx.peek_code(1)
         ctx.skip_code(2) # set op pointer to the set code
-        #print(ctx.peek_char(), ord(ctx.peek_char()),
-        #      decorate(ord(ctx.peek_char())))
         if not self.check_charset(ctx, decorate(ord(ctx.peek_char()))):
-            #print('_sre.py:line738, update context.has_matched variable')
             ctx.has_matched = False
             return
         ctx.skip_code(skip - 1)
         ctx.skip_char(1)
-        #print('end:general_op_in')
 
     def op_in(self, ctx):
         # match set member (or non_member)
@@ -1008,7 +766,6 @@ class _OpcodeDispatcher(_Dispatcher):
                     (ctx.at_end() or ctx.peek_code(2) != ord(ctx.peek_char()))):
                 ctx.state.string_position = ctx.string_position
                 child_context = ctx.push_new_context(1)
-                #print("_sre.py:803:op_branch")
                 yield False
                 if child_context.has_matched:
                     ctx.has_matched = True
@@ -1018,7 +775,6 @@ class _OpcodeDispatcher(_Dispatcher):
             current_branch_length = ctx.peek_code(0)
         ctx.state.marks_pop_discard()
         ctx.has_matched = False
-        #print('_sre.py:line805, update context.has_matched variable')
         yield True
 
     def op_repeat_one(self, ctx):
@@ -1028,7 +784,6 @@ class _OpcodeDispatcher(_Dispatcher):
         # <REPEAT_ONE> <skip> <1=min> <2=max> item <SUCCESS> tail
         mincount = ctx.peek_code(2)
         maxcount = ctx.peek_code(3)
-        #print("repeat one", mincount, maxcount)
         #self._log(ctx, "REPEAT_ONE", mincount, maxcount)
 
         if ctx.remaining_chars() < mincount:
@@ -1060,7 +815,6 @@ class _OpcodeDispatcher(_Dispatcher):
                     break
                 ctx.state.string_position = ctx.string_position
                 child_context = ctx.push_new_context(ctx.peek_code(1) + 1)
-                #print("_sre.py:856:push_new_context")
                 yield False
                 if child_context.has_matched:
                     ctx.has_matched = True
@@ -1084,7 +838,6 @@ class _OpcodeDispatcher(_Dispatcher):
 
         ctx.state.marks_pop_discard()
         ctx.has_matched = False
-        #ctx.has_matched = True      # <== this should be True (so match object gets returned to program)
         yield True
 
     def op_min_repeat_one(self, ctx):
@@ -1104,7 +857,6 @@ class _OpcodeDispatcher(_Dispatcher):
             count = self.count_repetitions(ctx, mincount)
             if count < mincount:
                 ctx.has_matched = False
-                #print('_sre.py:line891, update context.has_matched variable')
                 yield True
             ctx.skip_char(count)
         if ctx.peek_code(ctx.peek_code(1) + 1) == OPCODES["success"]:
@@ -1117,7 +869,6 @@ class _OpcodeDispatcher(_Dispatcher):
         while maxcount == MAXREPEAT or count <= maxcount:
             ctx.state.string_position = ctx.string_position
             child_context = ctx.push_new_context(ctx.peek_code(1) + 1)
-            #print('_sre.py:916:push new context')
             yield False
             if child_context.has_matched:
                 ctx.has_matched = True
@@ -1138,19 +889,10 @@ class _OpcodeDispatcher(_Dispatcher):
         # operator (MAX_UNTIL, MIN_UNTIL)
         # <REPEAT> <skip> <1=min> <2=max> item <UNTIL> tail
         #self._log(ctx, "REPEAT", ctx.peek_code(2), ctx.peek_code(3))
-
-        #if ctx.state.repeat is None:
-        #   print("951:ctx.state.repeat is None")
-        #   #ctx.state.repeat=_RepeatContext(ctx)
-
         repeat = _RepeatContext(ctx)
         ctx.state.repeat = repeat
         ctx.state.string_position = ctx.string_position
         child_context = ctx.push_new_context(ctx.peek_code(1) + 1)
-        #print("_sre.py:941:push new context", id(child_context))
-        #print(child_context.state.repeat)
-        #print(ctx.state.repeat)
-        # are these two yields causing the issue?
         yield False
         ctx.state.repeat = repeat.previous
         ctx.has_matched = child_context.has_matched
@@ -1160,9 +902,7 @@ class _OpcodeDispatcher(_Dispatcher):
         # maximizing repeat
         # <REPEAT> <skip> <1=min> <2=max> item <MAX_UNTIL> tail
         repeat = ctx.state.repeat
-        #print("op_max_until") #, id(ctx.state.repeat))
         if repeat is None:
-            #print(id(ctx), id(ctx.state))
             raise RuntimeError("Internal re error: MAX_UNTIL without REPEAT.")
         mincount = repeat.peek_code(2)
         maxcount = repeat.peek_code(3)
@@ -1202,7 +942,6 @@ class _OpcodeDispatcher(_Dispatcher):
         # cannot match more repeated items here.  make sure the tail matches
         ctx.state.repeat = repeat.previous
         child_context = ctx.push_new_context(1)
-        #print("_sre.py:987:op_max_until")
         yield False
         ctx.has_matched = child_context.has_matched
         if not ctx.has_matched:
@@ -1237,7 +976,6 @@ class _OpcodeDispatcher(_Dispatcher):
         ctx.state.marks_push()
         ctx.state.repeat = repeat.previous
         child_context = ctx.push_new_context(1)
-        #print('_sre.py:1022:push new context')
         yield False
         if child_context.has_matched:
             ctx.has_matched = True
@@ -1249,7 +987,6 @@ class _OpcodeDispatcher(_Dispatcher):
         # match more until tail matches
         if count >= maxcount and maxcount != MAXREPEAT:
             ctx.has_matched = False
-            #print('_sre.py:line1022, update context.has_matched variable')
             yield True
         repeat.count = count
         child_context = repeat.push_new_context(4)
@@ -1269,7 +1006,6 @@ class _OpcodeDispatcher(_Dispatcher):
             if ctx.at_end() or decorate(ord(ctx.peek_char())) \
                                 != decorate(ord(ctx.state.string[group_start])):
                 ctx.has_matched = False
-                #print('_sre.py:line1042, update context.has_matched variable')
                 return True
             group_start += 1
             ctx.skip_char(1)
@@ -1341,7 +1077,6 @@ class _OpcodeDispatcher(_Dispatcher):
         while result is None:
             result = self.set_dispatcher.dispatch(ctx.peek_code(), ctx)
         ctx.code_position = save_position
-        #print("_sre.py:1123:check_charset", result)
         return result
 
     def count_repetitions(self, ctx, maxcount):
@@ -1364,7 +1099,6 @@ class _OpcodeDispatcher(_Dispatcher):
             # a success opcode
             ctx.code_position = reset_position
             self.dispatch(ctx.peek_code(), ctx)
-            #print("count_repetitions", ctx.has_matched, count)
             if ctx.has_matched is False: # could be None as well
                 break
             count += 1
@@ -1426,10 +1160,7 @@ class _CharsetDispatcher(_Dispatcher):
     def set_negate(self, ctx):
         self.ok = not self.ok
         ctx.skip_code(1)
-
-    #fixme brython.   array module doesn't exist
     def set_bigcharset(self, ctx):
-        raise NotImplementationError("_sre.py: set_bigcharset, array not implemented")
         # <BIGCHARSET> <blockcount> <256 blockindices> <blocks>
         char_code = self.char
         count = ctx.peek_code(1)
@@ -1437,20 +1168,18 @@ class _CharsetDispatcher(_Dispatcher):
         if char_code < 65536:
             block_index = char_code >> 8
             # NB: there are CODESIZE block indices per bytecode
-            a = [] #array.array("B")
-            # a.fromstring(array.array(CODESIZE == 2 and "H" or "I",
-                    # [ctx.peek_code(block_index // CODESIZE)]).tostring())
-            a += [ctx.peek_code(block_index // CODESIZE)]
+            a = array.array("B")
+            a.fromstring(array.array(CODESIZE == 2 and "H" or "I",
+                    [ctx.peek_code(block_index / CODESIZE)]).tostring())
             block = a[block_index % CODESIZE]
-            ctx.skip_code(256 // CODESIZE) # skip block indices
-            block_value = ctx.peek_code(block * (32 // CODESIZE)
+            ctx.skip_code(256 / CODESIZE) # skip block indices
+            block_value = ctx.peek_code(block * (32 / CODESIZE)
                     + ((char_code & 255) >> (CODESIZE == 2 and 4 or 5)))
             if block_value & (1 << (char_code & ((8 * CODESIZE) - 1))):
                 return self.ok
         else:
-            ctx.skip_code(256 // CODESIZE) # skip block indices
-        ctx.skip_code(count * (32 // CODESIZE)) # skip blocks
-
+            ctx.skip_code(256 / CODESIZE) # skip block indices
+        ctx.skip_code(count * (32 / CODESIZE)) # skip blocks
     def unknown(self, ctx):
         return False
 
@@ -1553,16 +1282,11 @@ def _is_word(char):
     code = ord(char)
     return code < 128 and _ascii_char_info[code] & 16
 
-def isalnum(char):
-  return (char >= '0' and char <= '9') or (char >= 'a' and char <= 'z') or (char >= 'A' and char <= 'Z')
-
 def _is_loc_word(char):
-    return (not (ord(char) & ~255) and isalnum(char)) or char == '_'
+    return (not (ord(char) & ~255) and char.isalnum()) or char == '_'
 
 def _is_uni_word(char):
-    # not valid in python 3
-    #return unichr(ord(char)).isalnum() or char == '_'
-    return isalnum(chr(ord(char))) or char == '_'
+    return unichr(ord(char)).isalnum() or char == '_'
 
 def _is_linebreak(char):
     return char == "\n"
@@ -1572,4 +1296,4 @@ _uni_linebreaks = [10, 13, 28, 29, 30, 133, 8232, 8233]
 
 def _log(message):
     if 0:
-        print(message)
+        print message

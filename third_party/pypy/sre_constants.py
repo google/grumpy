@@ -11,18 +11,40 @@
 
 """Internal support module for sre"""
 
-# update when constants are added or removed
+__all__ = [
+    'ANY', 'ANY_ALL', 'ASSERT', 'ASSERT_NOT', 'AT', 'ATCODES', 'AT_BEGINNING',
+    'AT_BEGINNING_LINE', 'AT_BEGINNING_STRING', 'AT_BOUNDARY', 'AT_END',
+    'AT_END_LINE', 'AT_END_STRING', 'AT_LOCALE', 'AT_LOC_BOUNDARY',
+    'AT_LOC_NON_BOUNDARY', 'AT_MULTILINE', 'AT_NON_BOUNDARY', 'AT_UNICODE',
+    'AT_UNI_BOUNDARY', 'AT_UNI_NON_BOUNDARY', 'BIGCHARSET', 'BRANCH', 'CALL',
+    'CATEGORY', 'CATEGORY_DIGIT', 'CATEGORY_LINEBREAK', 'CATEGORY_LOC_NOT_WORD',
+    'CATEGORY_LOC_WORD', 'CATEGORY_NOT_DIGIT', 'CATEGORY_NOT_LINEBREAK',
+    'CATEGORY_NOT_SPACE', 'CATEGORY_NOT_WORD', 'CATEGORY_SPACE',
+    'CATEGORY_UNI_DIGIT', 'CATEGORY_UNI_LINEBREAK', 'CATEGORY_UNI_NOT_DIGIT',
+    'CATEGORY_UNI_NOT_LINEBREAK', 'CATEGORY_UNI_NOT_SPACE',
+    'CATEGORY_UNI_NOT_WORD', 'CATEGORY_UNI_SPACE', 'CATEGORY_UNI_WORD',
+    'CATEGORY_WORD', 'CHARSET', 'CHCODES', 'CH_LOCALE', 'CH_UNICODE', 'FAILURE',
+    'GROUPREF', 'GROUPREF_EXISTS', 'GROUPREF_IGNORE', 'IN', 'INFO', 'IN_IGNORE',
+    'JUMP', 'LITERAL', 'LITERAL_IGNORE', 'MAGIC', 'MARK', 'MAXREPEAT',
+    'MAX_REPEAT', 'MAX_UNTIL', 'MIN_REPEAT', 'MIN_REPEAT_ONE', 'MIN_UNTIL',
+    'NEGATE', 'NOT_LITERAL', 'NOT_LITERAL_IGNORE', 'OPCODES', 'OP_IGNORE',
+    'RANGE', 'REPEAT', 'REPEAT_ONE', 'SRE_FLAG_ASCII', 'SRE_FLAG_DEBUG',
+    'SRE_FLAG_DOTALL', 'SRE_FLAG_IGNORECASE', 'SRE_FLAG_LOCALE',
+    'SRE_FLAG_MULTILINE', 'SRE_FLAG_TEMPLATE', 'SRE_FLAG_UNICODE',
+    'SRE_FLAG_VERBOSE', 'SRE_INFO_CHARSET', 'SRE_INFO_LITERAL',
+    'SRE_INFO_PREFIX', 'SUBPATTERN', 'SUCCESS', 'error'
+]
 
 MAGIC = 20031017
 
 MAXREPEAT = 2147483648
-#from _sre import MAXREPEAT
 
 # SRE standard exception (access as sre.error)
 # should this really be here?
 
+
 class error(Exception):
-    pass
+  pass
 
 # operators
 
@@ -143,20 +165,18 @@ CHCODES = [
     CATEGORY_UNI_NOT_LINEBREAK
 ]
 
-# def makedict(list):
-#     d = {}
-#     i = 0
-#     for item in list:
-#         d[item] = i
-#         i = i + 1
-#     return d
 
-# OPCODES = makedict(OPCODES)
-# ATCODES = makedict(ATCODES)
-# CHCODES = makedict(CHCODES)
-ATCODES = {'at_beginning_string': 2, 'at_uni_non_boundary': 11, 'at_uni_boundary': 10, 'at_non_boundary': 4, 'at_loc_non_boundary': 9, 'at_beginning': 0, 'at_end_string': 7, 'at_end': 5, 'at_end_line': 6, 'at_loc_boundary': 8, 'at_boundary': 3, 'at_beginning_line': 1}
-CHCODES = {'category_uni_space': 12, 'category_uni_digit': 10, 'category_space': 2, 'category_not_digit': 1, 'category_not_space': 3, 'category_digit': 0, 'category_uni_linebreak': 16, 'category_not_word': 5, 'category_loc_not_word': 9, 'category_word': 4, 'category_uni_word': 14, 'category_uni_not_space': 13, 'category_uni_not_word': 15, 'category_not_linebreak': 7, 'category_loc_word': 8, 'category_linebreak': 6, 'category_uni_not_linebreak': 17, 'category_uni_not_digit': 11}
-OPCODES = {'min_until': 23, 'bigcharset': 11, 'min_repeat_one': 31, 'jump': 18, 'at': 6, 'in': 15, 'negate': 26, 'any': 2, 'in_ignore': 16, 'category': 9, 'subpattern': 30, 'charset': 10, 'range': 27, 'max_until': 22, 'mark': 21, 'literal': 19, 'call': 8, 'branch': 7, 'repeat': 28, 'assert': 4, 'failure': 0, 'any_all': 3, 'not_literal_ignore': 25, 'info': 17, 'groupref_ignore': 14, 'groupref_exists': 13, 'success': 1, 'not_literal': 24, 'groupref': 12, 'assert_not': 5, 'repeat_one': 29, 'literal_ignore': 20}
+def makedict(list):
+  d = {}
+  i = 0
+  for item in list:
+    d[item] = i
+    i = i + 1
+  return d
+
+OPCODES = makedict(OPCODES)
+ATCODES = makedict(ATCODES)
+CHCODES = makedict(CHCODES)
 
 # replacement operations for "ignore case" mode
 OP_IGNORE = {
@@ -204,20 +224,20 @@ CH_UNICODE = {
 }
 
 # flags
-SRE_FLAG_TEMPLATE = 1 # template mode (disable backtracking)
-SRE_FLAG_IGNORECASE = 2 # case insensitive
-SRE_FLAG_LOCALE = 4 # honour system locale
-SRE_FLAG_MULTILINE = 8 # treat target as multiline string
-SRE_FLAG_DOTALL = 16 # treat target as a single string
-SRE_FLAG_UNICODE = 32 # use unicode "locale"
-SRE_FLAG_VERBOSE = 64 # ignore whitespace and comments
-SRE_FLAG_DEBUG = 128 # debugging
-SRE_FLAG_ASCII = 256 # use ascii "locale"
+SRE_FLAG_TEMPLATE = 1  # template mode (disable backtracking)
+SRE_FLAG_IGNORECASE = 2  # case insensitive
+SRE_FLAG_LOCALE = 4  # honour system locale
+SRE_FLAG_MULTILINE = 8  # treat target as multiline string
+SRE_FLAG_DOTALL = 16  # treat target as a single string
+SRE_FLAG_UNICODE = 32  # use unicode "locale"
+SRE_FLAG_VERBOSE = 64  # ignore whitespace and comments
+SRE_FLAG_DEBUG = 128  # debugging
+SRE_FLAG_ASCII = 256  # use ascii "locale"
 
 # flags for INFO primitive
-SRE_INFO_PREFIX = 1 # has prefix
-SRE_INFO_LITERAL = 2 # entire pattern is literal (given by prefix)
-SRE_INFO_CHARSET = 4 # pattern starts with character from given set
+SRE_INFO_PREFIX = 1  # has prefix
+SRE_INFO_LITERAL = 2  # entire pattern is literal (given by prefix)
+SRE_INFO_CHARSET = 4  # pattern starts with character from given set
 
 # if __name__ == "__main__":
 #     def dump(f, d, prefix):
