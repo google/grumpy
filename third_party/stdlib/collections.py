@@ -10,7 +10,7 @@ list, set, and tuple.
 
 '''
 
-__all__ = ['Counter', 'namedtuple', 'OrderedDict'] # 'deque', 'defaultdict',
+__all__ = ['Counter', 'namedtuple', 'OrderedDict', 'deque'] # 'deque', 'defaultdict',
 # For bootstrapping reasons, the collection ABCs are defined in _abcoll.py.
 # They should however be considered an integral part of collections.py.
 import _abcoll
