@@ -375,8 +375,8 @@ func TestListPop(t *testing.T) {
 		{args: wrapArgs(newTestList(-1, 0, 1), 0), want: newTestList(0, 1).ToObject()},
 		{args: wrapArgs(newTestList(-1, 0), NewLong(big.NewInt(1))), kwargs: wrapKWArgs("result", True), want: NewInt(0).ToObject()},
 		{args: wrapArgs(newTestList(-1, 0, 1), NewLong(big.NewInt(1))), want: newTestList(-1, 1).ToObject()},
-		{args: wrapArgs(newTestList(-1, 0, 1), None), kwargs: wrapKWArgs("result", True), wantExc: mustCreateException(IndexErrorType, "cannot fit '<type 'NoneType'>' into an index-sized integer")},
-		{args: wrapArgs(newTestList(-1, 0, 1), None), wantExc: mustCreateException(IndexErrorType, "cannot fit '<type 'NoneType'>' into an index-sized integer")},
+		{args: wrapArgs(newTestList(-1, 0, 1), None), kwargs: wrapKWArgs("result", True), wantExc: mustCreateException(TypeErrorType, "int() argument must be a string or a number, not 'NoneType'")},
+		{args: wrapArgs(newTestList(-1, 0, 1), None), wantExc: mustCreateException(TypeErrorType, "int() argument must be a string or a number, not 'NoneType'")},
 		{args: wrapArgs(newTestList(-1, 0, 1), 3), wantExc: mustCreateException(IndexErrorType, "list index out of range")},
 	}
 	for _, cas := range cases {

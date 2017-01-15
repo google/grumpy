@@ -302,20 +302,20 @@ func listPop(f *Frame, args Args, kwargs KWArgs) (*Object, *BaseException) {
 	}
 	i := -1
 	if argc == 2 {
-		indexParsed, raised := IndexInt(f, args[1])
+		o, raised := IntType.Call(f, Args{args[1]}, nil)
 		if raised != nil {
 			return nil, raised
 		}
-		i = indexParsed
+		i = toIntUnsafe(o).Value()
 	}
 	l := toListUnsafe(args[0])
 	if i < 0 {
 		i += len(l.elems)
 	}
-	l.mutex.Lock()
 	if i >= len(l.elems) || i < 0 {
 		return nil, f.RaiseType(IndexErrorType, "list index out of range")
 	}
+	l.mutex.Lock()
 	item := l.elems[i]
 	l.elems = append(l.elems[:i], l.elems[i+1:]...)
 	l.mutex.Unlock()
