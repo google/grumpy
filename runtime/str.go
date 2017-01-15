@@ -205,6 +205,45 @@ func strEq(f *Frame, v, w *Object) (*Object, *BaseException) {
 	return strCompare(v, w, False, True, False), nil
 }
 
+func strFind(f *Frame, args Args, _ KWArgs) (*Object, *BaseException) {
+	// TODO: Support finding index of unicode substring.
+	expectedTypes := []*Type{StrType, StrType, ObjectType, ObjectType}
+	argc := len(args)
+	if argc == 2 || argc == 3 {
+		expectedTypes = expectedTypes[:argc]
+	}
+	if raised := checkMethodArgs(f, "find/index", args, expectedTypes...); raised != nil {
+		return nil, raised
+	}
+	s := toStrUnsafe(args[0]).Value()
+	l := len(s)
+	start, end := 0, l
+	if argc >= 3 {
+		startParsed, raised := adjustIndex(f, args[2], l, false)
+		if raised != nil {
+			return nil, raised
+		}
+		start = startParsed
+	}
+	if argc == 4 {
+		endParsed, raised := adjustIndex(f, args[3], l, true)
+		if raised != nil {
+			return nil, raised
+		}
+		end = endParsed
+	}
+	if start > end {
+		return NewInt(-1).ToObject(), nil
+	}
+	sep := toStrUnsafe(args[1]).Value()
+	s = s[start:end]
+	index := strings.Index(s, sep)
+	if index != -1 {
+		index += start
+	}
+	return NewInt(index).ToObject(), nil
+}
+
 func strGE(f *Frame, v, w *Object) (*Object, *BaseException) {
 	return strCompare(v, w, False, True, True), nil
 }
@@ -262,6 +301,17 @@ func strHash(f *Frame, o *Object) (*Object, *BaseException) {
 	h := NewInt(hashString(toStrUnsafe(o).Value()))
 	atomic.StorePointer(p, unsafe.Pointer(h))
 	return h.ToObject(), nil
+}
+
+func strIndex(f *Frame, args Args, _ KWArgs) (*Object, *BaseException) {
+	index, raised := strFind(f, args, nil)
+	if raised != nil {
+		return nil, raised
+	}
+	if toIntUnsafe(index).Value() == -1 {
+		return nil, f.RaiseType(ValueErrorType, "substring not found")
+	}
+	return index, nil
 }
 
 func strJoin(f *Frame, args Args, _ KWArgs) (*Object, *BaseException) {
@@ -552,6 +602,8 @@ func initStrType(dict map[string]*Object) {
 	dict["__getnewargs__"] = newBuiltinFunction("__getnewargs__", strGetNewArgs).ToObject()
 	dict["decode"] = newBuiltinFunction("decode", strDecode).ToObject()
 	dict["endswith"] = newBuiltinFunction("endswith", strEndsWith).ToObject()
+	dict["find"] = newBuiltinFunction("find", strFind).ToObject()
+	dict["index"] = newBuiltinFunction("index", strIndex).ToObject()
 	dict["join"] = newBuiltinFunction("join", strJoin).ToObject()
 	dict["lower"] = newBuiltinFunction("lower", strLower).ToObject()
 	dict["lstrip"] = newBuiltinFunction("lstrip", strLStrip).ToObject()
@@ -561,6 +613,7 @@ func initStrType(dict map[string]*Object) {
 	dict["rstrip"] = newBuiltinFunction("rstrip", strRStrip).ToObject()
 	dict["title"] = newBuiltinFunction("title", strTitle).ToObject()
 	dict["upper"] = newBuiltinFunction("upper", strUpper).ToObject()
+	dict["zfill"] = newBuiltinFunction("zfill", strZFill).ToObject()
 	StrType.slots.Add = &binaryOpSlot{strAdd}
 	StrType.slots.Contains = &binaryOpSlot{strContains}
 	StrType.slots.Eq = &binaryOpSlot{strEq}
@@ -705,20 +758,25 @@ func strRepeatCount(f *Frame, numChars int, mult *Object) (int, bool, *BaseExcep
 	return n, true, nil
 }
 
-func adjustIndex(i, l int) int {
+func adjustIndex(f *Frame, o *Object, l int, upperBound bool) (int, *BaseException) {
+	i, raised := IndexInt(f, o)
+	if raised != nil {
+		return 0, raised
+	}
 	switch {
 	case i <= -l:
 		i = 0
 	case i < 0:
 		i += l
-	case i > l:
+	}
+	if upperBound && i > l {
 		i = l
 	}
-	return i
+	return i, nil
 }
 
 func strStartsEndsWith(f *Frame, method string, args Args) (*Object, *BaseException) {
-	expectedTypes := []*Type{StrType, ObjectType, IntType, IntType}
+	expectedTypes := []*Type{StrType, ObjectType, ObjectType, ObjectType}
 	argc := len(args)
 	if argc == 2 || argc == 3 {
 		expectedTypes = expectedTypes[:argc]
@@ -756,13 +814,20 @@ func strStartsEndsWith(f *Frame, method string, args Args) (*Object, *BaseExcept
 	l := len(s)
 	start, end := 0, l
 	if argc >= 3 {
-		start = adjustIndex(toIntUnsafe(args[2]).Value(), l)
+		startParsed, raised := adjustIndex(f, args[2], l, false)
+		if raised != nil {
+			return nil, raised
+		}
+		start = startParsed
 	}
 	if argc == 4 {
-		end = adjustIndex(toIntUnsafe(args[3]).Value(), l)
+		endParsed, raised := adjustIndex(f, args[3], l, true)
+		if raised != nil {
+			return nil, raised
+		}
+		end = endParsed
 	}
 	if start > end {
-		// start == end may still return true when matching ''.
 		return False.ToObject(), nil
 	}
 	s = s[start:end]
@@ -794,6 +859,28 @@ func strUpper(f *Frame, args Args, kwargs KWArgs) (*Object, *BaseException) {
 	}
 	s := toStrUnsafe(args[0]).Value()
 	return NewStr(strings.ToUpper(s)).ToObject(), nil
+}
+
+func strZFill(f *Frame, args Args, _ KWArgs) (*Object, *BaseException) {
+	if raised := checkMethodArgs(f, "zfill", args, StrType, IntType); raised != nil {
+		return nil, raised
+	}
+	s := toStrUnsafe(args[0]).Value()
+	l := len(s)
+	width := toIntUnsafe(args[1]).Value()
+	if width <= l {
+		return args[0], nil
+	}
+	buf := bytes.Buffer{}
+	buf.Grow(width)
+	if l > 0 && (s[0] == '-' || s[0] == '+') {
+		buf.WriteByte(s[0])
+		s = s[1:]
+		width--
+	}
+	buf.WriteString(strings.Repeat("0", width-len(s)))
+	buf.WriteString(s)
+	return NewStr(buf.String()).ToObject(), nil
 }
 
 func init() {
