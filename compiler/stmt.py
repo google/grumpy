@@ -364,7 +364,7 @@ class StatementVisitor(ast.NodeVisitor):
         self.block.bind_var(self.writer, asname, mod.expr)
 
   def visit_ImportFrom(self, node):
-    # Check for wildcard member import and raise error.
+    # Wildcard imports are not yet supported.
     for alias in node.names:
       if alias.name == '*':
         msg = 'wildcard member import is not implemented: from %s import %s' % (
