@@ -282,6 +282,14 @@ class StatementVisitorTest(unittest.TestCase):
     self.assertRaisesRegexp(util.ParseError, regexp, _ParseAndVisit,
                             'import __go__.foo')
 
+  def testImportWildcardMemberRaises(self):
+    regexp = r'wildcard member import is not implemented: from collections import *'
+    self.assertRaisesRegexp(util.ParseError, regexp, _ParseAndVisit,
+                            'from collections import *')
+    regexp = r'wildcard member import is not implemented: from __go__.foo import *'
+    self.assertRaisesRegexp(util.ParseError, regexp, _ParseAndVisit,
+                            'from __go__.foo import *')
+
   def testImportNativeType(self):
     self.assertEqual((0, "<type 'Duration'>\n"), _GrumpRun(textwrap.dedent("""\
         from __go__.time import type_Duration as Duration

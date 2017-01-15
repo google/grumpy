@@ -364,6 +364,12 @@ class StatementVisitor(ast.NodeVisitor):
         self.block.bind_var(self.writer, asname, mod.expr)
 
   def visit_ImportFrom(self, node):
+    # Check for wildcard member import and raise error.
+    for alias in node.names:
+      if alias.name == '*':
+        msg = 'wildcard member import is not implemented: from %s import %s' % (
+            node.module, alias.name)
+        raise util.ParseError(node, msg)
     self._write_py_context(node.lineno)
     if node.module.startswith(_NATIVE_MODULE_PREFIX):
       values = [alias.name for alias in node.names]
@@ -397,10 +403,6 @@ class StatementVisitor(ast.NodeVisitor):
       # two cases at compile time and the Google style guide forbids the latter
       # so we support that use case only.
       for alias in node.names:
-        if alias.name == '*':
-          msg = 'wildcard member import is not implemented: from %s import %s' % (
-              node.module, alias.name)
-          raise util.ParseError(node, msg)
         name = '{}.{}'.format(node.module, alias.name)
         with self._import(name, name.count('.')) as mod:
           asname = alias.asname or alias.name
