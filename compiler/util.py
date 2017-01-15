@@ -51,9 +51,7 @@ class Writer(object):
   def write(self, output):
     for line in output.split('\n'):
       if line:
-        self.out.write('\t' * self.indent_level)
-        self.out.write(line)
-        self.out.write('\n')
+        self.out.write(''.join(('\t' * self.indent_level, line, '\n')))
 
   def write_block(self, block_, body):
     """Outputs the boilerplate necessary for code blocks like functions.
