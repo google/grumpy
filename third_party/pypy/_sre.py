@@ -106,8 +106,6 @@ class SRE_Pattern(object):
         filter = template
         if not callable(template) and "\\" in template:
             # handle non-literal strings ; hand it over to the template compiler
-            # import sre
-            # filter = sre._subx(self, template)
             raise NotImplementedError()
         state = _State(string, 0, sys.maxint, self.flags)
         sublist = []
@@ -293,8 +291,6 @@ class SRE_Match(object):
         """Return the string obtained by doing backslash substitution and
         resolving group references on template."""
         raise NotImplementedError
-        # import sre
-        # return sre._expand(self.re, self, template)
 
     def groups(self, default=None):
         """Returns a tuple containing all the subgroups of the match. The
@@ -1168,9 +1164,11 @@ class _CharsetDispatcher(_Dispatcher):
         if char_code < 65536:
             block_index = char_code >> 8
             # NB: there are CODESIZE block indices per bytecode
-            a = array.array("B")
-            a.fromstring(array.array(CODESIZE == 2 and "H" or "I",
-                    [ctx.peek_code(block_index / CODESIZE)]).tostring())
+            # a = array.array("B")
+            a = []
+            # a.fromstring(array.array(CODESIZE == 2 and "H" or "I",
+            #         [ctx.peek_code(block_index / CODESIZE)]).tostring())
+            a += [ctx.peek_code(block_index // CODESIZE)]
             block = a[block_index % CODESIZE]
             ctx.skip_code(256 / CODESIZE) # skip block indices
             block_value = ctx.peek_code(block * (32 / CODESIZE)

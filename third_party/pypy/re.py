@@ -101,7 +101,6 @@ This module also defines an exception 'error'.
 
 """
 
-# import sys
 import sre_compile
 import sre_parse
 
@@ -305,7 +304,6 @@ copy_reg.pickle(_pattern_type, _pickle, _compile)
 
 class Scanner(object):
     def __init__(self, lexicon, flags=0):
-        # from sre_constants import BRANCH, SUBPATTERN
         self.lexicon = lexicon
         # combine phrases into a compound pattern
         p = []

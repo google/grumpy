@@ -10,7 +10,6 @@
 #
 
 """Internal support module for sre"""
-
 __all__ = [
     'ANY', 'ANY_ALL', 'ASSERT', 'ASSERT_NOT', 'AT', 'ATCODES', 'AT_BEGINNING',
     'AT_BEGINNING_LINE', 'AT_BEGINNING_STRING', 'AT_BOUNDARY', 'AT_END',
@@ -28,23 +27,29 @@ __all__ = [
     'JUMP', 'LITERAL', 'LITERAL_IGNORE', 'MAGIC', 'MARK', 'MAXREPEAT',
     'MAX_REPEAT', 'MAX_UNTIL', 'MIN_REPEAT', 'MIN_REPEAT_ONE', 'MIN_UNTIL',
     'NEGATE', 'NOT_LITERAL', 'NOT_LITERAL_IGNORE', 'OPCODES', 'OP_IGNORE',
-    'RANGE', 'REPEAT', 'REPEAT_ONE', 'SRE_FLAG_ASCII', 'SRE_FLAG_DEBUG',
-    'SRE_FLAG_DOTALL', 'SRE_FLAG_IGNORECASE', 'SRE_FLAG_LOCALE',
-    'SRE_FLAG_MULTILINE', 'SRE_FLAG_TEMPLATE', 'SRE_FLAG_UNICODE',
-    'SRE_FLAG_VERBOSE', 'SRE_INFO_CHARSET', 'SRE_INFO_LITERAL',
-    'SRE_INFO_PREFIX', 'SUBPATTERN', 'SUCCESS', 'error'
+    'RANGE', 'REPEAT', 'REPEAT_ONE', 'SRE_FLAG_DOTALL', 'SRE_FLAG_IGNORECASE',
+    'SRE_FLAG_LOCALE', 'SRE_FLAG_MULTILINE', 'SRE_FLAG_TEMPLATE',
+    'SRE_FLAG_UNICODE', 'SRE_FLAG_VERBOSE', 'SRE_INFO_CHARSET',
+    'SRE_INFO_LITERAL', 'SRE_INFO_PREFIX', 'SUBPATTERN', 'SUCCESS',
+    'SRE_FLAG_DEBUG', 'error'
 ]
+
+# update when constants are added or removed
 
 MAGIC = 20031017
 
-MAXREPEAT = 2147483648
+# try:
+#     from _sre import MAXREPEAT
+# except ImportError:
+#     import _sre
+#     MAXREPEAT = _sre.MAXREPEAT = 65535
+MAXREPEAT = 65535
 
 # SRE standard exception (access as sre.error)
 # should this really be here?
 
-
 class error(Exception):
-  pass
+    pass
 
 # operators
 
@@ -165,14 +170,13 @@ CHCODES = [
     CATEGORY_UNI_NOT_LINEBREAK
 ]
 
-
 def makedict(list):
-  d = {}
-  i = 0
-  for item in list:
-    d[item] = i
-    i = i + 1
-  return d
+    d = {}
+    i = 0
+    for item in list:
+        d[item] = i
+        i = i + 1
+    return d
 
 OPCODES = makedict(OPCODES)
 ATCODES = makedict(ATCODES)
@@ -224,24 +228,24 @@ CH_UNICODE = {
 }
 
 # flags
-SRE_FLAG_TEMPLATE = 1  # template mode (disable backtracking)
-SRE_FLAG_IGNORECASE = 2  # case insensitive
-SRE_FLAG_LOCALE = 4  # honour system locale
-SRE_FLAG_MULTILINE = 8  # treat target as multiline string
-SRE_FLAG_DOTALL = 16  # treat target as a single string
-SRE_FLAG_UNICODE = 32  # use unicode "locale"
-SRE_FLAG_VERBOSE = 64  # ignore whitespace and comments
-SRE_FLAG_DEBUG = 128  # debugging
-SRE_FLAG_ASCII = 256  # use ascii "locale"
+SRE_FLAG_TEMPLATE = 1 # template mode (disable backtracking)
+SRE_FLAG_IGNORECASE = 2 # case insensitive
+SRE_FLAG_LOCALE = 4 # honour system locale
+SRE_FLAG_MULTILINE = 8 # treat target as multiline string
+SRE_FLAG_DOTALL = 16 # treat target as a single string
+SRE_FLAG_UNICODE = 32 # use unicode locale
+SRE_FLAG_VERBOSE = 64 # ignore whitespace and comments
+SRE_FLAG_DEBUG = 128 # debugging
 
 # flags for INFO primitive
-SRE_INFO_PREFIX = 1  # has prefix
-SRE_INFO_LITERAL = 2  # entire pattern is literal (given by prefix)
-SRE_INFO_CHARSET = 4  # pattern starts with character from given set
+SRE_INFO_PREFIX = 1 # has prefix
+SRE_INFO_LITERAL = 2 # entire pattern is literal (given by prefix)
+SRE_INFO_CHARSET = 4 # pattern starts with character from given set
 
 # if __name__ == "__main__":
 #     def dump(f, d, prefix):
-#         items = sorted(d.items(), key=lambda a: a[1])
+#         items = d.items()
+#         items.sort(key=lambda a: a[1])
 #         for k, v in items:
 #             f.write("#define %s_%s %s\n" % (prefix, k.upper(), v))
 #     f = open("sre_constants.h", "w")
@@ -280,4 +284,4 @@ SRE_INFO_CHARSET = 4  # pattern starts with character from given set
 #     f.write("#define SRE_INFO_CHARSET %d\n" % SRE_INFO_CHARSET)
 
 #     f.close()
-#     print("done")
+#     print "done"
