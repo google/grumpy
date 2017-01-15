@@ -332,6 +332,14 @@ class StatementVisitorTest(unittest.TestCase):
       self.assertRaisesRegexp(util.ParseError, want_regexp,
                               stmt.import_from_future, node)
 
+  def testImportWildcardMemberRaises(self):
+    regexp = r'wildcard member import is not implemented: from foo import *'
+    self.assertRaisesRegexp(util.ParseError, regexp, _ParseAndVisit,
+                            'from foo import *')
+    regexp = r'wildcard member import is not implemented: from __go__.foo import *'
+    self.assertRaisesRegexp(util.ParseError, regexp, _ParseAndVisit,
+                            'from __go__.foo import *')
+
   def testVisitFuture(self):
     testcases = [
         ('from __future__ import print_function',

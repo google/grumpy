@@ -364,6 +364,12 @@ class StatementVisitor(ast.NodeVisitor):
         self.block.bind_var(self.writer, asname, mod.expr)
 
   def visit_ImportFrom(self, node):
+    # Wildcard imports are not yet supported.
+    for alias in node.names:
+      if alias.name == '*':
+        msg = 'wildcard member import is not implemented: from %s import %s' % (
+            node.module, alias.name)
+        raise util.ParseError(node, msg)
     self._write_py_context(node.lineno)
     if node.module.startswith(_NATIVE_MODULE_PREFIX):
       values = [alias.name for alias in node.names]
