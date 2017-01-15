@@ -46,6 +46,8 @@ assert 'abcdefghiabc'.find('abc', 1) == 9
 assert 'abcdefghiabc'.find('def', 4) == -1
 assert 'abc'.find('', 0) == 0
 assert 'abc'.find('', 3) == 3
+assert 'abc'.find('c', long(1)) == 2
+assert 'abc'.find('c', 0, long(3)) == 2
 assert 'abc'.find('', 4) == -1
 assert 'rrarrrrrrrrra'.find('a') == 2
 assert 'rrarrrrrrrrra'.find('a', 4) == 12
@@ -56,13 +58,25 @@ assert ''.find('', sys.maxint, 0) == -1
 assert ''.find('xx') == -1
 assert ''.find('xx', 1, 1) == -1
 assert ''.find('xx', sys.maxint, 0) == -1
-# TODO: support long
-# assert 'ab'.find('xxx', sys.maxsize + 1, 0) == -1
-# TODO: support unicode
+# TODO: Support unicode substring.
 # assert "foobar".find(u"bar") == 3
-# TODO: support None
+# TODO: Support None.
 # assert 'rrarrrrrrrrra'.find('a', 4, None) == 12
 # assert 'rrarrrrrrrrra'.find('a', None, 6) == 2
+
+
+class Foo(object):
+
+  def __index__(self):
+    return 3
+assert 'abcd'.find('a', Foo()) == -1
+
+try:
+  'ab'.find('xxx', sys.maxsize + 1, 0)
+  raise AssertionError
+except IndexError:
+  pass
+
 try:
   "foo".find(123)
   raise AssertionError
@@ -79,6 +93,18 @@ try:
   'hello'.find(42)
   raise AssertionError
 except TypeError:
+  pass
+
+try:
+  'foobar'.find("bar", "baz")
+  raise AssertionError
+except IndexError:
+  pass
+
+try:
+  'foobar'.find("bar", 0, "baz")
+  raise AssertionError
+except IndexError:
   pass
 
 

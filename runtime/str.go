@@ -206,8 +206,8 @@ func strEq(f *Frame, v, w *Object) (*Object, *BaseException) {
 }
 
 func strFind(f *Frame, args Args, _ KWArgs) (*Object, *BaseException) {
-	// TODO: Support unicode sub string
-	expectedTypes := []*Type{StrType, StrType, IntType, IntType}
+	// TODO: Support finding index of unicode substring.
+	expectedTypes := []*Type{StrType, StrType, ObjectType, ObjectType}
 	argc := len(args)
 	if argc == 2 || argc == 3 {
 		expectedTypes = expectedTypes[:argc]
@@ -219,12 +219,20 @@ func strFind(f *Frame, args Args, _ KWArgs) (*Object, *BaseException) {
 	l := len(s)
 	start, end := 0, l
 	if argc >= 3 {
-		start = adjustIndex(toIntUnsafe(args[2]).Value(), l)
+		startParsed, raised := adjustIndex(f, args[2], l, false)
+		if raised != nil {
+			return nil, raised
+		}
+		start = startParsed
 	}
 	if argc == 4 {
-		end = adjustIndex(toIntUnsafe(args[3]).Value(), l)
+		endParsed, raised := adjustIndex(f, args[3], l, true)
+		if raised != nil {
+			return nil, raised
+		}
+		end = endParsed
 	}
-	if start > end || start > l {
+	if start > end {
 		return NewInt(-1).ToObject(), nil
 	}
 	sep := toStrUnsafe(args[1]).Value()
@@ -750,18 +758,25 @@ func strRepeatCount(f *Frame, numChars int, mult *Object) (int, bool, *BaseExcep
 	return n, true, nil
 }
 
-func adjustIndex(i, l int) int {
+func adjustIndex(f *Frame, o *Object, l int, upperBound bool) (int, *BaseException) {
+	i, raised := IndexInt(f, o)
+	if raised != nil {
+		return 0, raised
+	}
 	switch {
 	case i <= -l:
 		i = 0
 	case i < 0:
 		i += l
 	}
-	return i
+	if upperBound && i > l {
+		i = l
+	}
+	return i, nil
 }
 
 func strStartsEndsWith(f *Frame, method string, args Args) (*Object, *BaseException) {
-	expectedTypes := []*Type{StrType, ObjectType, IntType, IntType}
+	expectedTypes := []*Type{StrType, ObjectType, ObjectType, ObjectType}
 	argc := len(args)
 	if argc == 2 || argc == 3 {
 		expectedTypes = expectedTypes[:argc]
@@ -799,13 +814,20 @@ func strStartsEndsWith(f *Frame, method string, args Args) (*Object, *BaseExcept
 	l := len(s)
 	start, end := 0, l
 	if argc >= 3 {
-		start = adjustIndex(toIntUnsafe(args[2]).Value(), l)
+		startParsed, raised := adjustIndex(f, args[2], l, false)
+		if raised != nil {
+			return nil, raised
+		}
+		start = startParsed
 	}
 	if argc == 4 {
-		end = adjustIndex(toIntUnsafe(args[3]).Value(), l)
+		endParsed, raised := adjustIndex(f, args[3], l, true)
+		if raised != nil {
+			return nil, raised
+		}
+		end = endParsed
 	}
-	if start > end || start > l {
-		// start == end may still return true when matching ''.
+	if start > end {
 		return False.ToObject(), nil
 	}
 	s = s[start:end]
@@ -851,7 +873,7 @@ func strZFill(f *Frame, args Args, _ KWArgs) (*Object, *BaseException) {
 	}
 	buf := bytes.Buffer{}
 	buf.Grow(width)
-	if len(s) > 0 && (s[0] == '-' || s[0] == '+') {
+	if l > 0 && (s[0] == '-' || s[0] == '+') {
 		buf.WriteByte(s[0])
 		s = s[1:]
 		width--
