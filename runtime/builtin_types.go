@@ -198,10 +198,7 @@ func builtinMapFn(f *Frame, args Args, _ KWArgs) (*Object, *BaseException) {
 	if argc < 2 {
 		return nil, f.RaiseType(TypeErrorType, "map() requires at least two args")
 	}
-
-	pred := toFunctionUnsafe(args[0])
 	result := make([]*Object, 0, 2)
-
 	z, raised := zipLongest(f, args[1:])
 	if raised != nil {
 		return nil, raised
@@ -214,7 +211,7 @@ func builtinMapFn(f *Frame, args Args, _ KWArgs) (*Object, *BaseException) {
 				result = append(result, NewTuple(tuple...).ToObject())
 			}
 		} else {
-			ret, raised := pred.Call(f, tuple, nil)
+			ret, raised := args[0].Call(f, tuple, nil)
 			if raised != nil {
 				return nil, raised
 			}
