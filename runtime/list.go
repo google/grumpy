@@ -61,6 +61,15 @@ func (l *List) Append(o *Object) {
 	l.mutex.Unlock()
 }
 
+// Pop removes the item with the index i from the l and returns it
+func (l *List) Pop(i int) *Object {
+	l.mutex.Lock()
+	item := l.elems[i]
+	l.elems = append(l.elems[:i], l.elems[i+1:]...)
+	l.mutex.Unlock()
+	return item
+}
+
 // SetItem sets the index'th element of l to value.
 func (l *List) SetItem(f *Frame, index int, value *Object) *BaseException {
 	l.mutex.RLock()
@@ -291,6 +300,29 @@ func listNE(f *Frame, v, w *Object) (*Object, *BaseException) {
 	return listCompare(f, toListUnsafe(v), w, NE)
 }
 
+func listPop(f *Frame, args Args, kwargs KWArgs) (*Object, *BaseException) {
+	argc := len(args)
+	expectedTypes := []*Type{ListType, IntType}
+	if argc == 1 {
+		expectedTypes = expectedTypes[:1]
+	}
+	if raised := checkMethodArgs(f, "pop", args, expectedTypes...); raised != nil {
+		return nil, raised
+	}
+	i := -1
+	if argc == 2 {
+		i = toIntUnsafe(args[1]).Value()
+	}
+	l := toListUnsafe(args[0])
+	if i < 0 {
+		i += len(l.elems)
+	}
+	if i >= len(l.elems) || i < 0 {
+		return nil, f.RaiseType(IndexErrorType, "list index out of range")
+	}
+	return l.Pop(i), nil
+}
+
 func listRepr(f *Frame, o *Object) (*Object, *BaseException) {
 	l := toListUnsafe(o)
 	if f.reprEnter(l.ToObject()) {
@@ -349,6 +381,7 @@ func listSort(f *Frame, args Args, _ KWArgs) (*Object, *BaseException) {
 func initListType(dict map[string]*Object) {
 	dict["append"] = newBuiltinFunction("append", listAppend).ToObject()
 	dict["insert"] = newBuiltinFunction("insert", listInsert).ToObject()
+	dict["pop"] = newBuiltinFunction("pop", listPop).ToObject()
 	dict["reverse"] = newBuiltinFunction("reverse", listReverse).ToObject()
 	dict["sort"] = newBuiltinFunction("sort", listSort).ToObject()
 	ListType.slots.Add = &binaryOpSlot{listAdd}

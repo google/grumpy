@@ -40,3 +40,31 @@ b.sort()
 assert b == []
 c.sort()
 assert c == ["a", "b", "c", "e"]
+
+# Test pop
+a = [-1, 0, 1]
+assert a.pop() == 1
+assert a == [-1, 0]
+assert a == [-1, 0]
+assert a.pop(0) == -1
+assert a == [0]
+try:
+  a.pop(5)
+  assert AssertionError
+except IndexError:
+  pass
+assert a.pop(0) == 0
+assert a == []
+try:
+  a.pop()
+  assert AssertionError
+except IndexError:
+  pass
+try:
+  a.pop(42, 42)
+  assert AssertionError
+except TypeError:
+  pass
+a = [-1, 0, 1]
+assert a.pop(1) == 0
+assert a == [-1, 1]

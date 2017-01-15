@@ -353,6 +353,36 @@ func TestListIteratorIter(t *testing.T) {
 	}
 }
 
+func TestListPop(t *testing.T) {
+	fun := newBuiltinFunction("TestListPop", func(f *Frame, args Args, kwargs KWArgs) (*Object, *BaseException) {
+		app, raised := GetAttr(f, ListType.ToObject(), NewStr("pop"), nil)
+		if raised != nil {
+			return nil, raised
+		}
+		result, raised := app.Call(f, args, nil)
+		if raised != nil {
+			return nil, raised
+		}
+		if kwargs.get("result", nil) != nil {
+			return result, nil
+		}
+		return args[0], nil
+	}).ToObject()
+	cases := []invokeTestCase{
+		{args: wrapArgs(newTestList(-1, 0, 1)), kwargs: wrapKWArgs("result", True), want: NewInt(1).ToObject()},
+		{args: wrapArgs(newTestList(-1, 0, 1)), want: newTestList(-1, 0).ToObject()},
+		{args: wrapArgs(newTestList(-1, 0), 0), kwargs: wrapKWArgs("result", True), want: NewInt(-1).ToObject()},
+		{args: wrapArgs(newTestList(-1, 0, 1), 0), want: newTestList(0, 1).ToObject()},
+		{args: wrapArgs(newTestList(-1, 0, 1), None), kwargs: wrapKWArgs("result", True), wantExc: mustCreateException(TypeErrorType, "'pop' requires a 'int' object but received a 'NoneType'")},
+		{args: wrapArgs(newTestList(-1, 0, 1), None), wantExc: mustCreateException(TypeErrorType, "'pop' requires a 'int' object but received a 'NoneType'")},
+	}
+	for _, cas := range cases {
+		if err := runInvokeTestCase(fun, &cas); err != "" {
+			t.Error(err)
+		}
+	}
+}
+
 func TestListSetItem(t *testing.T) {
 	fun := newBuiltinFunction("TestListSetItem", func(f *Frame, args Args, _ KWArgs) (*Object, *BaseException) {
 		// Check that there is at least one arg, but otherwise leave
