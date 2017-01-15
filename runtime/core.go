@@ -893,7 +893,59 @@ func (op compareOp) slot(t *Type) *binaryOpSlot {
 }
 
 func compareRich(f *Frame, op compareOp, v, w *Object) (*Object, *BaseException) {
-	// TODO: Support __cmp__.
+	r, raised := tryRichCompare(f, op, v, w)
+	if raised != nil {
+		return nil, raised
+	}
+	if r != NotImplemented {
+		return r, nil
+	}
+	return try3wayToRichCompare(f, op, v, w)
+}
+
+// convert3wayToObject converts the integer results from a 3-way
+// comparison to a suitable boolean value for the given rich
+// comparison op.
+func convert3wayToObject(op compareOp, c int) *Object {
+	b := false
+	switch op {
+	case compareOpLT:
+		b = c < 0
+	case compareOpLE:
+		b = c <= 0
+	case compareOpEq:
+		b = c == 0
+	case compareOpNE:
+		b = c != 0
+	case compareOpGE:
+		b = c >= 0
+	case compareOpGT:
+		b = c > 0
+	}
+	return GetBool(b).ToObject()
+}
+
+// try3wayToRichCompare tries to perform a rich comparison operation on the given objects
+// with the given comparison op using 3-way comparison. It closely resembles the behavior
+// of CPython's try_3way_to_rich_compare in object.c.
+func try3wayToRichCompare(f *Frame, op compareOp, v, w *Object) (*Object, *BaseException) {
+	r, raised := try3wayCompare(f, v, w)
+	if raised != nil {
+		return nil, raised
+	}
+	c := 0
+	if r == NotImplemented {
+		c = compareDefault(f, v, w)
+	} else {
+		c = toIntUnsafe(r).Value()
+	}
+	return convert3wayToObject(op, c), nil
+}
+
+// tryRichCompare tries to perform a rich comparison operation on the given
+// objects with the given comparison op using the rich comparison methods.
+// It closely resembles the behavior of CPython's try_rich_compare in object.c.
+func tryRichCompare(f *Frame, op compareOp, v, w *Object) (*Object, *BaseException) {
 	if v.typ != w.typ && w.typ.isSubclass(v.typ) {
 		// type(w) is a subclass of type(v) so try to use w's
 		// comparison operators since they're more specific.
@@ -963,7 +1015,7 @@ func compareDefault(f *Frame, v, w *Object) int {
 // returns a bool indicating if the relation is true. It closely resembles the
 // behavior of CPython's try_rich_compare_bool in object.c.
 func tryRichCompareBool(f *Frame, op compareOp, v, w *Object) (bool, *BaseException) {
-	r, raised := compareRich(f, op, v, w)
+	r, raised := tryRichCompare(f, op, v, w)
 	if raised != nil {
 		return false, raised
 	}
