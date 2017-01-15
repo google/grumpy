@@ -61,15 +61,6 @@ func (l *List) Append(o *Object) {
 	l.mutex.Unlock()
 }
 
-// Pop removes the item with the index i from the l and returns it
-func (l *List) Pop(i int) *Object {
-	l.mutex.Lock()
-	item := l.elems[i]
-	l.elems = append(l.elems[:i], l.elems[i+1:]...)
-	l.mutex.Unlock()
-	return item
-}
-
 // SetItem sets the index'th element of l to value.
 func (l *List) SetItem(f *Frame, index int, value *Object) *BaseException {
 	l.mutex.RLock()
@@ -302,7 +293,7 @@ func listNE(f *Frame, v, w *Object) (*Object, *BaseException) {
 
 func listPop(f *Frame, args Args, kwargs KWArgs) (*Object, *BaseException) {
 	argc := len(args)
-	expectedTypes := []*Type{ListType, IntType}
+	expectedTypes := []*Type{ListType, ObjectType}
 	if argc == 1 {
 		expectedTypes = expectedTypes[:1]
 	}
@@ -311,16 +302,24 @@ func listPop(f *Frame, args Args, kwargs KWArgs) (*Object, *BaseException) {
 	}
 	i := -1
 	if argc == 2 {
-		i = toIntUnsafe(args[1]).Value()
+		indexParsed, raised := IndexInt(f, args[1])
+		if raised != nil {
+			return nil, raised
+		}
+		i = indexParsed
 	}
 	l := toListUnsafe(args[0])
 	if i < 0 {
 		i += len(l.elems)
 	}
+	l.mutex.Lock()
 	if i >= len(l.elems) || i < 0 {
 		return nil, f.RaiseType(IndexErrorType, "list index out of range")
 	}
-	return l.Pop(i), nil
+	item := l.elems[i]
+	l.elems = append(l.elems[:i], l.elems[i+1:]...)
+	l.mutex.Unlock()
+	return item, nil
 }
 
 func listRepr(f *Frame, o *Object) (*Object, *BaseException) {

@@ -487,11 +487,13 @@ func IndexInt(f *Frame, o *Object) (int, *BaseException) {
 	if raised != nil {
 		return 0, raised
 	}
-	if i.isInstance(IntType) {
-		return toIntUnsafe(i).Value(), nil
-	}
-	if l := toLongUnsafe(i).Value(); numInIntRange(l) {
-		return int(l.Int64()), nil
+	if i != nil {
+		if i.isInstance(IntType) {
+			return toIntUnsafe(i).Value(), nil
+		}
+		if l := toLongUnsafe(i).Value(); numInIntRange(l) {
+			return int(l.Int64()), nil
+		}
 	}
 	return 0, f.RaiseType(IndexErrorType, fmt.Sprintf("cannot fit '%s' into an index-sized integer", o.typ))
 }
