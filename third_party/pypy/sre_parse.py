@@ -602,7 +602,8 @@ def _parse(source, state):
                                         "%r" % name)
                         gid = state.groupdict.get(name)
                         if gid is None:
-                            msg = "unknown group name: {0!r}".format(name)
+                            # msg = "unknown group name: {0!r}".format(name)
+                            msg = "unknown group name: %s" % (name)
                             raise error(msg)
                         # if state.lookbehind:
                         #     import warnings
@@ -664,7 +665,8 @@ def _parse(source, state):
                     if isname(condname):
                         condgroup = state.groupdict.get(condname)
                         if condgroup is None:
-                            msg = "unknown group name: {0!r}".format(condname)
+                            # msg = "unknown group name: {0!r}".format(condname)
+                            msg = "unknown group name: %s" % (condname)
                             raise error(msg)
                     else:
                         try:
@@ -796,7 +798,8 @@ def parse_template(source, pattern):
                     try:
                         index = pattern.groupindex[name]
                     except KeyError:
-                        msg = "unknown group name: {0!r}".format(name)
+                        # msg = "unknown group name: {0!r}".format(name)
+                        msg = "unknown group name: %s" % (name)
                         raise IndexError(msg)
                 a((MARK, index))
             elif c == "0":
