@@ -354,28 +354,19 @@ func TestListIteratorIter(t *testing.T) {
 }
 
 func TestListPop(t *testing.T) {
-	fun := newBuiltinFunction("TestListPop", func(f *Frame, args Args, kwargs KWArgs) (*Object, *BaseException) {
-		app, raised := GetAttr(f, ListType.ToObject(), NewStr("pop"), nil)
+	pop := mustNotRaise(GetAttr(NewRootFrame(), ListType.ToObject(), NewStr("pop"), nil))
+	fun := wrapFuncForTest(func(f *Frame, l *List, args ...*Object) (*Tuple, *BaseException) {
+		result, raised := pop.Call(f, append(Args{l.ToObject()}, args...), nil)
 		if raised != nil {
 			return nil, raised
 		}
-		result, raised := app.Call(f, args, nil)
-		if raised != nil {
-			return nil, raised
-		}
-		if kwargs.get("result", nil) != nil {
-			return result, nil
-		}
-		return args[0], nil
-	}).ToObject()
+		return newTestTuple(result, l), nil
+	})
 	cases := []invokeTestCase{
-		{args: wrapArgs(newTestList(-1, 0, 1)), kwargs: wrapKWArgs("result", True), want: NewInt(1).ToObject()},
-		{args: wrapArgs(newTestList(-1, 0, 1)), want: newTestList(-1, 0).ToObject()},
-		{args: wrapArgs(newTestList(-1, 0), 0), kwargs: wrapKWArgs("result", True), want: NewInt(-1).ToObject()},
-		{args: wrapArgs(newTestList(-1, 0, 1), 0), want: newTestList(0, 1).ToObject()},
-		{args: wrapArgs(newTestList(-1, 0), NewLong(big.NewInt(1))), kwargs: wrapKWArgs("result", True), want: NewInt(0).ToObject()},
-		{args: wrapArgs(newTestList(-1, 0, 1), NewLong(big.NewInt(1))), want: newTestList(-1, 1).ToObject()},
-		{args: wrapArgs(newTestList(-1, 0, 1), None), kwargs: wrapKWArgs("result", True), wantExc: mustCreateException(TypeErrorType, "int() argument must be a string or a number, not 'NoneType'")},
+		{args: wrapArgs(newTestList(-1, 0, 1)), want: newTestTuple(NewInt(1).ToObject(), newTestList(-1, 0).ToObject()).ToObject()},
+		{args: wrapArgs(newTestList(-1, 0, 1), 0), want: newTestTuple(NewInt(-1).ToObject(), newTestList(0, 1).ToObject()).ToObject()},
+		{args: wrapArgs(newTestList(-1, 0, 1), NewLong(big.NewInt(1))), want: newTestTuple(NewInt(0).ToObject(), newTestList(-1, 1).ToObject()).ToObject()},
+		{args: wrapArgs(newTestList(-1, 0, 1), None), wantExc: mustCreateException(TypeErrorType, "int() argument must be a string or a number, not 'NoneType'")},
 		{args: wrapArgs(newTestList(-1, 0, 1), None), wantExc: mustCreateException(TypeErrorType, "int() argument must be a string or a number, not 'NoneType'")},
 		{args: wrapArgs(newTestList(-1, 0, 1), 3), wantExc: mustCreateException(IndexErrorType, "list index out of range")},
 	}

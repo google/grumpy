@@ -291,7 +291,7 @@ func listNE(f *Frame, v, w *Object) (*Object, *BaseException) {
 	return listCompare(f, toListUnsafe(v), w, NE)
 }
 
-func listPop(f *Frame, args Args, kwargs KWArgs) (*Object, *BaseException) {
+func listPop(f *Frame, args Args, _ KWArgs) (*Object, *BaseException) {
 	argc := len(args)
 	expectedTypes := []*Type{ListType, ObjectType}
 	if argc == 1 {
@@ -309,17 +309,21 @@ func listPop(f *Frame, args Args, kwargs KWArgs) (*Object, *BaseException) {
 		i = toIntUnsafe(o).Value()
 	}
 	l := toListUnsafe(args[0])
-	if i < 0 {
-		i += len(l.elems)
-	}
-	if i >= len(l.elems) || i < 0 {
-		return nil, f.RaiseType(IndexErrorType, "list index out of range")
-	}
 	l.mutex.Lock()
-	item := l.elems[i]
-	l.elems = append(l.elems[:i], l.elems[i+1:]...)
+	numElems := len(l.elems)
+	if i < 0 {
+		i += numElems
+	}
+	var item *Object
+	var raised *BaseException
+	if i >= numElems || i < 0 {
+		raised = f.RaiseType(IndexErrorType, "list index out of range")
+	} else {
+		item = l.elems[i]
+		l.elems = append(l.elems[:i], l.elems[i+1:]...)
+	}
 	l.mutex.Unlock()
-	return item, nil
+	return item, raised
 }
 
 func listRepr(f *Frame, o *Object) (*Object, *BaseException) {
