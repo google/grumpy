@@ -31,12 +31,14 @@ __all__ = [
     'SRE_FLAG_LOCALE', 'SRE_FLAG_MULTILINE', 'SRE_FLAG_TEMPLATE',
     'SRE_FLAG_UNICODE', 'SRE_FLAG_VERBOSE', 'SRE_INFO_CHARSET',
     'SRE_INFO_LITERAL', 'SRE_INFO_PREFIX', 'SUBPATTERN', 'SUCCESS',
-    'SRE_FLAG_DEBUG', 'error'
+    'SRE_FLAG_DEBUG', 'MAXCODE', 'error'
 ]
 
 # update when constants are added or removed
 
 MAGIC = 20031017
+
+MAXCODE = 65535
 
 # try:
 #     from _sre import MAXREPEAT

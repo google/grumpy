@@ -11,7 +11,8 @@
 
 """Internal support module for sre"""
 
-import _sre, sys
+import sys
+import _sre
 import sre_parse
 
 # TODO: Support from foo import * syntax.
@@ -262,11 +263,9 @@ def _compile_charset(charset, flags, code, fixup=None, fixes=None):
 def _optimize_charset(charset, fixup, fixes, isunicode):
     # internal: optimize character set
     out = []
-    outappend = out.append
     tail = []
     # charmap = bytearray(256)
     charmap = [0] * 256
-
     for op, av in charset:
         while True:
             try:
@@ -319,85 +318,50 @@ def _optimize_charset(charset, fixup, fixes, isunicode):
             break
 
     # compress character map
-    i = p = n = 0
     runs = []
-    runsappend = runs.append
-    for c in charmap:
-        if c:
-            if n == 0:
-                p = i
-            n = n + 1
-        elif n:
-            runsappend((p, n))
-            n = 0
-        i = i + 1
-    if n:
-        runsappend((p, n))
-    if len(runs) <= 2:
+    q = 0
+    def char_find(l, s, start):
+        i = start
+        while i < len(l):
+            if l[i] == s:
+                return i
+            i += 1
+        return -1
+    while True:
+        # p = charmap.find(b'\1', q)
+        p = char_find(charmap, 1, q)
+        if p < 0:
+            break
+        if len(runs) >= 2:
+            runs = None
+            break
+        # q = charmap.find(b'\0', p)
+        q = char_find(charmap, 0, p)
+        if q < 0:
+            runs.append((p, len(charmap)))
+            break
+        runs.append((p, q))
+    if runs is not None:
         # use literal/range
-        for p, n in runs:
-            if n == 1:
-                outappend((LITERAL, p))
+        for p, q in runs:
+            if q - p == 1:
+                out.append((LITERAL, p))
             else:
-                outappend((RANGE, (p, p + n - 1)))
-        if len(out) < len(charset):
+                out.append((RANGE, (p, q - 1)))
+        out += tail
+        # if the case was changed or new representation is more compact
+        if fixup or len(out) < len(charset):
             return out
-    else:
-        # use bitmap
-        data = _mk_bitmap(charmap)
-        outappend((CHARSET, data))
-        return out
-    return charset
-    # runs = []
-    # q = 0
-    # while True:
-    #     p = charmap.find(b'\1', q)
-    #     if p < 0:
-    #         break
-    #     if len(runs) >= 2:
-    #         runs = None
-    #         break
-    #     q = charmap.find(b'\0', p)
-    #     if q < 0:
-    #         runs.append((p, len(charmap)))
-    #         break
-    #     runs.append((p, q))
-    # if runs is not None:
-    #     # use literal/range
-    #     for p, q in runs:
-    #         if q - p == 1:
-    #             out.append((LITERAL, p))
-    #         else:
-    #             out.append((RANGE, (p, q - 1)))
-    #     out += tail
-    #     # if the case was changed or new representation is more compact
-    #     if fixup or len(out) < len(charset):
-    #         return out
-    #     # else original character set is good enough
-    #     return charset
+        # else original character set is good enough
+        return charset
 
-    # # use bitmap
-    # if len(charmap) == 256:
-    #     data = _mk_bitmap(charmap)
-    #     out.append((CHARSET, data))
-    #     out += tail
-    #     return out
-def _mk_bitmap(bits):
-    data = []
-    dataappend = data.append
-    if _sre.CODESIZE == 2:
-        start = (1, 0)
-    else:
-        start = (1, 0)
-    m, v = start
-    for c in bits:
-        if c:
-            v = v + m
-        m = m + m
-        if m > MAXCODE:
-            dataappend(v)
-            m, v = start
-    return data
+    # use bitmap
+    if len(charmap) == 256:
+        data = _mk_bitmap(charmap)
+        out.append((CHARSET, data))
+        out += tail
+        return out
+
     # To represent a big charset, first a bitmap of all characters in the
     # set is constructed. Then, this bitmap is sliced into chunks of 256
     # characters, duplicate chunks are eliminated, and each chunk is
@@ -422,7 +386,8 @@ def _mk_bitmap(bits):
     # of the basic multilingual plane; an efficient representation
     # for all of Unicode has not yet been developed.
 
-    charmap = bytes(charmap) # should be hashable
+    # charmap = bytes(charmap) # should be hashable
+    charmap = str(charmap) # should be hashable
     comps = {}
     # mapping = bytearray(256)
     mapping = [0] * 256
@@ -465,8 +430,26 @@ _CODEBITS = _sre.CODESIZE * 8
 _BITS_TRANS = b'0' + b'1' * 255
 # def _mk_bitmap(bits, _CODEBITS=_CODEBITS, _int=int):
 #     s = bytes(bits).translate(_BITS_TRANS)[::-1]
-#     return [_int(s[i - _CODEBITS: i], 2)
+#     r = [_int(s[i - _CODEBITS: i], 2)
 #             for i in range(len(s), 0, -_CODEBITS)]
+#     return r
+def _mk_bitmap(bits):
+    data = []
+    dataappend = data.append
+    # if _sre.CODESIZE == 2:
+    #     start = (1, 0)
+    # else:
+    #     start = (1, 0)
+    start = (1, 0)
+    m, v = start
+    for c in bits:
+        if c:
+            v = v + m
+        m = m + m
+        if m > MAXCODE:
+            dataappend(v)
+            m, v = start
+    return data
 
 def _bytes_to_codes(b):
     return b[:]

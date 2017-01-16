@@ -143,7 +143,8 @@ class SubPattern(object):
     def __len__(self):
         return len(self.data)
     def __delitem__(self, index):
-        del self.data[index]
+        # del self.data[index]
+        self.data = self.data[:index] + self.data[index+1:]
     def __getitem__(self, index):
         if isinstance(index, slice):
             return SubPattern(self.pattern, self.data[index])
@@ -345,7 +346,7 @@ def _parse_sub(source, state, nested=1):
 
     # check if all items share a common prefix
     while 1:
-        prefix = None
+        prefix, common = None, False
         for item in items:
             if not item:
                 break
@@ -356,10 +357,16 @@ def _parse_sub(source, state, nested=1):
         else:
             # all subitems start with a common "prefix".
             # move it out of the branch
-            for item in items:
-                del item[0]
+            # for item in items:
+            #     print "del", item[0], items
+            #     del item[0]
+            for i in range(len(items)):
+                items[i] = items[i][1:]
             subpatternappend(prefix)
-            continue # check next one
+            # continue # check next one
+            common = True
+        if common:
+            continue
         break
 
     # check if the branch can be replaced by a character set
@@ -589,7 +596,8 @@ def _parse(source, state):
                                         "%r" % name)
                         gid = state.groupdict.get(name)
                         if gid is None:
-                            msg = "unknown group name: {0!r}".format(name)
+                            # msg = "unknown group name: {0!r}".format(name)
+                            msg = "unknown group name: %s" % (name)
                             raise error(msg)
                         # if state.lookbehind:
                         #     import warnings
@@ -651,7 +659,8 @@ def _parse(source, state):
                     if isname(condname):
                         condgroup = state.groupdict.get(condname)
                         if condgroup is None:
-                            msg = "unknown group name: {0!r}".format(condname)
+                            # msg = "unknown group name: {0!r}".format(condname)
+                            msg = "unknown group name: %s" % (condname)
                             raise error(msg)
                     else:
                         try:
@@ -783,7 +792,8 @@ def parse_template(source, pattern):
                     try:
                         index = pattern.groupindex[name]
                     except KeyError:
-                        msg = "unknown group name: {0!r}".format(name)
+                        # msg = "unknown group name: {0!r}".format(name)
+                        msg = "unknown group name: %s" % (name)
                         raise IndexError(msg)
                 a((MARK, index))
             elif c == "0":

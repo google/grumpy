@@ -45,7 +45,8 @@ def compile(pattern, flags, code, groups=0, groupindex={}, indexgroup=[None]):
 def getlower(char_ord, flags):
     if (char_ord < 128) or (flags & SRE_FLAG_UNICODE) \
                               or (flags & SRE_FLAG_LOCALE and char_ord < 256):
-        return ord(unichr(char_ord).lower())
+        # return ord(unichr(char_ord).lower())
+        return ord(chr(char_ord).lower())
     else:
         return char_ord
 
