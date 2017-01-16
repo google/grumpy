@@ -363,12 +363,17 @@ func TestListPop(t *testing.T) {
 		return newTestTuple(result, l), nil
 	})
 	cases := []invokeTestCase{
-		{args: wrapArgs(newTestList(-1, 0, 1)), want: newTestTuple(NewInt(1).ToObject(), newTestList(-1, 0).ToObject()).ToObject()},
-		{args: wrapArgs(newTestList(-1, 0, 1), 0), want: newTestTuple(NewInt(-1).ToObject(), newTestList(0, 1).ToObject()).ToObject()},
-		{args: wrapArgs(newTestList(-1, 0, 1), NewLong(big.NewInt(1))), want: newTestTuple(NewInt(0).ToObject(), newTestList(-1, 1).ToObject()).ToObject()},
+		{args: wrapArgs(newTestList(1)), want: newTestTuple(1, newTestList().ToObject()).ToObject()},
+		{args: wrapArgs(newTestList(1), 0), want: newTestTuple(1, newTestList().ToObject()).ToObject()},
+		{args: wrapArgs(newTestList(-1, 0, 1)), want: newTestTuple(1, newTestList(-1, 0).ToObject()).ToObject()},
+		{args: wrapArgs(newTestList(-1, 0, 1), 0), want: newTestTuple(-1, newTestList(0, 1).ToObject()).ToObject()},
+		{args: wrapArgs(newTestList(-1, 0, 1), NewLong(big.NewInt(1))), want: newTestTuple(0, newTestList(-1, 1).ToObject()).ToObject()},
 		{args: wrapArgs(newTestList(-1, 0, 1), None), wantExc: mustCreateException(TypeErrorType, "int() argument must be a string or a number, not 'NoneType'")},
 		{args: wrapArgs(newTestList(-1, 0, 1), None), wantExc: mustCreateException(TypeErrorType, "int() argument must be a string or a number, not 'NoneType'")},
 		{args: wrapArgs(newTestList(-1, 0, 1), 3), wantExc: mustCreateException(IndexErrorType, "list index out of range")},
+		{args: wrapArgs(newTestList()), wantExc: mustCreateException(IndexErrorType, "list index out of range")},
+		{args: wrapArgs(newTestList(), 0), wantExc: mustCreateException(IndexErrorType, "list index out of range")},
+		{args: wrapArgs(newTestList(), 1), wantExc: mustCreateException(IndexErrorType, "list index out of range")},
 	}
 	for _, cas := range cases {
 		if err := runInvokeTestCase(fun, &cas); err != "" {
