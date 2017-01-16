@@ -355,9 +355,18 @@ func TestStrMethods(t *testing.T) {
 		{"zfill", wrapArgs("-123", 3), NewStr("-123").ToObject(), nil},
 		{"zfill", wrapArgs("-123", 4), NewStr("-123").ToObject(), nil},
 		{"zfill", wrapArgs("-123", 5), NewStr("-0123").ToObject(), nil},
+		{"zfill", wrapArgs("123", NewLong(big.NewInt(3))), NewStr("123").ToObject(), nil},
+		{"zfill", wrapArgs("123", NewLong(big.NewInt(5))), NewStr("00123").ToObject(), nil},
+		{"zfill", wrapArgs("", 0), NewStr("").ToObject(), nil},
+		{"zfill", wrapArgs("", 1), NewStr("0").ToObject(), nil},
 		{"zfill", wrapArgs("", 3), NewStr("000").ToObject(), nil},
+		{"zfill", wrapArgs("", -1), NewStr("").ToObject(), nil},
 		{"zfill", wrapArgs("34", 1), NewStr("34").ToObject(), nil},
 		{"zfill", wrapArgs("34", 4), NewStr("0034").ToObject(), nil},
+		{"zfill", wrapArgs("34", None), nil, mustCreateException(TypeErrorType, "int() argument must be a string or a number, not 'NoneType'")},
+		{"zfill", wrapArgs("", True), NewStr("0").ToObject(), nil},
+		{"zfill", wrapArgs("", False), NewStr("").ToObject(), nil},
+		{"zfill", wrapArgs("34", NewStr("test")), nil, mustCreateException(ValueErrorType, "invalid literal for int() with base 10: test")},
 		{"zfill", wrapArgs("34"), nil, mustCreateException(TypeErrorType, "'zfill' of 'str' requires 2 arguments")},
 	}
 	for _, cas := range cases {

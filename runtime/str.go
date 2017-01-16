@@ -798,12 +798,16 @@ func strUpper(f *Frame, args Args, kwargs KWArgs) (*Object, *BaseException) {
 }
 
 func strZFill(f *Frame, args Args, _ KWArgs) (*Object, *BaseException) {
-	if raised := checkMethodArgs(f, "zfill", args, StrType, IntType); raised != nil {
+	if raised := checkMethodArgs(f, "zfill", args, StrType, ObjectType); raised != nil {
 		return nil, raised
 	}
 	s := toStrUnsafe(args[0]).Value()
 	l := len(s)
-	width := toIntUnsafe(args[1]).Value()
+	o, raised := IntType.Call(f, Args{args[1]}, nil)
+	if raised != nil {
+		return nil, raised
+	}
+	width := toIntUnsafe(o).Value()
 	if width <= l {
 		return args[0], nil
 	}

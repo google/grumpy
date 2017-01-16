@@ -48,3 +48,9 @@ try:
   raise AssertionError
 except TypeError:
   pass
+
+class A(object):
+  def __int__(self):
+    return 3
+
+assert '3'.zfill(A()) == '003'
