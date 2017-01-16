@@ -277,10 +277,6 @@ func longOr(z, x, y *big.Int) {
 	z.Or(x, y)
 }
 
-func longPow(z, x, y *big.Int) {
-	z.Exp(x, y, nil)
-}
-
 func longRepr(f *Frame, o *Object) (*Object, *BaseException) {
 	return NewStr(toLongUnsafe(o).value.Text(10) + "L").ToObject(), nil
 }
@@ -325,7 +321,7 @@ func initLongType(dict map[string]*Object) {
 	LongType.slots.New = &newSlot{longNew}
 	LongType.slots.NonZero = longUnaryBoolOpSlot(longNonZero)
 	LongType.slots.Or = longBinaryOpSlot(longOr)
-	LongType.slots.Pow = longBinaryOpSlot(longPow)
+	LongType.slots.Pow = &binaryOpSlot{longPow}
 	LongType.slots.RAdd = longRBinaryOpSlot(longAdd)
 	LongType.slots.RAnd = longRBinaryOpSlot(longAnd)
 	LongType.slots.RDiv = longRDivModOpSlot(longDiv)
@@ -334,7 +330,7 @@ func initLongType(dict map[string]*Object) {
 	LongType.slots.RMul = longRBinaryOpSlot(longMul)
 	LongType.slots.ROr = longRBinaryOpSlot(longOr)
 	LongType.slots.RLShift = longRShiftOpSlot(longLShift)
-	LongType.slots.RPow = longRBinaryOpSlot(longPow)
+	LongType.slots.RPow = &binaryOpSlot{longRPow}
 	LongType.slots.RRShift = longRShiftOpSlot(longRShift)
 	LongType.slots.RShift = longShiftOpSlot(longRShift)
 	LongType.slots.RSub = longRBinaryOpSlot(longSub)
@@ -491,6 +487,20 @@ func longRBinaryBoolOpSlot(fun func(x, y *big.Int) bool) *binaryOpSlot {
 		return longCallBinaryBool(fun, toLongUnsafe(w), toLongUnsafe(v)), nil
 	}
 	return &binaryOpSlot{f}
+}
+
+func longPow(f *Frame, v, w *Object) (*Object, *BaseException) {
+	 if w.isInstance(LongType) {
+		 v_long := toLongUnsafe(v).Value()
+		 w_long := toLongUnsafe(w).Value()
+		 return NewLong(big.NewInt(0).Exp(v_long, w_long, nil)).ToObject(), nil
+	 }
+
+	return NotImplemented, nil
+}
+
+func longRPow(f *Frame, v, w *Object) (*Object, *BaseException) {
+	return longPow(f, w, v)
 }
 
 func longDivMod(x, y, z, m *big.Int) {

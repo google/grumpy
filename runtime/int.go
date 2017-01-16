@@ -228,7 +228,40 @@ func intOr(f *Frame, v, w *Object) (*Object, *BaseException) {
 }
 
 func intPow(f *Frame, v, w *Object) (*Object, *BaseException) {
-	return intAddMulOp(f, "__pow__", v, w, intCheckedPow, longPow)
+	if w.isInstance(IntType) {
+		// First try to use the faster floating point arithmetic
+		// on the CPU, then falls back to slower methods.
+		// IEEE float64 has 52bit of precision, so the result should be
+		// less than MaxInt32 to be representable as an exact integer.
+		// This assumes that int is at least 32bit.
+		v_int := toIntUnsafe(v).Value()
+		w_int := toIntUnsafe(w).Value()
+		if 0 < v_int && v_int <= math.MaxInt32 && 0 < w_int && w_int <= math.MaxInt32 {
+			res := math.Pow(float64(v_int), float64(w_int))
+			// can the result be interpreted as an int?
+			if !math.IsNaN(res) && !math.IsInf(res, 0) && res <= math.MaxInt32 {
+				return NewInt(int(res)).ToObject(), nil
+			}
+		}
+		// Special cases.
+		if v_int == 0 {
+			if w_int < 0 {
+				return nil, f.RaiseType(ZeroDivisionErrorType, "0.0 cannot be raised to a negative power")
+			} else if w_int == 0 {
+				return NewInt(1).ToObject(), nil
+			} else {
+				return NewInt(0).ToObject(), nil
+			}
+		}
+		// If w < 0, the result must be a floating point number.
+		// We convert both arguments to float and continue.
+		if w_int < 0 {
+			return floatPow(f, NewFloat(float64(v_int)).ToObject(), NewFloat(float64(w_int)).ToObject())
+		}
+		// Else we convert to Long and continue there.
+		return longPow(f, NewLong(big.NewInt(int64(v_int))).ToObject(), NewLong(big.NewInt(int64(w_int))).ToObject())
+	}
+	return NotImplemented, nil
 }
 
 func intRAdd(f *Frame, v, w *Object) (*Object, *BaseException) {
@@ -261,10 +294,6 @@ func intRMul(f *Frame, v, w *Object) (*Object, *BaseException) {
 
 func intRLShift(f *Frame, v, w *Object) (*Object, *BaseException) {
 	return intShiftOp(f, v, w, func(v, w int) (int, int, bool) { return w, v, false })
-}
-
-func intRPow(f *Frame, v, w *Object) (*Object, *BaseException) {
-	return intAddMulOp(f, "__pow__", w, v, intCheckedPow, longPow)
 }
 
 func intRRShift(f *Frame, v, w *Object) (*Object, *BaseException) {
@@ -326,7 +355,6 @@ func initIntType(dict map[string]*Object) {
 	IntType.slots.RMod = &binaryOpSlot{intRMod}
 	IntType.slots.RMul = &binaryOpSlot{intRMul}
 	IntType.slots.ROr = &binaryOpSlot{intOr}
-	IntType.slots.RPow = &binaryOpSlot{intRPow}
 	IntType.slots.RLShift = &binaryOpSlot{intRLShift}
 	IntType.slots.RRShift = &binaryOpSlot{intRRShift}
 	IntType.slots.RShift = &binaryOpSlot{intRShift}
@@ -439,20 +467,6 @@ func intCheckedMul(v, w int) (int, bool) {
 		return 0, false
 	}
 	return x, true
-}
-
-func intCheckedPow(v, w int) (int, bool) {
-	// first try the shortcut - assuming the this operation is
-	// faster on float on the CPU then on LongInt
-	if 0 <= v && v <= MaxInt && 0 <= w && w <= MaxInt {
-		res := math.Pow(float64(v), float64(w))
-		// can the result be interpreted as an int?
-		if !math.IsNaN(res) && !math.IsInf(res, 0) && res <=  MaxInt {
-			return int(res), true
-		}
-	}
-	// fall back to alternative implementation
-	return 0, false
 }
 
 func intCheckedSub(v, w int) (int, bool) {
