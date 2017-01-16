@@ -23,10 +23,10 @@ Functions
 ---------
 
 pformat()
-    Format a Python o into a pretty-printed representation.
+    Format a Python object into a pretty-printed representation.
 
 pprint()
-    Pretty-print a Python o to a stream [default is sys.stdout].
+    Pretty-print a Python object to a stream [default is sys.stdout].
 
 saferepr()
     Generate a 'standard' repr()-like value, but protect against recursive
@@ -319,8 +319,8 @@ def _safe_repr(o, context, maxlevels, level):
         components = []
         append = components.append
         level += 1
-        for o in o:
-            orepr, oreadable, orecur = _safe_repr(o, context, maxlevels, level)
+        for x in o:
+            orepr, oreadable, orecur = _safe_repr(x, context, maxlevels, level)
             append(orepr)
             if not oreadable:
                 readable = False
