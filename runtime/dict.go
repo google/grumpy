@@ -65,11 +65,18 @@ type dictTable struct {
 // newDictTable allocates a table where at least minCapacity entries can be
 // accommodated. minCapacity must be <= maxDictSize.
 func newDictTable(minCapacity int) *dictTable {
-	numEntries := minDictSize
-	for numEntries < minCapacity {
-		numEntries <<= 1
-	}
-	return &dictTable{entries: make([]*dictEntry, numEntries)}
+	// This takes the given capacity and sets all bits less than the highest bit.
+	// Adding 1 to that value causes the number to become a multiple of 2 again.
+	// The minDictSize is mixed in to make sure the resulting value is at least
+	// that big. This implementation makes the function able to be inlined, as
+	// well as allows for complete evaluation of constants at compile time.
+	numEntries := (minDictSize - 1) | minCapacity
+	numEntries |= numEntries >> 1
+	numEntries |= numEntries >> 2
+	numEntries |= numEntries >> 4
+	numEntries |= numEntries >> 8
+	numEntries |= numEntries >> 16
+	return &dictTable{entries: make([]*dictEntry, numEntries+1)}
 }
 
 // loadEntry atomically loads the i'th entry in t and returns it.
