@@ -28,3 +28,29 @@ assert "%%" % tuple() == "%"
 assert "%r" % "abc" == "'abc'"
 assert "%x" % 0x1f == "1f"
 assert "%X" % 0xffff == "FFFF"
+
+# Test zfill
+assert '123'.zfill(2) == '123'
+assert '123'.zfill(3) == '123'
+assert '123'.zfill(4) == '0123'
+assert '+123'.zfill(3) == '+123'
+assert '+123'.zfill(4) == '+123'
+assert '+123'.zfill(5) == '+0123'
+assert '-123'.zfill(3) == '-123'
+assert '-123'.zfill(4) == '-123'
+assert '-123'.zfill(5) == '-0123'
+assert ''.zfill(3) == '000'
+assert '34'.zfill(1) == '34'
+assert '34'.zfill(4) == '0034'
+
+try:
+  '123'.zfill()
+  raise AssertionError
+except TypeError:
+  pass
+
+class A(object):
+  def __int__(self):
+    return 3
+
+assert '3'.zfill(A()) == '003'
