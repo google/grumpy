@@ -346,6 +346,19 @@ func TestStrMethods(t *testing.T) {
 		{"upper", wrapArgs("aBC"), NewStr("ABC").ToObject(), nil},
 		{"upper", wrapArgs("abc def", 123), nil, mustCreateException(TypeErrorType, "'upper' of 'str' requires 1 arguments")},
 		{"upper", wrapArgs(123), nil, mustCreateException(TypeErrorType, "unbound method upper() must be called with str instance as first argument (got int instance instead)")},
+		{"zfill", wrapArgs("123", 2), NewStr("123").ToObject(), nil},
+		{"zfill", wrapArgs("123", 3), NewStr("123").ToObject(), nil},
+		{"zfill", wrapArgs("123", 4), NewStr("0123").ToObject(), nil},
+		{"zfill", wrapArgs("+123", 3), NewStr("+123").ToObject(), nil},
+		{"zfill", wrapArgs("+123", 4), NewStr("+123").ToObject(), nil},
+		{"zfill", wrapArgs("+123", 5), NewStr("+0123").ToObject(), nil},
+		{"zfill", wrapArgs("-123", 3), NewStr("-123").ToObject(), nil},
+		{"zfill", wrapArgs("-123", 4), NewStr("-123").ToObject(), nil},
+		{"zfill", wrapArgs("-123", 5), NewStr("-0123").ToObject(), nil},
+		{"zfill", wrapArgs("", 3), NewStr("000").ToObject(), nil},
+		{"zfill", wrapArgs("34", 1), NewStr("34").ToObject(), nil},
+		{"zfill", wrapArgs("34", 4), NewStr("0034").ToObject(), nil},
+		{"zfill", wrapArgs("34"), nil, mustCreateException(TypeErrorType, "'zfill' of 'str' requires 2 arguments")},
 	}
 	for _, cas := range cases {
 		testCase := invokeTestCase{args: cas.args, want: cas.want, wantExc: cas.wantExc}
