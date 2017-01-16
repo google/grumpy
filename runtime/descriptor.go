@@ -103,9 +103,7 @@ func makeStructFieldDescriptor(t *Type, fieldName, propertyName string) *Object 
 	if !ok {
 		logFatal(fmt.Sprintf("no such field %q for basis %s", fieldName, nativeTypeName(t.basis)))
 	}
-	getterFunc := reflect.MakeFunc(reflect.TypeOf(Func(nil)), func(argValues []reflect.Value) []reflect.Value {
-		f := argValues[0].Interface().(*Frame)
-		args := argValues[1].Interface().(Args)
+	getterFunc := func(f *Frame, args Args, _ KWArgs) (*Object, *BaseException) {
 		var ret *Object
 		var raised *BaseException
 		if raised = checkFunctionArgs(f, fieldName, args, ObjectType); raised == nil {
@@ -117,7 +115,7 @@ func makeStructFieldDescriptor(t *Type, fieldName, propertyName string) *Object 
 				ret, raised = WrapNative(f, t.slots.Basis.Fn(o).FieldByIndex(field.Index))
 			}
 		}
-		return []reflect.Value{reflect.ValueOf(ret), reflect.ValueOf(raised)}
-	}).Interface().(Func)
+		return ret, raised
+	}
 	return newProperty(newBuiltinFunction("_get"+fieldName, getterFunc).ToObject(), None, None).ToObject()
 }
