@@ -336,7 +336,8 @@ class StatementVisitorTest(unittest.TestCase):
     regexp = r'wildcard member import is not implemented: from foo import *'
     self.assertRaisesRegexp(util.ParseError, regexp, _ParseAndVisit,
                             'from foo import *')
-    regexp = r'wildcard member import is not implemented: from __go__.foo import *'
+    regexp = (r'wildcard member import is not '
+              r'implemented: from __go__.foo import *')
     self.assertRaisesRegexp(util.ParseError, regexp, _ParseAndVisit,
                             'from __go__.foo import *')
 
