@@ -283,6 +283,9 @@ func (t *Type) Name() string {
 
 // FullName returns t's fully qualified name including the module.
 func (t *Type) FullName(f *Frame) (string, *BaseException) {
+	if t.dict == nil {
+		return t.Name(), nil
+	}
 	moduleAttr, raised := t.dict.GetItemString(f, "__module__")
 	if raised != nil {
 		return "", raised
