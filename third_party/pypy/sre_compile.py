@@ -20,12 +20,12 @@ import sre_constants
 for name in sre_constants.__all__:
   globals()[name] = getattr(sre_constants, name)
 
-# assert _sre.MAGIC == MAGIC, "SRE module mismatch"
+assert _sre.MAGIC == MAGIC, "SRE module mismatch"
 
-# if _sre.CODESIZE == 2:
-#     MAXCODE = 65535
-# else:
-#     MAXCODE = 0xFFFFFFFFL
+if _sre.CODESIZE == 2:
+    MAXCODE = 65535
+else:
+    MAXCODE = 0xFFFFFFFFL
 
 _LITERAL_CODES = set([LITERAL, NOT_LITERAL])
 _REPEATING_CODES = set([REPEAT, MIN_REPEAT, MAX_REPEAT])
@@ -436,10 +436,11 @@ _BITS_TRANS = b'0' + b'1' * 255
 def _mk_bitmap(bits):
     data = []
     dataappend = data.append
-    if _sre.CODESIZE == 2:
-        start = (1, 0)
-    else:
-        start = (1, 0)
+    # if _sre.CODESIZE == 2:
+    #     start = (1, 0)
+    # else:
+    #     start = (1, 0)
+    start = (1, 0)
     m, v = start
     for c in bits:
         if c:

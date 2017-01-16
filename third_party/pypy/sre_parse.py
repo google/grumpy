@@ -88,12 +88,6 @@ class Pattern(object):
         self.open.append(gid)
         return gid
     def closegroup(self, gid):
-        # l, found = [], False
-        # for x in self.open:
-        #     if x == gid and not Found:
-        #       found = True
-        #       continue
-        #     l.append(x)
         # self.open.remove(gid)
         self.open = [x for x in self.open if x != gid]
     def checkgroup(self, gid):
@@ -149,8 +143,8 @@ class SubPattern(object):
     def __len__(self):
         return len(self.data)
     def __delitem__(self, index):
-        self.data = self.data[:index] + self.data[index+1:]
         # del self.data[index]
+        self.data = self.data[:index] + self.data[index+1:]
     def __getitem__(self, index):
         if isinstance(index, slice):
             return SubPattern(self.pattern, self.data[index])

@@ -54,7 +54,7 @@ RUNNER = $(RUNNER_BIN) $(COMPILER) $(RUNTIME) $(STDLIB)
 
 GRUMPY_STDLIB_SRCS := $(shell find lib -name '*.py')
 GRUMPY_STDLIB_PACKAGES := $(foreach x,$(GRUMPY_STDLIB_SRCS),$(patsubst lib/%.py,%,$(patsubst lib/%/__init__.py,%,$(x))))
-THIRD_PARTY_STDLIB_SRCS := $(shell find third_party -name '*.py' -not -name '*_test.py')
+THIRD_PARTY_STDLIB_SRCS := $(wildcard third_party/stdlib/*.py) $(wildcard third_party/pypy/*.py)
 THIRD_PARTY_STDLIB_PACKAGES := $(foreach x,$(THIRD_PARTY_STDLIB_SRCS),$(patsubst third_party/stdlib/%.py,%,$(patsubst third_party/pypy/%.py,%,$(x))))
 STDLIB_SRCS := $(GRUMPY_STDLIB_SRCS) $(THIRD_PARTY_STDLIB_SRCS)
 STDLIB_PACKAGES := $(GRUMPY_STDLIB_PACKAGES) $(THIRD_PARTY_STDLIB_PACKAGES)
