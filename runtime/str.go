@@ -205,6 +205,45 @@ func strEq(f *Frame, v, w *Object) (*Object, *BaseException) {
 	return strCompare(v, w, False, True, False), nil
 }
 
+func strFind(f *Frame, args Args, _ KWArgs) (*Object, *BaseException) {
+	// TODO: Support finding index of unicode substring.
+	expectedTypes := []*Type{StrType, StrType, ObjectType, ObjectType}
+	argc := len(args)
+	if argc == 2 || argc == 3 {
+		expectedTypes = expectedTypes[:argc]
+	}
+	if raised := checkMethodArgs(f, "find/index", args, expectedTypes...); raised != nil {
+		return nil, raised
+	}
+	s := toStrUnsafe(args[0]).Value()
+	l := len(s)
+	start, end := 0, l
+	if argc >= 3 {
+		startParsed, raised := adjustBounds(f, args[2], l, false)
+		if raised != nil {
+			return nil, raised
+		}
+		start = startParsed
+	}
+	if argc == 4 {
+		endParsed, raised := adjustBounds(f, args[3], l, true)
+		if raised != nil {
+			return nil, raised
+		}
+		end = endParsed
+	}
+	if start > end {
+		return NewInt(-1).ToObject(), nil
+	}
+	sep := toStrUnsafe(args[1]).Value()
+	s = s[start:end]
+	index := strings.Index(s, sep)
+	if index != -1 {
+		index += start
+	}
+	return NewInt(index).ToObject(), nil
+}
+
 func strGE(f *Frame, v, w *Object) (*Object, *BaseException) {
 	return strCompare(v, w, False, True, True), nil
 }
@@ -552,6 +591,7 @@ func initStrType(dict map[string]*Object) {
 	dict["__getnewargs__"] = newBuiltinFunction("__getnewargs__", strGetNewArgs).ToObject()
 	dict["decode"] = newBuiltinFunction("decode", strDecode).ToObject()
 	dict["endswith"] = newBuiltinFunction("endswith", strEndsWith).ToObject()
+	dict["find"] = newBuiltinFunction("find", strFind).ToObject()
 	dict["join"] = newBuiltinFunction("join", strJoin).ToObject()
 	dict["lower"] = newBuiltinFunction("lower", strLower).ToObject()
 	dict["lstrip"] = newBuiltinFunction("lstrip", strLStrip).ToObject()
@@ -715,6 +755,23 @@ func adjustIndex(i, l int) int {
 		i = l
 	}
 	return i
+}
+
+func adjustBounds(f *Frame, o *Object, l int, upperBound bool) (int, *BaseException) {
+	i, raised := IndexInt(f, o)
+	if raised != nil {
+		return 0, raised
+	}
+	switch {
+	case i <= -l:
+		i = 0
+	case i < 0:
+		i += l
+	}
+	if upperBound && i > l {
+		i = l
+	}
+	return i, nil
 }
 
 func strStartsEndsWith(f *Frame, method string, args Args) (*Object, *BaseException) {
