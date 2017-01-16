@@ -193,11 +193,11 @@ def compile(pattern, flags=0):
     return _compile(pattern, flags)
 
 def purge():
-    globals()['_cache'] = {}
-    globals()['_cache_repl'] = {}
     "Clear the regular expression cache"
     # _cache.clear()
     # _cache_repl.clear()
+    globals()['_cache'] = {}
+    globals()['_cache_repl'] = {}
 
 def template(pattern, flags=0):
     "Compile a template pattern, returning a pattern object"
@@ -252,8 +252,8 @@ def _compile(*key):
         raise error, v # invalid expression
     if not bypass_cache:
         if len(_cache) >= _MAXCACHE:
-            globals()['_cache'] = {}
             # _cache.clear()
+            globals()['_cache'] = {}
         if p.flags & LOCALE:
             if not _locale:
                 return p

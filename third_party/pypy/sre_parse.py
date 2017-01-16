@@ -352,7 +352,7 @@ def _parse_sub(source, state, nested=1):
 
     # check if all items share a common prefix
     while 1:
-        prefix = None
+        prefix, common = None, False
         for item in items:
             if not item:
                 break
@@ -369,7 +369,10 @@ def _parse_sub(source, state, nested=1):
             for i in range(len(items)):
                 items[i] = items[i][1:]
             subpatternappend(prefix)
-            continue # check next one
+            # continue # check next one
+            common = True
+        if common:
+            continue
         break
 
     # check if the branch can be replaced by a character set
