@@ -291,6 +291,41 @@ func listNE(f *Frame, v, w *Object) (*Object, *BaseException) {
 	return listCompare(f, toListUnsafe(v), w, NE)
 }
 
+func listPop(f *Frame, args Args, _ KWArgs) (*Object, *BaseException) {
+	argc := len(args)
+	expectedTypes := []*Type{ListType, ObjectType}
+	if argc == 1 {
+		expectedTypes = expectedTypes[:1]
+	}
+	if raised := checkMethodArgs(f, "pop", args, expectedTypes...); raised != nil {
+		return nil, raised
+	}
+	i := -1
+	if argc == 2 {
+		o, raised := IntType.Call(f, Args{args[1]}, nil)
+		if raised != nil {
+			return nil, raised
+		}
+		i = toIntUnsafe(o).Value()
+	}
+	l := toListUnsafe(args[0])
+	l.mutex.Lock()
+	numElems := len(l.elems)
+	if i < 0 {
+		i += numElems
+	}
+	var item *Object
+	var raised *BaseException
+	if i >= numElems || i < 0 {
+		raised = f.RaiseType(IndexErrorType, "list index out of range")
+	} else {
+		item = l.elems[i]
+		l.elems = append(l.elems[:i], l.elems[i+1:]...)
+	}
+	l.mutex.Unlock()
+	return item, raised
+}
+
 func listRepr(f *Frame, o *Object) (*Object, *BaseException) {
 	l := toListUnsafe(o)
 	if f.reprEnter(l.ToObject()) {
@@ -349,6 +384,7 @@ func listSort(f *Frame, args Args, _ KWArgs) (*Object, *BaseException) {
 func initListType(dict map[string]*Object) {
 	dict["append"] = newBuiltinFunction("append", listAppend).ToObject()
 	dict["insert"] = newBuiltinFunction("insert", listInsert).ToObject()
+	dict["pop"] = newBuiltinFunction("pop", listPop).ToObject()
 	dict["reverse"] = newBuiltinFunction("reverse", listReverse).ToObject()
 	dict["sort"] = newBuiltinFunction("sort", listSort).ToObject()
 	ListType.slots.Add = &binaryOpSlot{listAdd}

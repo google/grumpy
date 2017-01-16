@@ -353,6 +353,35 @@ func TestListIteratorIter(t *testing.T) {
 	}
 }
 
+func TestListPop(t *testing.T) {
+	pop := mustNotRaise(GetAttr(NewRootFrame(), ListType.ToObject(), NewStr("pop"), nil))
+	fun := wrapFuncForTest(func(f *Frame, l *List, args ...*Object) (*Tuple, *BaseException) {
+		result, raised := pop.Call(f, append(Args{l.ToObject()}, args...), nil)
+		if raised != nil {
+			return nil, raised
+		}
+		return newTestTuple(result, l), nil
+	})
+	cases := []invokeTestCase{
+		{args: wrapArgs(newTestList(1)), want: newTestTuple(1, newTestList().ToObject()).ToObject()},
+		{args: wrapArgs(newTestList(1), 0), want: newTestTuple(1, newTestList().ToObject()).ToObject()},
+		{args: wrapArgs(newTestList(-1, 0, 1)), want: newTestTuple(1, newTestList(-1, 0).ToObject()).ToObject()},
+		{args: wrapArgs(newTestList(-1, 0, 1), 0), want: newTestTuple(-1, newTestList(0, 1).ToObject()).ToObject()},
+		{args: wrapArgs(newTestList(-1, 0, 1), NewLong(big.NewInt(1))), want: newTestTuple(0, newTestList(-1, 1).ToObject()).ToObject()},
+		{args: wrapArgs(newTestList(-1, 0, 1), None), wantExc: mustCreateException(TypeErrorType, "int() argument must be a string or a number, not 'NoneType'")},
+		{args: wrapArgs(newTestList(-1, 0, 1), None), wantExc: mustCreateException(TypeErrorType, "int() argument must be a string or a number, not 'NoneType'")},
+		{args: wrapArgs(newTestList(-1, 0, 1), 3), wantExc: mustCreateException(IndexErrorType, "list index out of range")},
+		{args: wrapArgs(newTestList()), wantExc: mustCreateException(IndexErrorType, "list index out of range")},
+		{args: wrapArgs(newTestList(), 0), wantExc: mustCreateException(IndexErrorType, "list index out of range")},
+		{args: wrapArgs(newTestList(), 1), wantExc: mustCreateException(IndexErrorType, "list index out of range")},
+	}
+	for _, cas := range cases {
+		if err := runInvokeTestCase(fun, &cas); err != "" {
+			t.Error(err)
+		}
+	}
+}
+
 func TestListSetItem(t *testing.T) {
 	fun := newBuiltinFunction("TestListSetItem", func(f *Frame, args Args, _ KWArgs) (*Object, *BaseException) {
 		// Check that there is at least one arg, but otherwise leave
