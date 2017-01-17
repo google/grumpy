@@ -23,13 +23,3 @@ for k, v in Builtins.iteritems():
   globals()[k] = v
 
 
-# sorted()
-def sorted(iterable, **kwargs):
-    """sorted(iterable, cmp=None, key=None, reverse=False) --> new sorted list"""
-    res = list(iterable)  # make a copy / expand the iterable
-    # sort teh copy in place and return
-    res.sort(**kwargs)
-    return res
-
-globals()["sorted"] = sorted
-
