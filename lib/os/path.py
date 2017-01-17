@@ -15,7 +15,7 @@
 """"Utilities for manipulating and inspecting OS paths."""
 
 from __go__.os import Stat
-from __go__.path.filepath import Abs, Clean, Dir as dirname, IsAbs as isabs, Join  # pylint: disable=g-multiple-import,unused-import
+from __go__.path.filepath import Abs, Base as basename, Clean, Dir as dirname, IsAbs as isabs, Join  # pylint: disable=g-multiple-import,unused-import
 
 
 def abspath(path):
