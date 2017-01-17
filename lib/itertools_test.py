@@ -103,6 +103,67 @@ def TestISlice():
     got = tuple(itertools.islice(*args))
     assert got == want, 'tuple(islice%s) == %s, want %s' % (args, got, want)
 
+def TestIZipLongest():
+  cases = [
+    (('abc', range(6)), (('a', 0), ('b', 1), ('c', 2), (None, 3), (None, 4), (None, 5))),
+    ((range(6), 'abc'), ((0, 'a'), (1, 'b'), (2, 'c'), (3, None), (4, None), (5, None))),
+    (([1, None, 3], 'ab', range(1)), ((1, 'a', 0), (None, 'b', None), (3, None, None))),
+  ]
+  for args, want in cases:
+    got = tuple(itertools.izip_longest(*args))
+    assert got == want, 'tuple(izip_longest%s) == %s, want %s' % (args, got, want)
+
+def TestProduct():
+  cases = [
+    (([1, 2], ['a', 'b']), ((1, 'a'), (1, 'b'), (2, 'a'), (2, 'b'))),
+    (([1], ['a', 'b']), ((1, 'a'), (1, 'b'))),
+    (([],), ()),
+  ]
+  for args, want in cases:
+    got = tuple(itertools.product(*args))
+    assert got == want, 'tuple(product%s) == %s, want %s' % (args, got, want)
+
+def TestPermutations():
+  cases = [
+    (('AB',), (('A', 'B'), ('B', 'A'))),
+    (('ABC', 2), (('A', 'B'), ('A', 'C'), ('B', 'A'), ('B', 'C'), ('C', 'A'), ('C', 'B'))),
+    ((range(3),), ((0, 1, 2), (0, 2, 1), (1, 0, 2), (1, 2, 0), (2, 0, 1), (2, 1, 0))),
+    (([],), ((),)),
+    (([], 0), ((),)),
+    ((range(3), 4), ()),
+  ]
+  for args, want in cases:
+    got = tuple(itertools.permutations(*args))
+    assert got == want, 'tuple(permutations%s) == %s, want %s' % (args, got, want)
+
+def TestCombinations():
+  cases = [
+    ((range(4), 3), ((0, 1, 2), (0, 1, 3), (0, 2, 3), (1, 2, 3))),
+  ]
+  for args, want in cases:
+    got = tuple(itertools.combinations(*args))
+    assert got == want, 'tuple(combinations%s) == %s, want %s' % (args, got, want)
+
+def TestCombinationsWithReplacement():
+  cases = [
+    (([-12], 2), (((-12, -12),))),
+    (('AB', 3), (('A', 'A', 'A'), ('A', 'A', 'B'), ('A', 'B', 'B'), ('B', 'B', 'B'))),
+    (([], 2), ()),
+    (([], 0), ((),))
+  ]
+  for args, want in cases:
+    got = tuple(itertools.combinations_with_replacement(*args))
+    assert got == want, 'tuple(combinations_with_replacement%s) == %s, want %s' % (args, got, want)
+
+def TestGroupBy():
+  cases = [
+    (([1, 2, 2, 3, 3, 3, 4, 4, 4, 4],), [(1, [1]), (2, [2, 2]), (3, [3, 3, 3]), (4, [4, 4, 4, 4])]),
+    ((['aa', 'ab', 'abc', 'bcd', 'abcde'], len), [(2, ['aa', 'ab']), (3, ['abc', 'bcd']), (5, ['abcde'])]),
+  ]
+  for args, want in cases:
+    got = [(k, list(v)) for k, v in itertools.groupby(*args)]
+    assert got == want, 'groupby %s == %s, want %s' % (args, got, want)
+
 def TestTakewhile():
   r = range(10)
   cases = [
