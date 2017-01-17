@@ -163,6 +163,14 @@ func listAppend(f *Frame, args Args, kwargs KWArgs) (*Object, *BaseException) {
 	return None, nil
 }
 
+func listExtend(f *Frame, args Args, _ KWArgs) (*Object, *BaseException) {
+	argc := len(args)
+	if argc != 2 {
+		return nil, f.RaiseType(TypeErrorType, fmt.Sprintf("extend() takes exactly one argument (%d given)", argc))
+	}
+	return listIAdd(f, args[0], args[1])
+}
+
 func listContains(f *Frame, l, v *Object) (*Object, *BaseException) {
 	return seqContains(f, l, v)
 }
@@ -383,6 +391,7 @@ func listSort(f *Frame, args Args, _ KWArgs) (*Object, *BaseException) {
 
 func initListType(dict map[string]*Object) {
 	dict["append"] = newBuiltinFunction("append", listAppend).ToObject()
+	dict["extend"] = newBuiltinFunction("extend", listExtend).ToObject()
 	dict["insert"] = newBuiltinFunction("insert", listInsert).ToObject()
 	dict["pop"] = newBuiltinFunction("pop", listPop).ToObject()
 	dict["reverse"] = newBuiltinFunction("reverse", listReverse).ToObject()

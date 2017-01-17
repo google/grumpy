@@ -68,3 +68,33 @@ except TypeError:
 a = [-1, 0, 1]
 assert a.pop(1) == 0
 assert a == [-1, 1]
+
+# Test extend
+a = aa = [3, 2, 4, 1]
+b = bb = []
+c = cc = ["a", "e", "c", "b"]
+a.extend(b)
+assert a == [3, 2, 4, 1]
+assert a == aa
+assert a is aa
+b.extend(c)
+assert b == ["a", "e", "c", "b"]
+assert b is bb
+a.extend(tuple())
+assert a == [3, 2, 4, 1]
+a.extend((6, 7))
+assert a == [3, 2, 4, 1, 6, 7]
+a.extend(range(3))
+assert a == [3, 2, 4, 1, 6, 7, 0, 1, 2]
+
+try:
+  a.extend()
+  assert AssertionError
+except TypeError:
+  pass
+
+try:
+  a.extend([], [])
+  assert AssertionError
+except TypeError:
+  pass
