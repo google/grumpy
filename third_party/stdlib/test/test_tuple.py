@@ -158,7 +158,4 @@ def test_main():
     test_support.run_unittest(TupleTest)
 
 if __name__=="__main__":
-    try:
-        test_main()
-    except:
-        print traceback.print_exc()
+    test_main()
