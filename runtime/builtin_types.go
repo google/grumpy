@@ -521,6 +521,33 @@ func builtinRange(f *Frame, args Args, kwargs KWArgs) (*Object, *BaseException) 
 	return ListType.Call(f, []*Object{r}, nil)
 }
 
+func builtinSorted(f *Frame, args Args, kwargs KWArgs) (*Object, *BaseException) {
+	var raised *BaseException
+
+	raised = checkFunctionArgs(f, "sorted", args, ObjectType)
+	if raised != nil {
+		return nil, raised
+	}
+	seq := args[0]
+
+	result := NewList()
+	// Iterate over the seq and append the objects to result.
+	raised = seqForEach(f, seq, func(elem *Object) *BaseException {
+		result.Append(elem)
+		return nil
+	})
+	if raised != nil {
+		return nil, raised
+	}
+
+	// FIXME: add kwargs ....
+	raised = result.Sort(f)
+	if raised != nil {
+		return nil, raised
+	}
+	return result.ToObject(), nil
+}
+
 func builtinRepr(f *Frame, args Args, kwargs KWArgs) (*Object, *BaseException) {
 	if raised := checkFunctionArgs(f, "repr", args, ObjectType); raised != nil {
 		return nil, raised
@@ -575,6 +602,7 @@ func init() {
 		"print":          newBuiltinFunction("print", builtinPrint).ToObject(),
 		"range":          newBuiltinFunction("range", builtinRange).ToObject(),
 		"repr":           newBuiltinFunction("repr", builtinRepr).ToObject(),
+		"sorted":         newBuiltinFunction("sorted", builtinSorted).ToObject(),
 		"True":           True.ToObject(),
 		"unichr":         newBuiltinFunction("unichr", builtinUniChr).ToObject(),
 	}

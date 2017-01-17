@@ -228,6 +228,8 @@ func TestBuiltinFuncs(t *testing.T) {
 		{f: "repr", args: wrapArgs(NewUnicode("abc")), want: NewStr("u'abc'").ToObject()},
 		{f: "repr", args: wrapArgs(newTestTuple("foo", "bar")), want: NewStr("('foo', 'bar')").ToObject()},
 		{f: "repr", args: wrapArgs("a", "b", "c"), wantExc: mustCreateException(TypeErrorType, "'repr' requires 1 arguments")},
+		{f: "sorted", args: wrapArgs(newTestList(2, 3, 1)), want: newTestList(1, 2, 3).ToObject()},
+		{f: "sorted", args: wrapArgs(1), wantExc: mustCreateException(TypeErrorType, "'int' object is not iterable")},
 		{f: "unichr", args: wrapArgs(0), want: NewUnicode("\x00").ToObject()},
 		{f: "unichr", args: wrapArgs(65), want: NewStr("A").ToObject()},
 		{f: "unichr", args: wrapArgs(0x120000), wantExc: mustCreateException(ValueErrorType, "unichr() arg not in range(0x10ffff)")},
