@@ -73,13 +73,13 @@ except TypeError:
   pass
 
 try:
-  'hello'.find()
+  'foo'.find()  # pylint: disable=no-value-for-parameter
   raise AssertionError
 except TypeError:
   pass
 
 try:
-  'hello'.find(42)
+  'foo'.find(42)
   raise AssertionError
 except TypeError:
   pass
