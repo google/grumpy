@@ -188,7 +188,6 @@ func floatPow(f *Frame, v, w *Object) (*Object, *BaseException) {
 	return floatArithmeticOp(f, "__pow__", v, w, func(v, w float64) float64 { return math.Pow(v, w) })
 }
 
-
 func floatRAdd(f *Frame, v, w *Object) (*Object, *BaseException) {
 	return floatArithmeticOp(f, "__radd__", v, w, func(v, w float64) float64 { return w + v })
 }
@@ -217,7 +216,7 @@ func floatRMul(f *Frame, v, w *Object) (*Object, *BaseException) {
 }
 
 func floatRPow(f *Frame, v, w *Object) (*Object, *BaseException) {
-	return floatArithmeticOp(f, "__rpow", v, w, func(v, w float64) float64 { return math.Pow(w, v)})
+	return floatArithmeticOp(f, "__rpow", v, w, func(v, w float64) float64 { return math.Pow(w, v) })
 }
 
 func floatRSub(f *Frame, v, w *Object) (*Object, *BaseException) {

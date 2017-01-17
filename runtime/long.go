@@ -505,7 +505,7 @@ func longPow(f *Frame, v, w *Object) (*Object, *BaseException) {
 
 	if wLong.Sign() < 0 {
 		// The result will be a float, so we call the floating point function.
-		var vFloat, wFloat  *Object
+		var vFloat, wFloat *Object
 		var raised *BaseException
 
 		vFloat, raised = longFloat(f, v)
