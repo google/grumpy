@@ -173,6 +173,8 @@ class StatementVisitor(ast.NodeVisitor):
         self._tie_target(target, value.expr)
 
   def visit_Break(self, node):
+    if not self.block.loop_stack:
+      raise util.ParseError(node, "'break' not in loop")
     self._write_py_context(node.lineno)
     self.writer.write('goto Label{}'.format(self.block.top_loop().end_label))
 
@@ -242,6 +244,8 @@ class StatementVisitor(ast.NodeVisitor):
         self.block.bind_var(self.writer, node.name, type_.expr)
 
   def visit_Continue(self, node):
+    if not self.block.loop_stack:
+      raise util.ParseError(node, "'continue' not in loop")
     self._write_py_context(node.lineno)
     self.writer.write('goto Label{}'.format(self.block.top_loop().start_label))
 
@@ -296,13 +300,13 @@ class StatementVisitor(ast.NodeVisitor):
       self._visit_each(node.body)
       self.writer.write('goto Label{}'.format(loop.start_label))
 
+    self.block.pop_loop()
     if node.orelse:
       self.writer.write_label(orelse_label)
       self._visit_each(node.orelse)
     # Avoid label "defined and not used" in case there's no break statements.
     self.writer.write('goto Label{}'.format(loop.end_label))
     self.writer.write_label(loop.end_label)
-    self.block.pop_loop()
 
   def visit_FunctionDef(self, node):
     self._write_py_context(node.lineno)

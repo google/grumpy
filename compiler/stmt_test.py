@@ -202,6 +202,16 @@ class StatementVisitorTest(unittest.TestCase):
         else:
           print 'bar'""")))
 
+  def testForElseBreakNotNested(self):
+    self.assertRaisesRegexp(
+        util.ParseError, "'continue' not in loop",
+        _ParseAndVisit, 'for i in (1,):\n  pass\nelse:\n  continue')
+
+  def testForElseContinueNotNested(self):
+    self.assertRaisesRegexp(
+        util.ParseError, "'continue' not in loop",
+        _ParseAndVisit, 'for i in (1,):\n  pass\nelse:\n  continue')
+
   def testFunctionDef(self):
     self.assertEqual((0, 'bar baz\n'), _GrumpRun(textwrap.dedent("""\
         def foo(a, b):
