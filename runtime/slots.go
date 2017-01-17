@@ -398,6 +398,7 @@ type typeSlots struct {
 	Int          *unaryOpSlot
 	Invert       *unaryOpSlot
 	IOr          *binaryOpSlot
+	IPow         *binaryOpSlot
 	ISub         *binaryOpSlot
 	Iter         *unaryOpSlot
 	IXor         *binaryOpSlot
@@ -415,6 +416,7 @@ type typeSlots struct {
 	Next         *unaryOpSlot
 	NonZero      *unaryOpSlot
 	Or           *binaryOpSlot
+	Pow          *binaryOpSlot
 	RAdd         *binaryOpSlot
 	RAnd         *binaryOpSlot
 	RDiv         *binaryOpSlot
@@ -423,6 +425,7 @@ type typeSlots struct {
 	RMod         *binaryOpSlot
 	RMul         *binaryOpSlot
 	ROr          *binaryOpSlot
+	RPow         *binaryOpSlot
 	RRShift      *binaryOpSlot
 	RShift       *binaryOpSlot
 	RSub         *binaryOpSlot

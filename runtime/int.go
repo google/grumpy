@@ -16,6 +16,7 @@ package grumpy
 
 import (
 	"fmt"
+	"math"
 	"math/big"
 	"reflect"
 	"strconv"
@@ -243,6 +244,10 @@ func intOr(f *Frame, v, w *Object) (*Object, *BaseException) {
 	return NewInt(toIntUnsafe(v).Value() | toIntUnsafe(w).Value()).ToObject(), nil
 }
 
+func intPow(f *Frame, v, w *Object) (*Object, *BaseException) {
+	return intAddMulOp(f, "__pow__", v, w, intCheckedPow, nil)
+}
+
 func intRAdd(f *Frame, v, w *Object) (*Object, *BaseException) {
 	return intAddMulOp(f, "__radd__", v, w, intCheckedAdd, longAdd)
 }
@@ -328,6 +333,7 @@ func initIntType(dict map[string]*Object) {
 	IntType.slots.New = &newSlot{intNew}
 	IntType.slots.NonZero = &unaryOpSlot{intNonZero}
 	IntType.slots.Or = &binaryOpSlot{intOr}
+	IntType.slots.Pow = &binaryOpSlot{intPow}
 	IntType.slots.RAdd = &binaryOpSlot{intRAdd}
 	IntType.slots.RAnd = &binaryOpSlot{intAnd}
 	IntType.slots.RDiv = &binaryOpSlot{intRDiv}
@@ -447,6 +453,11 @@ func intCheckedMul(v, w int) (int, bool) {
 		return 0, false
 	}
 	return x, true
+}
+
+func intCheckedPow(v, w int) (int, bool) {
+	res := math.Pow(float64(v), float64(w))
+	return int(res), true
 }
 
 func intCheckedSub(v, w int) (int, bool) {
