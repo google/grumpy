@@ -230,6 +230,8 @@ func TestBuiltinFuncs(t *testing.T) {
 		{f: "repr", args: wrapArgs("a", "b", "c"), wantExc: mustCreateException(TypeErrorType, "'repr' requires 1 arguments")},
 		{f: "sorted", args: wrapArgs(newTestList(2, 3, 1)), want: newTestList(1, 2, 3).ToObject()},
 		{f: "sorted", args: wrapArgs(1), wantExc: mustCreateException(TypeErrorType, "'int' object is not iterable")},
+		{f: "sorted", args: wrapArgs(1, 2), wantExc: mustCreateException(TypeErrorType, "'sorted' requires 1 arguments")},
+		{f: "sorted", args: wrapArgs(newTestList(2, 3, 1)), kwargs: wrapKWArgs("reverse", True), wantExc: mustCreateException(SystemErrorType, "sorted() does not support kwargs (yet)")},
 		{f: "unichr", args: wrapArgs(0), want: NewUnicode("\x00").ToObject()},
 		{f: "unichr", args: wrapArgs(65), want: NewStr("A").ToObject()},
 		{f: "unichr", args: wrapArgs(0x120000), wantExc: mustCreateException(ValueErrorType, "unichr() arg not in range(0x10ffff)")},

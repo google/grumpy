@@ -530,6 +530,11 @@ func builtinSorted(f *Frame, args Args, kwargs KWArgs) (*Object, *BaseException)
 	}
 	seq := args[0]
 
+	// Fail hard when unexpected KWArgs are provided
+	if len(kwargs) > 0 {
+		return nil, f.RaiseType(SystemErrorType, "sorted() does not support kwargs (yet)")
+	}
+
 	result := NewList()
 	// Iterate over the seq and append the objects to result.
 	raised = seqForEach(f, seq, func(elem *Object) *BaseException {
@@ -540,7 +545,7 @@ func builtinSorted(f *Frame, args Args, kwargs KWArgs) (*Object, *BaseException)
 		return nil, raised
 	}
 
-	// FIXME: add kwargs ....
+	// FIXME: handle kwargs: cmp, key and reverse
 	raised = result.Sort(f)
 	if raised != nil {
 		return nil, raised
