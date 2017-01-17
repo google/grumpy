@@ -758,23 +758,6 @@ func adjustIndex(i, l int) int {
 	return i
 }
 
-func adjustBounds(f *Frame, o *Object, l int, upperBound bool) (int, *BaseException) {
-	i, raised := IndexInt(f, o)
-	if raised != nil {
-		return 0, raised
-	}
-	switch {
-	case i <= -l:
-		i = 0
-	case i < 0:
-		i += l
-	}
-	if upperBound && i > l {
-		i = l
-	}
-	return i, nil
-}
-
 func strStartsEndsWith(f *Frame, method string, args Args) (*Object, *BaseException) {
 	expectedTypes := []*Type{StrType, ObjectType, IntType, IntType}
 	argc := len(args)
