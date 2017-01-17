@@ -16,7 +16,6 @@ class _WritelnDecorator(object):
     """Used to decorate file-like objects with a handy 'writeln' method"""
     def __init__(self, stream):
         self.stream = stream
-        print dir(self.stream)
 
     def __getattr__(self, attr):
         if attr in ('stream', '__getstate__'):
@@ -59,8 +58,6 @@ class TextTestResult(result.TestResult):
     def startTest(self, test):
         super(TextTestResult, self).startTest(test)
         if self.showAll:
-            print self.getDescription(test)
-            print self.stream
             self.stream.write(self.getDescription(test))
             self.stream.write(" ... ")
             self.stream.flush()
