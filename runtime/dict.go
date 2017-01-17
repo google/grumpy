@@ -515,6 +515,7 @@ func dictClear(f *Frame, args Args, _ KWArgs) (*Object, *BaseException) {
 	d := toDictUnsafe(args[0])
 	d.mutex.Lock(f)
 	d.table = newDictTable(0)
+	d.incVersion()
 	d.mutex.Unlock(f)
 	return None, nil
 }
