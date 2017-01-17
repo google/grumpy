@@ -159,13 +159,15 @@ gofmt: build/gofmt.diff
 $(GOLINT_BIN):
 	@go get -u github.com/golang/lint/golint
 
-golint: $(GOLINT_BIN) $(PYLINT_BIN)
+golint: $(GOLINT_BIN)
 	@$(GOLINT_BIN) -set_exit_status runtime
 
-# Old versions of pip don't support the --prefix param so specify the bin dir
-# (--install-scripts) and the Python dir (--target) separately.
+# Don't use system pip for this since behavior varies a lot between versions.
+# Instead build pylint from source. Dependencies will be fetched by distutils.
 $(PYLINT_BIN):
-	@pip install --install-option=--install-scripts='$(ROOT_DIR)/build/bin' --target '$(PY_DIR)' pylint
+	@mkdir -p build/third_party
+	@cd build/third_party && curl -sL https://pypi.io/packages/source/p/pylint/pylint-1.6.4.tar.gz | tar -zx
+	@cd build/third_party/pylint-1.6.4 && $(PYTHON) setup.py install --prefix $(ROOT_DIR)/build
 
 pylint: $(PYLINT_BIN)
 	@$(PYLINT_BIN) compiler/*.py $(addprefix tools/,benchcmp coverparse diffrange grumpc grumprun)
