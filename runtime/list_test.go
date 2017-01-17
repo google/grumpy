@@ -220,6 +220,40 @@ func TestListAppend(t *testing.T) {
 	}
 }
 
+func TestListExtend(t *testing.T) {
+	fun := newBuiltinFunction("TestListExtend", func(f *Frame, args Args, _ KWArgs) (*Object, *BaseException) {
+		app, raised := GetAttr(f, ListType.ToObject(), NewStr("extend"), nil)
+		if raised != nil {
+			return nil, raised
+		}
+		if _, raised := app.Call(f, args, nil); raised != nil {
+			return nil, raised
+		}
+		return args[0], nil
+	}).ToObject()
+	cases := []invokeTestCase{
+		{args: wrapArgs(newTestList().ToObject(), newTestTuple().ToObject()), want: newTestList().ToObject()},
+		{args: wrapArgs(newTestList().ToObject(), newTestList().ToObject()), want: newTestList().ToObject()},
+		{args: wrapArgs(newTestList(3).ToObject(), newTestList("foo").ToObject()), want: newTestList(3, "foo").ToObject()},
+		{args: wrapArgs(newTestList().ToObject(), newTestList("foo").ToObject()), want: newTestList("foo").ToObject()},
+		{args: wrapArgs(newTestList(3).ToObject(), newTestList().ToObject()), want: newTestList(3).ToObject()},
+		{args: wrapArgs(NewStr("").ToObject(), newTestList().ToObject()), wantExc: mustCreateException(TypeErrorType, "unbound method extend() must be called with list instance as first argument (got str instance instead)")},
+		{args: wrapArgs(None, None), wantExc: mustCreateException(TypeErrorType, "unbound method extend() must be called with list instance as first argument (got NoneType instance instead)")},
+		{args: wrapArgs(newTestList(3).ToObject(), None), wantExc: mustCreateException(TypeErrorType, "'NoneType' object is not iterable")},
+		{args: wrapArgs(newTestRange(5).ToObject(), newTestList(3).ToObject()), want: newTestList(0, 1, 2, 3, 4, 3).ToObject()},
+		{args: wrapArgs(newTestRange(5).ToObject(), newTestList(3).ToObject()), want: newTestList(0, 1, 2, 3, 4, 3).ToObject()},
+		{args: wrapArgs(newTestTuple(1, 2, 3).ToObject(), newTestList(3).ToObject()), wantExc: mustCreateException(TypeErrorType, "unbound method extend() must be called with list instance as first argument (got tuple instance instead)")},
+		{args: wrapArgs(newTestList(4).ToObject(), newTestTuple(1, 2, 3).ToObject()), want: newTestList(4, 1, 2, 3).ToObject()},
+		{args: wrapArgs(newTestList().ToObject()), wantExc: mustCreateException(TypeErrorType, "extend() takes exactly one argument (0 given)")},
+		{args: wrapArgs(newTestList().ToObject(), newTestTuple().ToObject(), newTestTuple().ToObject()), wantExc: mustCreateException(TypeErrorType, "extend() takes exactly one argument (2 given)")},
+	}
+	for _, cas := range cases {
+		if err := runInvokeTestCase(fun, &cas); err != "" {
+			t.Error(err)
+		}
+	}
+}
+
 func TestListLen(t *testing.T) {
 	cases := []invokeTestCase{
 		{args: wrapArgs(NewList()), want: NewInt(0).ToObject()},
