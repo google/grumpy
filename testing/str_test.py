@@ -30,6 +30,7 @@ assert "foobar".find("foo", 0, 3) == 0
 assert "foobar".find("bar", 3, 5) == -1
 assert "foobar".find("bar", 5, 3) == -1
 assert "bar".find("foobar") == -1
+assert "bar".find("a", 0, -1) == 1
 assert 'abcdefghiabc'.find('abc') == 0
 assert 'abcdefghiabc'.find('abc', 1) == 9
 assert 'abcdefghiabc'.find('def', 4) == -1

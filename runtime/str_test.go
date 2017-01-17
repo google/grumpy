@@ -283,6 +283,7 @@ func TestStrMethods(t *testing.T) {
 		{"find", wrapArgs("bar", "a", NewLong(big.NewInt(1)), 10), NewInt(1).ToObject(), nil},
 		{"find", wrapArgs("bar", "a", 0, NewLong(big.NewInt(2))), NewInt(1).ToObject(), nil},
 		{"find", wrapArgs("bar", "a", 1, 3), NewInt(1).ToObject(), nil},
+		{"find", wrapArgs("bar", "a", 0, -1), NewInt(1).ToObject(), nil},
 		{"find", wrapArgs("foo", newTestTuple("barfoo", "oo").ToObject()), nil, mustCreateException(TypeErrorType, "'find/index' requires a 'str' object but received a 'tuple'")},
 		{"find", wrapArgs("foo", 123), nil, mustCreateException(TypeErrorType, "'find/index' requires a 'str' object but received a 'int'")},
 		{"join", wrapArgs(",", newTestList("foo", "bar")), NewStr("foo,bar").ToObject(), nil},

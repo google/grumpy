@@ -206,7 +206,7 @@ func strEq(f *Frame, v, w *Object) (*Object, *BaseException) {
 }
 
 // strFind returns the lowest index in s where the substring sub is found such
-// that sub is wholly contained in s[start:end]. Return -1 on failure
+// that sub is wholly contained in s[start:end]. Return -1 on failure.
 func strFind(f *Frame, args Args, _ KWArgs) (*Object, *BaseException) {
 	var raised *BaseException
 	// TODO: Support for unicode substring.
@@ -233,10 +233,13 @@ func strFind(f *Frame, args Args, _ KWArgs) (*Object, *BaseException) {
 			return nil, raised
 		}
 	}
-	if start > end || start > l {
+	if start > l {
 		return NewInt(-1).ToObject(), nil
 	}
 	start, end = adjustIndex(start, l), adjustIndex(end, l)
+	if start > end {
+		return NewInt(-1).ToObject(), nil
+	}
 	sub := toStrUnsafe(args[1]).Value()
 	index := strings.Index(s[start:end], sub)
 	if index != -1 {
