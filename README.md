@@ -44,8 +44,7 @@ There are three basic categories of incomplete functionality:
 3. Standard library: The Python standard library is very large and much of it
    is pure Python, so as the language features and builtins get filled out, many
    modules will just work. But there are also a number of libraries in CPython
-   that are C extension modules that need to be rewritten. This includes `re`,
-   `itertools` and others.
+   that are C extension modules that need to be rewritten.
    
  To see the status of a particular feature or standard library module, click
  [here](https://github.com/google/grumpy/wiki/Missing-Features).
