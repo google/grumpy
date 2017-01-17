@@ -234,32 +234,32 @@ func intPow(f *Frame, v, w *Object) (*Object, *BaseException) {
 		// IEEE float64 has 52bit of precision, so the result should be
 		// less than MaxInt32 to be representable as an exact integer.
 		// This assumes that int is at least 32bit.
-		v_int := toIntUnsafe(v).Value()
-		w_int := toIntUnsafe(w).Value()
-		if 0 < v_int && v_int <= math.MaxInt32 && 0 < w_int && w_int <= math.MaxInt32 {
-			res := math.Pow(float64(v_int), float64(w_int))
-			// can the result be interpreted as an int?
+		vInt := toIntUnsafe(v).Value()
+		wInt := toIntUnsafe(w).Value()
+		if 0 < vInt && vInt <= math.MaxInt32 && 0 < wInt && wInt <= math.MaxInt32 {
+			res := math.Pow(float64(vInt), float64(wInt))
+			// Can the result be interpreted as an int?
 			if !math.IsNaN(res) && !math.IsInf(res, 0) && res <= math.MaxInt32 {
 				return NewInt(int(res)).ToObject(), nil
 			}
 		}
 		// Special cases.
-		if v_int == 0 {
-			if w_int < 0 {
+		if vInt == 0 {
+			if wInt < 0 {
 				return nil, f.RaiseType(ZeroDivisionErrorType, "0.0 cannot be raised to a negative power")
-			} else if w_int == 0 {
-				return NewInt(1).ToObject(), nil
-			} else {
-				return NewInt(0).ToObject(), nil
 			}
+			if wInt == 0 {
+				return NewInt(1).ToObject(), nil
+			}
+			return NewInt(0).ToObject(), nil
 		}
 		// If w < 0, the result must be a floating point number.
 		// We convert both arguments to float and continue.
-		if w_int < 0 {
-			return floatPow(f, NewFloat(float64(v_int)).ToObject(), NewFloat(float64(w_int)).ToObject())
+		if wInt < 0 {
+			return floatPow(f, NewFloat(float64(vInt)).ToObject(), NewFloat(float64(wInt)).ToObject())
 		}
 		// Else we convert to Long and continue there.
-		return longPow(f, NewLong(big.NewInt(int64(v_int))).ToObject(), NewLong(big.NewInt(int64(w_int))).ToObject())
+		return longPow(f, NewLong(big.NewInt(int64(vInt))).ToObject(), NewLong(big.NewInt(int64(wInt))).ToObject())
 	}
 	return NotImplemented, nil
 }

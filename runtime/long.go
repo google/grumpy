@@ -321,6 +321,7 @@ func initLongType(dict map[string]*Object) {
 	LongType.slots.New = &newSlot{longNew}
 	LongType.slots.NonZero = longUnaryBoolOpSlot(longNonZero)
 	LongType.slots.Or = longBinaryOpSlot(longOr)
+	// This operation can return a float, it must use binaryOpSlot directly.
 	LongType.slots.Pow = &binaryOpSlot{longPow}
 	LongType.slots.RAdd = longRBinaryOpSlot(longAdd)
 	LongType.slots.RAnd = longRBinaryOpSlot(longAnd)
@@ -330,6 +331,7 @@ func initLongType(dict map[string]*Object) {
 	LongType.slots.RMul = longRBinaryOpSlot(longMul)
 	LongType.slots.ROr = longRBinaryOpSlot(longOr)
 	LongType.slots.RLShift = longRShiftOpSlot(longLShift)
+	// This operation can return a float, it must use binaryOpSlot directly.
 	LongType.slots.RPow = &binaryOpSlot{longRPow}
 	LongType.slots.RRShift = longRShiftOpSlot(longRShift)
 	LongType.slots.RShift = longShiftOpSlot(longRShift)
@@ -490,46 +492,53 @@ func longRBinaryBoolOpSlot(fun func(x, y *big.Int) bool) *binaryOpSlot {
 }
 
 func longPow(f *Frame, v, w *Object) (*Object, *BaseException) {
-	var w_long *big.Int
+	var wLong *big.Int
 
-	v_long := toLongUnsafe(v).Value()
+	vLong := toLongUnsafe(v).Value()
 	if w.isInstance(LongType) {
-		w_long = toLongUnsafe(w).Value()
+		wLong = toLongUnsafe(w).Value()
 	} else if w.isInstance(IntType) {
-		w_long = big.NewInt(int64(toIntUnsafe(w).Value()))
+		wLong = big.NewInt(int64(toIntUnsafe(w).Value()))
 	} else {
 		return NotImplemented, nil
 	}
 
-	if w_long.Sign() < 0 {
-		// The result will be a float, so convert this and call the floating point function.
-		var v_float, w_float  *Object
-		var exception *BaseException
+	if wLong.Sign() < 0 {
+		// The result will be a float, so we call the floating point function.
+		var vFloat, wFloat  *Object
+		var raised *BaseException
 
-		v_float, exception = longFloat(f, v)
-		if exception != nil {
-			return nil, exception
+		vFloat, raised = longFloat(f, v)
+		if raised != nil {
+			return nil, raised
 		}
-		// w might be an Int or a long
+		// w might be an int or a long
 		if w.isInstance(LongType) {
-			w_float, exception = longFloat(f, w)
-			if exception != nil {
-				return nil, exception
+			wFloat, raised = longFloat(f, w)
+			if raised != nil {
+				return nil, raised
 			}
 		} else if w.isInstance(IntType) {
-			w_float = NewFloat(float64(toIntUnsafe(w).Value())).ToObject()
+			wFloat = NewFloat(float64(toIntUnsafe(w).Value())).ToObject()
 		} else {
 			// This point should not be reachable
 			return nil, f.RaiseType(SystemErrorType, "internal error in longPow")
 		}
-		return floatPow(f, v_float, w_float)
+		return floatPow(f, vFloat, wFloat)
 	}
 
-	return NewLong(big.NewInt(0).Exp(v_long, w_long, nil)).ToObject(), nil
+	return NewLong(big.NewInt(0).Exp(vLong, wLong, nil)).ToObject(), nil
 }
 
 func longRPow(f *Frame, v, w *Object) (*Object, *BaseException) {
-	return longPow(f, w, v)
+	if w.isInstance(LongType) {
+		return longPow(f, w, v)
+	}
+	if w.isInstance(IntType) {
+		wLong := NewLong(big.NewInt(int64(toIntUnsafe(w).Value()))).ToObject()
+		return longPow(f, wLong, v)
+	}
+	return NotImplemented, nil
 }
 
 func longDivMod(x, y, z, m *big.Int) {
