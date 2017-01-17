@@ -221,12 +221,9 @@ func TestListAppend(t *testing.T) {
 }
 
 func TestListExtend(t *testing.T) {
+	extend := mustNotRaise(GetAttr(NewRootFrame(), ListType.ToObject(), NewStr("extend"), nil))
 	fun := newBuiltinFunction("TestListExtend", func(f *Frame, args Args, _ KWArgs) (*Object, *BaseException) {
-		app, raised := GetAttr(f, ListType.ToObject(), NewStr("extend"), nil)
-		if raised != nil {
-			return nil, raised
-		}
-		if _, raised := app.Call(f, args, nil); raised != nil {
+		if _, raised := extend.Call(f, args, nil); raised != nil {
 			return nil, raised
 		}
 		return args[0], nil
@@ -244,8 +241,8 @@ func TestListExtend(t *testing.T) {
 		{args: wrapArgs(newTestRange(5).ToObject(), newTestList(3).ToObject()), want: newTestList(0, 1, 2, 3, 4, 3).ToObject()},
 		{args: wrapArgs(newTestTuple(1, 2, 3).ToObject(), newTestList(3).ToObject()), wantExc: mustCreateException(TypeErrorType, "unbound method extend() must be called with list instance as first argument (got tuple instance instead)")},
 		{args: wrapArgs(newTestList(4).ToObject(), newTestTuple(1, 2, 3).ToObject()), want: newTestList(4, 1, 2, 3).ToObject()},
-		{args: wrapArgs(newTestList().ToObject()), wantExc: mustCreateException(TypeErrorType, "extend() takes exactly one argument (0 given)")},
-		{args: wrapArgs(newTestList().ToObject(), newTestTuple().ToObject(), newTestTuple().ToObject()), wantExc: mustCreateException(TypeErrorType, "extend() takes exactly one argument (2 given)")},
+		{args: wrapArgs(newTestList().ToObject()), wantExc: mustCreateException(TypeErrorType, "extend() takes exactly one argument (1 given)")},
+		{args: wrapArgs(newTestList().ToObject(), newTestTuple().ToObject(), newTestTuple().ToObject()), wantExc: mustCreateException(TypeErrorType, "extend() takes exactly one argument (3 given)")},
 	}
 	for _, cas := range cases {
 		if err := runInvokeTestCase(fun, &cas); err != "" {

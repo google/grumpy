@@ -163,10 +163,10 @@ func listAppend(f *Frame, args Args, kwargs KWArgs) (*Object, *BaseException) {
 	return None, nil
 }
 
-func listExtend(f *Frame, args Args, kwargs KWArgs) (*Object, *BaseException) {
+func listExtend(f *Frame, args Args, _ KWArgs) (*Object, *BaseException) {
 	argc := len(args)
 	if argc != 2 {
-		return nil, f.RaiseType(TypeErrorType, fmt.Sprintf("extend() takes exactly one argument (%d given)", argc-1))
+		return nil, f.RaiseType(TypeErrorType, fmt.Sprintf("extend() takes exactly one argument (%d given)", argc))
 	}
 	return listIAdd(f, args[0], args[1])
 }
