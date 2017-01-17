@@ -12,10 +12,13 @@ import _functools
 partial = _functools.partial
 reduce = _functools.reduce
 
+def setattr(d, k, v):
+  d.__dict__[k] = v
+
 # update_wrapper() and wraps() are tools to help write
 # wrapper functions that can handle naive introspection
 
-WRAPPER_ASSIGNMENTS = ('__module__', '__name__', '__doc__')
+WRAPPER_ASSIGNMENTS = ('__module__', '__name__') #, '__doc__'
 WRAPPER_UPDATES = ('__dict__',)
 def update_wrapper(wrapper,
                    wrapped,
