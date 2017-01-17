@@ -508,6 +508,17 @@ func dictsAreEqual(f *Frame, d1, d2 *Dict) (bool, *BaseException) {
 	return result, nil
 }
 
+func dictClear(f *Frame, args Args, _ KWArgs) (*Object, *BaseException) {
+	if raised := checkMethodArgs(f, "clear", args, DictType); raised != nil {
+		return nil, raised
+	}
+	d := toDictUnsafe(args[0])
+	d.mutex.Lock(f)
+	d.table = newDictTable(0)
+	d.mutex.Unlock(f)
+	return None, nil
+}
+
 func dictContains(f *Frame, seq, value *Object) (*Object, *BaseException) {
 	item, raised := toDictUnsafe(seq).GetItem(f, value)
 	if raised != nil {
@@ -713,6 +724,7 @@ func dictUpdate(f *Frame, args Args, kwargs KWArgs) (*Object, *BaseException) {
 }
 
 func initDictType(dict map[string]*Object) {
+	dict["clear"] = newBuiltinFunction("clear", dictClear).ToObject()
 	dict["get"] = newBuiltinFunction("get", dictGet).ToObject()
 	dict["items"] = newBuiltinFunction("items", dictItems).ToObject()
 	dict["iteritems"] = newBuiltinFunction("iteritems", dictIterItems).ToObject()

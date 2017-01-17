@@ -46,6 +46,29 @@ func TestNewStringDict(t *testing.T) {
 	}
 }
 
+func TestDictClear(t *testing.T) {
+	clear := mustNotRaise(GetAttr(NewRootFrame(), DictType.ToObject(), NewStr("clear"), nil))
+	fun := newBuiltinFunction("TestDictClear", func(f *Frame, args Args, _ KWArgs) (*Object, *BaseException) {
+		if _, raised := clear.Call(f, args, nil); raised != nil {
+			return nil, raised
+		}
+		return args[0], nil
+	}).ToObject()
+	cases := []invokeTestCase{
+		{args: wrapArgs(NewDict()), want: NewDict().ToObject()},
+		{args: wrapArgs(newStringDict(map[string]*Object{"foo": NewInt(1).ToObject()})), want: NewDict().ToObject()},
+		{args: wrapArgs(newTestDict(2, None, "baz", 3.14)), want: NewDict().ToObject()},
+		{args: wrapArgs(NewDict(), NewList()), wantExc: mustCreateException(TypeErrorType, "'clear' of 'dict' requires 1 arguments")},
+		{args: wrapArgs(NewDict(), None), wantExc: mustCreateException(TypeErrorType, "'clear' of 'dict' requires 1 arguments")},
+		{args: wrapArgs(None), wantExc: mustCreateException(TypeErrorType, "unbound method clear() must be called with dict instance as first argument (got NoneType instance instead)")},
+	}
+	for _, cas := range cases {
+		if err := runInvokeTestCase(fun, &cas); err != "" {
+			t.Error(err)
+		}
+	}
+}
+
 func TestDictContains(t *testing.T) {
 	cases := []invokeTestCase{
 		{args: wrapArgs(NewDict(), "foo"), want: False.ToObject()},
