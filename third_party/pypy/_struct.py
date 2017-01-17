@@ -136,7 +136,8 @@ def unpack_float(data, index, size, le):
     binary.reverse()
   unsigned = 0
   for i in range(8):
-    unsigned |= binary[i] << (i * 8)
+    # unsigned |= binary[i] << (i * 8)
+    unsigned |= ord(binary[i]) << (i * 8)
   return float_unpack(unsigned, size, le)
 
 
