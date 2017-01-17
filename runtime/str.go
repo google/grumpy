@@ -205,6 +205,49 @@ func strEq(f *Frame, v, w *Object) (*Object, *BaseException) {
 	return strCompare(v, w, False, True, False), nil
 }
 
+// strFind returns the lowest index in s where the substring sub is found such
+// that sub is wholly contained in s[start:end]. Return -1 on failure.
+func strFind(f *Frame, args Args, _ KWArgs) (*Object, *BaseException) {
+	var raised *BaseException
+	// TODO: Support for unicode substring.
+	expectedTypes := []*Type{StrType, StrType, ObjectType, ObjectType}
+	argc := len(args)
+	if argc == 2 || argc == 3 {
+		expectedTypes = expectedTypes[:argc]
+	}
+	if raised := checkMethodArgs(f, "find/index", args, expectedTypes...); raised != nil {
+		return nil, raised
+	}
+	s := toStrUnsafe(args[0]).Value()
+	l := len(s)
+	start, end := 0, l
+	if argc >= 3 {
+		start, raised = IndexInt(f, args[2])
+		if raised != nil {
+			return nil, raised
+		}
+	}
+	if argc == 4 {
+		end, raised = IndexInt(f, args[3])
+		if raised != nil {
+			return nil, raised
+		}
+	}
+	if start > l {
+		return NewInt(-1).ToObject(), nil
+	}
+	start, end = adjustIndex(start, l), adjustIndex(end, l)
+	if start > end {
+		return NewInt(-1).ToObject(), nil
+	}
+	sub := toStrUnsafe(args[1]).Value()
+	index := strings.Index(s[start:end], sub)
+	if index != -1 {
+		index += start
+	}
+	return NewInt(index).ToObject(), nil
+}
+
 func strGE(f *Frame, v, w *Object) (*Object, *BaseException) {
 	return strCompare(v, w, False, True, True), nil
 }
@@ -552,6 +595,7 @@ func initStrType(dict map[string]*Object) {
 	dict["__getnewargs__"] = newBuiltinFunction("__getnewargs__", strGetNewArgs).ToObject()
 	dict["decode"] = newBuiltinFunction("decode", strDecode).ToObject()
 	dict["endswith"] = newBuiltinFunction("endswith", strEndsWith).ToObject()
+	dict["find"] = newBuiltinFunction("find", strFind).ToObject()
 	dict["join"] = newBuiltinFunction("join", strJoin).ToObject()
 	dict["lower"] = newBuiltinFunction("lower", strLower).ToObject()
 	dict["lstrip"] = newBuiltinFunction("lstrip", strLStrip).ToObject()
