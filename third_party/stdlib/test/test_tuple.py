@@ -1,8 +1,4 @@
-import traceback
-try:
-    from test import test_support, seq_tests
-except:
-    print traceback.print_exc()
+from test import test_support, seq_tests
 
 # import gc
 
