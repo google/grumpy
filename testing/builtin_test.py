@@ -254,6 +254,9 @@ assert sorted([]) == []
 assert sorted(["a", "e", "c", "b"]) == ["a", "b", "c", "e"]
 assert sorted((3, 1, 5, 2, 4)) == [1, 2, 3, 4, 5]
 assert sorted({"foo": 1, "bar": 2}) == ["bar", "foo"]
+assert sorted([1, 2], reverse=True) == [2, 1]
+assert sorted([1, 2], reverse=42) == [2, 1]
+assert sorted([1, 2], reverse=0) == [1, 2]
 
 # Test zip
 

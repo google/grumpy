@@ -570,7 +570,7 @@ func builtinRepr(f *Frame, args Args, kwargs KWArgs) (*Object, *BaseException) {
 	return s.ToObject(), nil
 }
 
-func builtinSorted(f *Frame, args Args, _ KWArgs) (*Object, *BaseException) {
+func builtinSorted(f *Frame, args Args, kwargs KWArgs) (*Object, *BaseException) {
 	// TODO: Support (cmp=None, key=None, reverse=False)
 	if raised := checkFunctionArgs(f, "sorted", args, ObjectType); raised != nil {
 		return nil, raised
@@ -580,6 +580,14 @@ func builtinSorted(f *Frame, args Args, _ KWArgs) (*Object, *BaseException) {
 		return nil, raised
 	}
 	toListUnsafe(result).Sort(f)
+	// Implement reverse. 
+	reverse, raised := IsTrue(f, kwargs.get("reverse", None))
+	if raised != nil {
+		return nil, raised
+	}
+	if reverse {
+		toListUnsafe(result).Reverse()
+	}
 	return result, nil
 }
 
