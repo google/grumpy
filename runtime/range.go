@@ -160,6 +160,23 @@ func toXRangeUnsafe(o *Object) *xrange {
 	return (*xrange)(o.toPointer())
 }
 
+func xrangeGetItem(f *Frame, o, key *Object) (*Object, *BaseException) {
+	if key.typ.slots.Index == nil {
+		format := "sequence index must be integer, not '%s'"
+		return nil, f.RaiseType(TypeErrorType, fmt.Sprintf(format, key.typ.Name()))
+	}
+	i, raised := IndexInt(f, key)
+	if raised != nil {
+		return nil, raised
+	}
+	r := toXRangeUnsafe(o)
+	i, raised = seqCheckedIndex(f, (r.stop-r.start)/r.step, i)
+	if raised != nil {
+		return nil, raised
+	}
+	return NewInt(r.start + i*r.step).ToObject(), nil
+}
+
 func xrangeIter(f *Frame, o *Object) (*Object, *BaseException) {
 	r := toXRangeUnsafe(o)
 	return &(&rangeIterator{Object{typ: rangeIteratorType}, r.start, r.stop, r.step}).Object, nil
@@ -210,6 +227,7 @@ func xrangeRepr(_ *Frame, o *Object) (*Object, *BaseException) {
 
 func initXRangeType(map[string]*Object) {
 	xrangeType.flags &^= typeFlagBasetype
+	xrangeType.slots.GetItem = &binaryOpSlot{xrangeGetItem}
 	xrangeType.slots.Iter = &unaryOpSlot{xrangeIter}
 	xrangeType.slots.New = &newSlot{xrangeNew}
 	xrangeType.slots.Repr = &unaryOpSlot{xrangeRepr}
