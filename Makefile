@@ -64,6 +64,7 @@ STDLIB_PASS_FILES := $(patsubst %,$(PKG_DIR)/grumpy/lib/%.pass,$(STDLIB_TESTS))
 
 ACCEPT_TESTS := $(patsubst %.py,%,$(wildcard testing/*.py))
 ACCEPT_PASS_FILES := $(patsubst %,build/%.pass,$(ACCEPT_TESTS))
+ACCEPT_PY_PASS_FILES := $(patsubst %,build/%_py.pass,$(filter-out %/native_test,$(ACCEPT_TESTS)))
 
 BENCHMARKS := $(patsubst %.py,%,$(wildcard benchmarks/*.py))
 BENCHMARK_BINS := $(patsubst %,build/%_benchmark,$(BENCHMARKS))
@@ -84,7 +85,7 @@ clean:
 run: $(RUNNER)
 	@$(RUNNER_BIN)
 
-test: $(ACCEPT_PASS_FILES) $(COMPILER_PASS_FILES) $(COMPILER_EXPR_VISITOR_PASS_FILES) $(COMPILER_STMT_PASS_FILES) $(RUNTIME_PASS_FILE) $(STDLIB_PASS_FILES)
+test: $(ACCEPT_PASS_FILES) $(ACCEPT_PY_PASS_FILES) $(COMPILER_PASS_FILES) $(COMPILER_EXPR_VISITOR_PASS_FILES) $(COMPILER_STMT_PASS_FILES) $(RUNTIME_PASS_FILE) $(STDLIB_PASS_FILES)
 
 precommit: cover gofmt lint test
 
@@ -206,6 +207,9 @@ $(eval $(foreach x,$(shell seq $(words $(STDLIB_SRCS))),$(call GRUMPY_STDLIB,$(w
 # Acceptance tests & benchmarks
 # ------------------------------------------------------------------------------
 
+$(PY_DIR)/weetest.py: lib/weetest.py
+	@cp -f $< $@
+
 $(patsubst %_test,build/%.go,$(ACCEPT_TESTS)): build/%.go: %_test.py $(COMPILER)
 	@mkdir -p $(@D)
 	@$(COMPILER_BIN) $< > $@
@@ -219,6 +223,11 @@ $(ACCEPT_PASS_FILES): build/%_test.pass: build/%_test
 	@$<
 	@touch $@
 	@echo '$*_test PASS'
+
+$(ACCEPT_PY_PASS_FILES): build/%_py.pass: %.py $(PY_DIR)/weetest.py
+	@$(PYTHON) $<
+	@touch $@
+	@echo '$*_py PASS'
 
 $(patsubst %,build/%.go,$(BENCHMARKS)): build/%.go: %.py $(COMPILER)
 	@mkdir -p $(@D)

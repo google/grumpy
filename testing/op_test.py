@@ -14,7 +14,8 @@
 
 """Arithmetic and boolean operator tests."""
 
-from __go__.math import IsNaN, IsInf
+import math
+
 import weetest
 
 
@@ -68,13 +69,13 @@ def TestNeg():
   assert -x == -0.0
 
   x = float('inf')
-  assert IsInf(-x, -1)
+  assert math.isinf(-x)
 
   x = -float('inf')
-  assert IsInf(-x, 1)
+  assert math.isinf(-x)
 
   x = float('nan')
-  assert IsNaN(-x)
+  assert math.isnan(-x)
 
   x = long(100)
   assert -x == -100

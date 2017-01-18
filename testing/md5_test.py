@@ -13,11 +13,6 @@
 # limitations under the License.
 
 import md5
-import _md5
-
-# md5 test
-assert _md5.new("").hexdigest() == 'd41d8cd98f00b204e9800998ecf8427e'
-assert _md5.new("hello").hexdigest() == '5d41402abc4b2a76b9719d911017c592'
 
 assert md5.new("").hexdigest() == 'd41d8cd98f00b204e9800998ecf8427e'
 assert md5.new("hello").hexdigest() == '5d41402abc4b2a76b9719d911017c592'

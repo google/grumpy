@@ -999,7 +999,7 @@ func TestTie(t *testing.T) {
 			},
 			NewList(NewStr("foo").ToObject()).ToObject(),
 			nil,
-			mustCreateException(TypeErrorType, "need more than 1 values to unpack"),
+			mustCreateException(ValueErrorType, "need more than 1 values to unpack"),
 		},
 		{
 			TieTarget{Children: []TieTarget{{Target: &targets[0]}}},

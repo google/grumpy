@@ -755,7 +755,7 @@ func Tie(f *Frame, t TieTarget, o *Object) *BaseException {
 				return raised
 			}
 		} else if raised.isInstance(StopIterationType) {
-			return f.RaiseType(TypeErrorType, fmt.Sprintf("need more than %d values to unpack", i))
+			return f.RaiseType(ValueErrorType, fmt.Sprintf("need more than %d values to unpack", i))
 		} else {
 			return raised
 		}
