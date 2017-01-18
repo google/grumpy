@@ -182,6 +182,11 @@ func xrangeIter(f *Frame, o *Object) (*Object, *BaseException) {
 	return &(&rangeIterator{Object{typ: rangeIteratorType}, r.start, r.stop, r.step}).Object, nil
 }
 
+func xrangeLen(f *Frame, o *Object) (*Object, *BaseException) {
+	r := toXRangeUnsafe(o)
+	return NewInt((r.stop - r.start) / r.step).ToObject(), nil
+}
+
 func xrangeNew(f *Frame, _ *Type, args Args, _ KWArgs) (*Object, *BaseException) {
 	expectedTypes := []*Type{IntType, IntType, IntType}
 	argc := len(args)
@@ -229,6 +234,7 @@ func initXRangeType(map[string]*Object) {
 	xrangeType.flags &^= typeFlagBasetype
 	xrangeType.slots.GetItem = &binaryOpSlot{xrangeGetItem}
 	xrangeType.slots.Iter = &unaryOpSlot{xrangeIter}
+	xrangeType.slots.Len = &unaryOpSlot{xrangeLen}
 	xrangeType.slots.New = &newSlot{xrangeNew}
 	xrangeType.slots.Repr = &unaryOpSlot{xrangeRepr}
 }
