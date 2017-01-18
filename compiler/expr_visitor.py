@@ -362,6 +362,7 @@ class ExprVisitor(ast.NodeVisitor):
       ast.LShift: 'πg.LShift(πF, {lhs}, {rhs})',
       ast.Mod: 'πg.Mod(πF, {lhs}, {rhs})',
       ast.Mult: 'πg.Mul(πF, {lhs}, {rhs})',
+      ast.Pow: 'πg.Pow(πF, {lhs}, {rhs})',
       ast.RShift: 'πg.RShift(πF, {lhs}, {rhs})',
       ast.Sub: 'πg.Sub(πF, {lhs}, {rhs})',
   }

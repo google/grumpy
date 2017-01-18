@@ -194,6 +194,10 @@ func floatNonZero(f *Frame, o *Object) (*Object, *BaseException) {
 	return GetBool(toFloatUnsafe(o).Value() != 0).ToObject(), nil
 }
 
+func floatPow(f *Frame, v, w *Object) (*Object, *BaseException) {
+	return floatArithmeticOp(f, "__pow__", v, w, func(v, w float64) float64 { return math.Pow(v, w) })
+}
+
 func floatRAdd(f *Frame, v, w *Object) (*Object, *BaseException) {
 	return floatArithmeticOp(f, "__radd__", v, w, func(v, w float64) float64 { return w + v })
 }
@@ -219,6 +223,10 @@ func floatRMod(f *Frame, v, w *Object) (*Object, *BaseException) {
 
 func floatRMul(f *Frame, v, w *Object) (*Object, *BaseException) {
 	return floatArithmeticOp(f, "__rmul__", v, w, func(v, w float64) float64 { return w * v })
+}
+
+func floatRPow(f *Frame, v, w *Object) (*Object, *BaseException) {
+	return floatArithmeticOp(f, "__rpow", v, w, func(v, w float64) float64 { return math.Pow(w, v) })
 }
 
 func floatRSub(f *Frame, v, w *Object) (*Object, *BaseException) {
@@ -249,11 +257,13 @@ func initFloatType(dict map[string]*Object) {
 	FloatType.slots.Neg = &unaryOpSlot{floatNeg}
 	FloatType.slots.New = &newSlot{floatNew}
 	FloatType.slots.NonZero = &unaryOpSlot{floatNonZero}
+	FloatType.slots.Pow = &binaryOpSlot{floatPow}
 	FloatType.slots.RAdd = &binaryOpSlot{floatRAdd}
 	FloatType.slots.RDiv = &binaryOpSlot{floatRDiv}
 	FloatType.slots.Repr = &unaryOpSlot{floatRepr}
 	FloatType.slots.RMod = &binaryOpSlot{floatRMod}
 	FloatType.slots.RMul = &binaryOpSlot{floatRMul}
+	FloatType.slots.RPow = &binaryOpSlot{floatRPow}
 	FloatType.slots.RSub = &binaryOpSlot{floatRSub}
 	FloatType.slots.Sub = &binaryOpSlot{floatSub}
 }

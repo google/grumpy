@@ -16,6 +16,7 @@ package grumpy
 
 import (
 	"fmt"
+	"math"
 	"math/big"
 	"reflect"
 	"strconv"
@@ -243,6 +244,43 @@ func intOr(f *Frame, v, w *Object) (*Object, *BaseException) {
 	return NewInt(toIntUnsafe(v).Value() | toIntUnsafe(w).Value()).ToObject(), nil
 }
 
+func intPow(f *Frame, v, w *Object) (*Object, *BaseException) {
+	if w.isInstance(IntType) {
+		// First try to use the faster floating point arithmetic
+		// on the CPU, then falls back to slower methods.
+		// IEEE float64 has 52bit of precision, so the result should be
+		// less than MaxInt32 to be representable as an exact integer.
+		// This assumes that int is at least 32bit.
+		vInt := toIntUnsafe(v).Value()
+		wInt := toIntUnsafe(w).Value()
+		if 0 < vInt && vInt <= math.MaxInt32 && 0 < wInt && wInt <= math.MaxInt32 {
+			res := math.Pow(float64(vInt), float64(wInt))
+			// Can the result be interpreted as an int?
+			if !math.IsNaN(res) && !math.IsInf(res, 0) && res <= math.MaxInt32 {
+				return NewInt(int(res)).ToObject(), nil
+			}
+		}
+		// Special cases.
+		if vInt == 0 {
+			if wInt < 0 {
+				return nil, f.RaiseType(ZeroDivisionErrorType, "0.0 cannot be raised to a negative power")
+			}
+			if wInt == 0 {
+				return NewInt(1).ToObject(), nil
+			}
+			return NewInt(0).ToObject(), nil
+		}
+		// If w < 0, the result must be a floating point number.
+		// We convert both arguments to float and continue.
+		if wInt < 0 {
+			return floatPow(f, NewFloat(float64(vInt)).ToObject(), NewFloat(float64(wInt)).ToObject())
+		}
+		// Else we convert to Long and continue there.
+		return longPow(f, NewLong(big.NewInt(int64(vInt))).ToObject(), NewLong(big.NewInt(int64(wInt))).ToObject())
+	}
+	return NotImplemented, nil
+}
+
 func intRAdd(f *Frame, v, w *Object) (*Object, *BaseException) {
 	return intAddMulOp(f, "__radd__", v, w, intCheckedAdd, longAdd)
 }
@@ -328,6 +366,7 @@ func initIntType(dict map[string]*Object) {
 	IntType.slots.New = &newSlot{intNew}
 	IntType.slots.NonZero = &unaryOpSlot{intNonZero}
 	IntType.slots.Or = &binaryOpSlot{intOr}
+	IntType.slots.Pow = &binaryOpSlot{intPow}
 	IntType.slots.RAdd = &binaryOpSlot{intRAdd}
 	IntType.slots.RAnd = &binaryOpSlot{intAnd}
 	IntType.slots.RDiv = &binaryOpSlot{intRDiv}

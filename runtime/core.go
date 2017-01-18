@@ -451,6 +451,10 @@ func Mul(f *Frame, v, w *Object) (*Object, *BaseException) {
 	return binaryOp(f, v, w, v.typ.slots.Mul, v.typ.slots.RMul, w.typ.slots.RMul, "*")
 }
 
+func Pow(f *Frame, v, w *Object) (*Object, *BaseException) {
+	return binaryOp(f, v, w, v.typ.slots.Pow, v.typ.slots.RPow, w.typ.slots.RPow, "**")
+}
+
 // Or returns the result of the bitwise or operator v | w according to
 // __or/ror__.
 func Or(f *Frame, v, w *Object) (*Object, *BaseException) {

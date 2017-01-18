@@ -140,6 +140,8 @@ func TestBinaryOps(t *testing.T) {
 		{Mul, newObject(ObjectType), newObject(fooType), nil, mustCreateException(TypeErrorType, "unsupported operand type(s) for *: 'object' and 'Foo'")},
 		{Or, NewInt(-42).ToObject(), NewInt(244).ToObject(), NewInt(-10).ToObject(), nil},
 		{Or, NewInt(42).ToObject(), NewStr("foo").ToObject(), nil, mustCreateException(TypeErrorType, "unsupported operand type(s) for |: 'int' and 'str'")},
+		{Pow, NewInt(2).ToObject(), NewInt(-2).ToObject(), NewFloat(0.25).ToObject(), nil},
+		{Pow, NewInt(2).ToObject(), newObject(fooType), nil, mustCreateException(TypeErrorType, "unsupported operand type(s) for **: 'int' and 'Foo'")},
 		{Sub, NewInt(3).ToObject(), NewInt(-3).ToObject(), NewInt(6).ToObject(), nil},
 		{Xor, NewInt(-42).ToObject(), NewInt(244).ToObject(), NewInt(-222).ToObject(), nil},
 		{Xor, NewInt(42).ToObject(), NewStr("foo").ToObject(), nil, mustCreateException(TypeErrorType, "unsupported operand type(s) for ^: 'int' and 'str'")},
