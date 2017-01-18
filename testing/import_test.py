@@ -14,4 +14,4 @@
 
 import sys
 
-print sys.goversion
+print sys.maxint

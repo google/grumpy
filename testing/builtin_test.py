@@ -279,8 +279,9 @@ assert zip([1, 2, 3], [1, 2], [4], []) == []
 assert zip([], [1], [1, 2], [1, 2, 3]) == []
 try:
   zip([1, 2, 3], [1, 2], [4], None)
-except TypeError as e:
-  assert str(e) == "'NoneType' object is not iterable"
+  raise AssertionError
+except TypeError:
+  pass
 
 # Test map
 

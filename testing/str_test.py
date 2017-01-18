@@ -61,11 +61,8 @@ class Foo(object):
     return 3
 assert 'abcd'.find('a', Foo()) == -1
 
-try:
-  'ab'.find('xxx', sys.maxsize + 1, 0)
-  raise AssertionError
-except IndexError:
-  pass
+# TODO: This raises IndexError under Grumpy but returns -1 for CPython.
+# 'ab'.find('xxx', sys.maxsize + 1, 0)
 
 try:
   "foo".find(123)
@@ -85,17 +82,19 @@ try:
 except TypeError:
   pass
 
-try:
-  'foobar'.find("bar", "baz")
-  raise AssertionError
-except IndexError:
-  pass
+# TODO: Both of these test cases raise TypeError under CPython but raise
+# IndexError under Grumpy.
+#try:
+#  'foobar'.find("bar", "baz")
+#  raise AssertionError
+#except TypeError:
+#  pass
 
-try:
-  'foobar'.find("bar", 0, "baz")
-  raise AssertionError
-except IndexError:
-  pass
+#try:
+#  'foobar'.find("bar", 0, "baz")
+#  raise AssertionError
+#except TypeError:
+#  pass
 
 # Test Mod
 assert "%s" % 42 == "42"
