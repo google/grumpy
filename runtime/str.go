@@ -221,13 +221,13 @@ func strFind(f *Frame, args Args, _ KWArgs) (*Object, *BaseException) {
 	s := toStrUnsafe(args[0]).Value()
 	l := len(s)
 	start, end := 0, l
-	if argc >= 3 {
+	if argc >= 3 && args[2] != None {
 		start, raised = IndexInt(f, args[2])
 		if raised != nil {
 			return nil, raised
 		}
 	}
-	if argc == 4 {
+	if argc == 4 && args[3] != None {
 		end, raised = IndexInt(f, args[3])
 		if raised != nil {
 			return nil, raised

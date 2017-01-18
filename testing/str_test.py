@@ -29,6 +29,8 @@ assert "foobar".find("bar", 0, -2) == -1
 assert "foobar".find("foo", 0, 3) == 0
 assert "foobar".find("bar", 3, 5) == -1
 assert "foobar".find("bar", 5, 3) == -1
+assert 'foobar'.find("bar", None) == 3
+assert 'foobar'.find("bar", 0, None) == 3
 assert "bar".find("foobar") == -1
 assert "bar".find("a", 0, -1) == 1
 assert 'abcdefghiabc'.find('abc') == 0
@@ -82,19 +84,17 @@ try:
 except TypeError:
   pass
 
-# TODO: Both of these test cases raise TypeError under CPython but raise
-# IndexError under Grumpy.
-#try:
-#  'foobar'.find("bar", "baz")
-#  raise AssertionError
-#except TypeError:
-#  pass
+try:
+  'foobar'.find("bar", "baz")
+  raise AssertionError
+except TypeError:
+  pass
 
-#try:
-#  'foobar'.find("bar", 0, "baz")
-#  raise AssertionError
-#except TypeError:
-#  pass
+try:
+  'foobar'.find("bar", 0, "baz")
+  raise AssertionError
+except TypeError:
+  pass
 
 # Test Mod
 assert "%s" % 42 == "42"

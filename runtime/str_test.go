@@ -270,8 +270,10 @@ func TestStrMethods(t *testing.T) {
 		{"find", wrapArgs("foobar", "bar", NewInt(MaxInt)), NewInt(-1).ToObject(), nil},
 		// TODO: Support unicode substring.
 		{"find", wrapArgs("foobar", NewUnicode("bar")), nil, mustCreateException(TypeErrorType, "'find/index' requires a 'str' object but received a 'unicode'")},
-		{"find", wrapArgs("foobar", "bar", "baz"), nil, mustCreateException(IndexErrorType, "cannot fit '<type 'str'>' into an index-sized integer")},
-		{"find", wrapArgs("foobar", "bar", 0, "baz"), nil, mustCreateException(IndexErrorType, "cannot fit '<type 'str'>' into an index-sized integer")},
+		{"find", wrapArgs("foobar", "bar", "baz"), nil, mustCreateException(TypeErrorType, "slice indices must be integers or None or have an __index__ method")},
+		{"find", wrapArgs("foobar", "bar", 0, "baz"), nil, mustCreateException(TypeErrorType, "slice indices must be integers or None or have an __index__ method")},
+		{"find", wrapArgs("foobar", "bar", None), NewInt(3).ToObject(), nil},
+		{"find", wrapArgs("foobar", "bar", 0, None), NewInt(3).ToObject(), nil},
 		{"find", wrapArgs("foobar", "bar", 0, -2), NewInt(-1).ToObject(), nil},
 		{"find", wrapArgs("foobar", "foo", 0, 3), NewInt(0).ToObject(), nil},
 		{"find", wrapArgs("foobar", "foo", 10), NewInt(-1).ToObject(), nil},
