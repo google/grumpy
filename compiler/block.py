@@ -33,11 +33,9 @@ class Package(object):
 
   def __init__(self, name, alias=None):
     self.name = name
-    if not alias:
       # Use Γ as a separator since it provides readability with a low
       # probability of name collisions.
-      alias = 'π_' + name.replace('/', 'Γ').replace('.', 'Γ')
-    self.alias = alias
+    self.alias = alias or 'π_' + name.replace('/', 'Γ').replace('.', 'Γ')
 
 
 class Loop(object):
@@ -413,18 +411,15 @@ class BlockVisitor(ast.NodeVisitor):
   def _register_global(self, node, name):
     var = self.vars.get(name)
     if var:
-      if var.type == Var.TYPE_PARAM:
-        msg = "name '{}' is parameter and global"
-        raise util.ParseError(node, msg.format(name))
-      if var.type == Var.TYPE_LOCAL:
-        msg = "name '{}' is used prior to global declaration"
+      msg = {Var.TYPE_LOCAL: "name '{}' is used prior to global declaration",
+             Var.TYPE_PARAM: "name '{}' is parameter and global"}.get(var.type)
+      if msg:
         raise util.ParseError(node, msg.format(name))
     else:
       self.vars[name] = Var(name, Var.TYPE_GLOBAL)
 
   def _register_local(self, name):
-    var = self.vars.get(name)
-    if not var:
+    if not self.vars.get(name):
       self.vars[name] = Var(name, Var.TYPE_LOCAL)
 
 
