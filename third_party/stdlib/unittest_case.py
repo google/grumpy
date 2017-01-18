@@ -684,7 +684,8 @@ class TestCase(object):
                 seq1_repr = seq1_repr[:30] + '...'
             if len(seq2_repr) > 30:
                 seq2_repr = seq2_repr[:30] + '...'
-            elements = (seq_type_name.capitalize(), seq1_repr, seq2_repr)
+            #elements = (seq_type_name.capitalize(), seq1_repr, seq2_repr)
+            elements = (seq_type_name[0].upper() + seq_type_name[1:].lower(), seq1_repr, seq2_repr)
             differing = '%ss differ: %s != %s\n' % elements
 
             for i in xrange(min(len1, len2)):
