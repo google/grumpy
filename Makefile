@@ -97,7 +97,7 @@ test: $(ACCEPT_PASS_FILES) $(ACCEPT_PY_PASS_FILES) $(COMPILER_PASS_FILES) $(COMP
 
 precommit: cover gofmt lint test
 
-.PHONY: all benchmarks clean cover gofmt golint lint precommit pylint run test install
+.PHONY: all benchmarks clean cover gofmt golint install lint precommit pylint run test
 
 # ------------------------------------------------------------------------------
 # grumpc compiler
