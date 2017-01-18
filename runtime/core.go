@@ -451,6 +451,8 @@ func Mul(f *Frame, v, w *Object) (*Object, *BaseException) {
 	return binaryOp(f, v, w, v.typ.slots.Mul, v.typ.slots.RMul, w.typ.slots.RMul, "*")
 }
 
+// Pow returns the result of x**y, the base-x exponential of y according to the
+// __pow/rpow__ operator.
 func Pow(f *Frame, v, w *Object) (*Object, *BaseException) {
 	return binaryOp(f, v, w, v.typ.slots.Pow, v.typ.slots.RPow, w.typ.slots.RPow, "**")
 }
