@@ -97,7 +97,7 @@ test: $(ACCEPT_PASS_FILES) $(ACCEPT_PY_PASS_FILES) $(COMPILER_PASS_FILES) $(COMP
 
 precommit: cover gofmt lint test
 
-.PHONY: all benchmarks clean cover gofmt golint lint precommit pylint run test
+.PHONY: all benchmarks clean cover gofmt golint lint precommit pylint run test install
 
 # ------------------------------------------------------------------------------
 # grumpc compiler
@@ -249,14 +249,10 @@ $(BENCHMARK_BINS): build/benchmarks/%_benchmark: build/benchmarks/%.go $(RUNTIME
 # Installation
 # ------------------------------------------------------------------------------
 
-install:
+install: $(RUNNER_BIN) $(COMPILER) $(RUNTIME) $(STDLIB)
+	install -Dm755 build/bin/grumpc $(DESTDIR)/usr/bin/grumpc
+	install -Dm755 build/bin/grumprun $(DESTDIR)/usr/bin/grumprun
 	install -d $(DESTDIR)/usr/lib/go
-	install -d $(DESTDIR)/usr/bin
-	install -Dm755 tools/benchcmp $(DESTDIR)/usr/bin/benchcmp
-	install -Dm755 tools/coverparse $(DESTDIR)/usr/bin/coverparse
-	install -Dm755 tools/diffrange $(DESTDIR)/usr/bin/diffrange
-	install -Dm755 tools/grumpc $(DESTDIR)/usr/bin/grumpc
-	install -Dm755 tools/grumprun $(DESTDIR)/usr/bin/grumprun
-	cp -rv --no-preserve=ownership build/bin build/lib $(DESTDIR)/usr/
+	cp -rv --no-preserve=ownership build/lib $(DESTDIR)/usr/
 	cp -rv --no-preserve=ownership build/pkg build/src $(DESTDIR)/usr/lib/go/
 
