@@ -21,7 +21,15 @@ GOOS ?= $(word 1,$(GO_ENV))
 GOARCH ?= $(word 2,$(GO_ENV))
 ROOT_DIR := $(realpath .)
 PKG_DIR := build/pkg/$(GOOS)_$(GOARCH)
-PYTHON ?= python
+
+# Try python2 and then python if PYTHON has not been set
+ifeq ($(PYTHON),)
+  ifneq ($(shell which python2),)
+    PYTHON = python2
+  else
+    PYTHON = python
+  endif
+endif
 PYTHON_BIN := $(shell which $(PYTHON))
 PYTHON_VER := $(word 2,$(shell $(PYTHON) -V 2>&1))
 PY_DIR := build/lib/python2.7/site-packages
