@@ -448,7 +448,10 @@ func builtinLen(f *Frame, args Args, kwargs KWArgs) (*Object, *BaseException) {
 		return nil, raised
 	}
 	ret, raised := Len(f, args[0])
-	return ret.ToObject(), raised
+	if raised != nil {
+		return nil, raised
+	}
+	return ret.ToObject(), nil
 }
 
 func builtinMax(f *Frame, args Args, kwargs KWArgs) (*Object, *BaseException) {
