@@ -244,3 +244,19 @@ $(patsubst %,build/%.go,$(BENCHMARKS)): build/%.go: %.py $(COMPILER)
 $(BENCHMARK_BINS): build/benchmarks/%_benchmark: build/benchmarks/%.go $(RUNTIME) $(STDLIB)
 	@mkdir -p $(@D)
 	@go build -o $@ $<
+
+# ------------------------------------------------------------------------------
+# Installation
+# ------------------------------------------------------------------------------
+
+install:
+	install -d $(DESTDIR)/usr/lib/go
+	install -d $(DESTDIR)/usr/bin
+	install -Dm755 tools/benchcmp $(DESTDIR)/usr/bin/benchcmp
+	install -Dm755 tools/coverparse $(DESTDIR)/usr/bin/coverparse
+	install -Dm755 tools/diffrange $(DESTDIR)/usr/bin/diffrange
+	install -Dm755 tools/grumpc $(DESTDIR)/usr/bin/grumpc
+	install -Dm755 tools/grumprun $(DESTDIR)/usr/bin/grumprun
+	cp -rv --no-preserve=ownership build/bin build/lib $(DESTDIR)/usr/
+	cp -rv --no-preserve=ownership build/pkg build/src $(DESTDIR)/usr/lib/go/
+
