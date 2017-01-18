@@ -85,6 +85,20 @@ func TestXRangeGetItem(t *testing.T) {
 	}
 }
 
+func TestXRangeLen(t *testing.T) {
+	cases := []invokeTestCase{
+		{args: wrapArgs(newTestXRange(10)), want: NewInt(10).ToObject()},
+		{args: wrapArgs(newTestXRange(10, 12)), want: NewInt(2).ToObject()},
+		{args: wrapArgs(newTestXRange(5, 16, 5)), want: NewInt(3).ToObject()},
+		{args: wrapArgs(newTestXRange(5, -2, -3)), want: NewInt(3).ToObject()},
+	}
+	for _, cas := range cases {
+		if err := runInvokeMethodTestCase(xrangeType, "__len__", &cas); err != "" {
+			t.Error(err)
+		}
+	}
+}
+
 func TestXRangeNew(t *testing.T) {
 	fun := newBuiltinFunction("TestXRangeNew", func(f *Frame, args Args, _ KWArgs) (*Object, *BaseException) {
 		xrange, raised := xrangeType.Call(f, args, nil)
