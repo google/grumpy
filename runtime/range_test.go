@@ -70,6 +70,21 @@ func TestRangeIteratorIter(t *testing.T) {
 	}
 }
 
+func TestXRangeGetItem(t *testing.T) {
+	cases := []invokeTestCase{
+		{args: wrapArgs(newTestXRange(10), 3), want: NewInt(3).ToObject()},
+		{args: wrapArgs(newTestXRange(10, 12), 1), want: NewInt(11).ToObject()},
+		{args: wrapArgs(newTestXRange(5, -2, -3), 2), want: NewInt(-1).ToObject()},
+		{args: wrapArgs(newTestXRange(3), 100), wantExc: mustCreateException(IndexErrorType, "index out of range")},
+		{args: wrapArgs(newTestXRange(5), newTestSlice(1, 3)), wantExc: mustCreateException(TypeErrorType, "sequence index must be integer, not 'slice'")},
+	}
+	for _, cas := range cases {
+		if err := runInvokeMethodTestCase(xrangeType, "__getitem__", &cas); err != "" {
+			t.Error(err)
+		}
+	}
+}
+
 func TestXRangeNew(t *testing.T) {
 	fun := newBuiltinFunction("TestXRangeNew", func(f *Frame, args Args, _ KWArgs) (*Object, *BaseException) {
 		xrange, raised := xrangeType.Call(f, args, nil)
@@ -128,4 +143,8 @@ func TestXRangeRepr(t *testing.T) {
 			t.Error(err)
 		}
 	}
+}
+
+func newTestXRange(args ...interface{}) *Object {
+	return mustNotRaise(xrangeType.Call(NewRootFrame(), wrapArgs(args...), nil))
 }
