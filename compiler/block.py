@@ -411,9 +411,11 @@ class BlockVisitor(ast.NodeVisitor):
   def _register_global(self, node, name):
     var = self.vars.get(name)
     if var:
-      msg = {Var.TYPE_LOCAL: "name '{}' is used prior to global declaration",
-             Var.TYPE_PARAM: "name '{}' is parameter and global"}.get(var.type)
-      if msg:
+      if var.type == Var.TYPE_PARAM:
+        msg = "name '{}' is parameter and global"
+        raise util.ParseError(node, msg.format(name))
+      if var.type == Var.TYPE_LOCAL:
+        msg = "name '{}' is used prior to global declaration"
         raise util.ParseError(node, msg.format(name))
     else:
       self.vars[name] = Var(name, Var.TYPE_GLOBAL)
