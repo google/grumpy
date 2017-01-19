@@ -15,7 +15,7 @@
 from __go__.math import (Pi, E, Ceil, Copysign, Abs, Floor, Mod, Frexp, IsInf,
     IsNaN, Exp2, Modf, Trunc, Exp, Expm1, Log, Log1p, Log10, Pow, Sqrt, Acos,
     Asin, Atan, Atan2, Hypot, Sin, Cos, Tan, Acosh, Asinh, Atanh, Sinh, Cosh,
-    Tanh, Erf, Erfc, Gamma, Lgamma) # pylint: disable=g-multiple-import
+    Tanh, Erf, Erfc, Gamma, Lgamma)  # pylint: disable=g-multiple-import
 
 # Constants
 
@@ -29,12 +29,12 @@ e = E
 
 def ceil(x):
     return Ceil(float(x))
-    
-    
+
+
 def copysign(x, y):
     return Copysign(float(x), float(y))
 
-    
+
 def fabs(x):
     return Abs(float(x))
 
@@ -44,12 +44,12 @@ def factorial(x):
         xi = int(x)
     except TypeError:
         xi = None
-    
+
     try:
         xf = float(x)
     except TypeError:
         xf = None
-    
+
     if xi is None:
         xi = int(xf)
         if xi != xf:
@@ -60,17 +60,17 @@ def factorial(x):
         pass
     elif xf != xi:
         raise ValueError("factorial() only accepts integral values")
-    
+
     x = xi
-    
+
     if x < 0:
         raise ValueError("factorial() not defined for negative values")
-    
+
     acc = 1
-    
-    for value in range(2,x+1):
+
+    for value in range(2, x+1):
         acc *= value
-    
+
     return acc
 
 
@@ -92,23 +92,23 @@ def frexp(x):
 
 
 def isinf(x):
-    return IsInf(float(x),0)
-    
-    
+    return IsInf(float(x), 0)
+
+
 def isnan(x):
     return IsNaN(float(x))
 
 
 def ldexp(x, i):
     return float(x) * Exp2(float(i))
-    
-    
+
+
 def modf(x):
-    #Modf returns (int, frac), but python should return (frac, int).
+    # Modf returns (int, frac), but python should return (frac, int).
     a, b = Modf(float(x))
     return b, a
 
-    
+
 def trunc(x):
     return Trunc(float(x))
 
@@ -134,12 +134,12 @@ def log(x, b=None):
 
 def log1p(x):
     return Log1p(float(x))
-    
-    
+
+
 def log10(x):
     return Log10(float(x))
-    
-    
+
+
 def pow(x, y):
     return Pow(float(x), float(y))
 
@@ -164,8 +164,8 @@ def atan(x):
 
 def atan2(y, x):
     return Atan2(float(y), float(x))
-    
-    
+
+
 def cos(x):
     return Cos(float(x))
 
@@ -196,12 +196,12 @@ def radians(x):
 
 def acosh(x):
     return Acosh(float(x))
-    
-    
+
+
 def asinh(x):
     return Asinh(float(x))
-    
-    
+
+
 def atanh(x):
     return Atanh(float(x))
 
@@ -212,25 +212,25 @@ def cosh(x):
 
 def sinh(x):
     return Sinh(float(x))
-    
-    
+
+
 def tanh(x):
     return Tanh(float(x))
-    
-    
+
+
 # Special functions
 
 def erf(x):
     return Erf(float(x))
-    
-    
+
+
 def erfc(x):
     return Erfc(float(x))
 
 
 def gamma(x):
     return Gamma(float(x))
-    
-    
+
+
 def lgamma(x):
     return Lgamma(float(x))
