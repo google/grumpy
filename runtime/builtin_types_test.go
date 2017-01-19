@@ -339,7 +339,7 @@ func captureStdout(f *Frame, fn func() *BaseException) (string, *BaseException) 
 func TestBuiltinPrint(t *testing.T) {
 	fun := wrapFuncForTest(func(f *Frame, args *Tuple, kwargs KWArgs) (string, *BaseException) {
 		return captureStdout(f, func() *BaseException {
-			_, raised := builtinPrint(newFrame(nil), args.elems, kwargs)
+			_, raised := builtinPrint(NewRootFrame(), args.elems, kwargs)
 			return raised
 		})
 	})

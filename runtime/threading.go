@@ -35,6 +35,11 @@ type threadState struct {
 	// is full are dropped. If the cache is empty then a new args slice
 	// will be allocated.
 	argsCache []Args
+
+	// frameCache is a local cache of allocated frames almost ready for
+	// reuse. The cache is maintained through the Frame `back` pointer as a
+	// singly linked list.
+	frameCache *Frame
 }
 
 func newThreadState() *threadState {

@@ -337,6 +337,7 @@ func builtinFrame(f *Frame, args Args, _ KWArgs) (*Object, *BaseException) {
 	if raised := checkFunctionArgs(f, "__frame__", args); raised != nil {
 		return nil, raised
 	}
+	f.taken = true
 	return f.ToObject(), nil
 }
 
