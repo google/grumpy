@@ -512,6 +512,58 @@ func strSplit(f *Frame, args Args, kwargs KWArgs) (*Object, *BaseException) {
 	return NewList(results...).ToObject(), nil
 }
 
+func strSplitLines(f *Frame, args Args, _ KWArgs) (*Object, *BaseException) {
+	expectedTypes := []*Type{StrType, ObjectType}
+	argc := len(args)
+	if argc == 1 {
+		expectedTypes = expectedTypes[:1]
+	}
+	if raised := checkMethodArgs(f, "splitlines", args, expectedTypes...); raised != nil {
+		return nil, raised
+	}
+	keepEnds := false
+	if argc == 2 {
+		i, raised := ToIntValue(f, args[1])
+		if raised != nil {
+			return nil, raised
+		}
+		keepEnds = i != 0
+	}
+	s := toStrUnsafe(args[0]).Value()
+	numChars := len(s)
+	start, end := 0, 0
+	lines := make([]*Object, 0, 2)
+	for start < numChars {
+		eol := 0
+		for end = start; end < numChars; end++ {
+			c := s[end]
+			if c == '\n' {
+				eol = end + 1
+				break
+			}
+			if c == '\r' {
+				eol = end + 1
+				if eol < numChars && s[eol] == '\n' {
+					eol++
+				}
+				break
+			}
+		}
+		if end >= numChars {
+			eol = end
+		}
+		line := ""
+		if keepEnds {
+			line = s[start:eol]
+		} else {
+			line = s[start:end]
+		}
+		lines = append(lines, NewStr(line).ToObject())
+		start = eol
+	}
+	return NewList(lines...).ToObject(), nil
+}
+
 func strStrip(f *Frame, args Args, _ KWArgs) (*Object, *BaseException) {
 	return strStripImpl(f, args, stripSideBoth)
 }
@@ -600,6 +652,7 @@ func initStrType(dict map[string]*Object) {
 	dict["lower"] = newBuiltinFunction("lower", strLower).ToObject()
 	dict["lstrip"] = newBuiltinFunction("lstrip", strLStrip).ToObject()
 	dict["split"] = newBuiltinFunction("split", strSplit).ToObject()
+	dict["splitlines"] = newBuiltinFunction("splitlines", strSplitLines).ToObject()
 	dict["startswith"] = newBuiltinFunction("startswith", strStartsWith).ToObject()
 	dict["strip"] = newBuiltinFunction("strip", strStrip).ToObject()
 	dict["rstrip"] = newBuiltinFunction("rstrip", strRStrip).ToObject()
