@@ -33,6 +33,7 @@ endif
 PYTHON_BIN := $(shell which $(PYTHON))
 PYTHON_VER := $(word 2,$(shell $(PYTHON) -V 2>&1))
 PY_DIR := build/lib/python2.7/site-packages
+PY_INSTALL_DIR := $(shell python2 -c "from distutils.sysconfig import get_python_lib; print(get_python_lib())")
 
 ifeq ($(filter 2.7.%,$(PYTHON_VER)),)
   $(error unsupported Python version $(PYTHON_VER), Grumpy only supports 2.7.x. To use a different python binary such as python2, run: 'make PYTHON=python2 ...')
@@ -250,9 +251,12 @@ $(BENCHMARK_BINS): build/benchmarks/%_benchmark: build/benchmarks/%.go $(RUNTIME
 # ------------------------------------------------------------------------------
 
 install: $(RUNNER_BIN) $(COMPILER) $(RUNTIME) $(STDLIB)
-	install -Dm755 build/bin/grumpc $(DESTDIR)/usr/bin/grumpc
-	install -Dm755 build/bin/grumprun $(DESTDIR)/usr/bin/grumprun
-	install -d $(DESTDIR)/usr/lib/go
-	cp -rv --no-preserve=ownership build/lib $(DESTDIR)/usr/
-	cp -rv --no-preserve=ownership build/pkg build/src $(DESTDIR)/usr/lib/go/
+	# Binary executables
+	install -Dm755 build/bin/grumpc "$(DESTDIR)/usr/bin/grumpc"
+	install -Dm755 build/bin/grumprun "$(DESTDIR)/usr/bin/grumprun"
+	# Python module
+	install -d "$(DESTDIR)"{/usr/lib/go,"$(PY_INSTALL_DIR)"}
+	cp -rv --no-preserve=ownership "$(PY_DIR)/grumpy" "$(DESTDIR)$(PY_INSTALL_DIR)"
+	# Go package and sources
+	cp -rv --no-preserve=ownership build/pkg build/src "$(DESTDIR)/usr/lib/go/"
 
