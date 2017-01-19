@@ -453,6 +453,37 @@ func strNew(f *Frame, t *Type, args Args, _ KWArgs) (*Object, *BaseException) {
 	return s.ToObject(), nil
 }
 
+// strReplace returns a copy of the string s with the first n non-overlapping
+// instances of old replaced by new. If old is empty, it matches at the
+// beginning of the string. If n < 0, there is no limit on the number of
+// replacements.
+func strReplace(f *Frame, args Args, _ KWArgs) (*Object, *BaseException) {
+	// TODO: Support unicode replace.
+	expectedTypes := []*Type{StrType, StrType, StrType, ObjectType}
+	argc, n := len(args), -1
+	if argc == 3 {
+		expectedTypes = expectedTypes[:argc]
+	}
+	if raised := checkMethodArgs(f, "replace", args, expectedTypes...); raised != nil {
+		return nil, raised
+	}
+	if argc == 4 {
+		o, raised := IntType.Call(f, Args{args[3]}, nil)
+		if raised != nil {
+			return nil, raised
+		}
+		n = toIntUnsafe(o).Value()
+	}
+	s := toStrUnsafe(args[0]).Value()
+	old := toStrUnsafe(args[1]).Value()
+	new := toStrUnsafe(args[2]).Value()
+	// CPython only, pypy supposed to be same as Go
+	if len(s) == 0 && len(old) == 0 && n >= 0 {
+		return NewStr("").ToObject(), nil
+	}
+	return NewStr(strings.Replace(s, old, new, n)).ToObject(), nil
+}
+
 func strRepr(_ *Frame, o *Object) (*Object, *BaseException) {
 	s := toStrUnsafe(o).Value()
 	buf := bytes.Buffer{}
@@ -602,6 +633,7 @@ func initStrType(dict map[string]*Object) {
 	dict["split"] = newBuiltinFunction("split", strSplit).ToObject()
 	dict["startswith"] = newBuiltinFunction("startswith", strStartsWith).ToObject()
 	dict["strip"] = newBuiltinFunction("strip", strStrip).ToObject()
+	dict["replace"] = newBuiltinFunction("replace", strReplace).ToObject()
 	dict["rstrip"] = newBuiltinFunction("rstrip", strRStrip).ToObject()
 	dict["title"] = newBuiltinFunction("title", strTitle).ToObject()
 	dict["upper"] = newBuiltinFunction("upper", strUpper).ToObject()
