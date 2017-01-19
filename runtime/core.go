@@ -493,7 +493,7 @@ func IndexInt(f *Frame, o *Object) (int, *BaseException) {
 	if raised != nil {
 		return 0, raised
 	}
-	if i == nil || (!i.isInstance(IntType) && !i.isInstance(LongType)) {
+	if i == nil {
 		return 0, f.RaiseType(TypeErrorType, "slice indices must be integers or None or have an __index__ method")
 	}
 	if i.isInstance(IntType) {
