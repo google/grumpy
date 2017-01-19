@@ -501,7 +501,7 @@ func IndexInt(f *Frame, o *Object) (i int, raised *BaseException) {
 	if o.isInstance(LongType) {
 		l := toLongUnsafe(o).Value()
 		// Anything bigger than maxIntBig will treat as maxIntBig.
-		if maxIntBig.Cmp(l) < 0 {
+		if !numInIntRange(l) {
 			l = maxIntBig
 		}
 		return int(l.Int64()), nil
