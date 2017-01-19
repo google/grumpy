@@ -8,6 +8,8 @@ import (
 	"testing"
 )
 
+var overflowLong = big.NewInt(0).Add(maxIntBig, big.NewInt(101))
+
 func TestLongBasis(t *testing.T) {
 	got := LongType.slots.Basis.Fn(NewLong(big.NewInt(42)).ToObject()).Type()
 	want := reflect.TypeOf(Long{})

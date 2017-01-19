@@ -1052,6 +1052,19 @@ func TestToInt(t *testing.T) {
 	}
 }
 
+func TestToIntValue(t *testing.T) {
+	cases := []invokeTestCase{
+		{args: wrapArgs(42), want: NewInt(42).ToObject()},
+		{args: wrapArgs(big.NewInt(123)), want: NewInt(123).ToObject()},
+		{args: wrapArgs(overflowLong), wantExc: mustCreateException(OverflowErrorType, "Python int too large to convert to a Go int")},
+	}
+	for _, cas := range cases {
+		if err := runInvokeTestCase(wrapFuncForTest(ToIntValue), &cas); err != "" {
+			t.Error(err)
+		}
+	}
+}
+
 func TestToNative(t *testing.T) {
 	foo := newObject(ObjectType)
 	cases := []struct {

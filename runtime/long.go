@@ -60,9 +60,9 @@ func toLongUnsafe(o *Object) *Long {
 	return (*Long)(o.toPointer())
 }
 
-// ToNativeInt returns l's value as a plain int if it will not overflow.
+// IntValue returns l's value as a plain int if it will not overflow.
 // Otherwise raises OverflowErrorType.
-func (l *Long) ToNativeInt(f *Frame) (int, *BaseException) {
+func (l *Long) IntValue(f *Frame) (int, *BaseException) {
 	if !numInIntRange(&l.value) {
 		return 0, f.RaiseType(OverflowErrorType, "Python int too large to convert to a Go int")
 	}

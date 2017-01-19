@@ -189,7 +189,7 @@ func intNew(f *Frame, t *Type, args Args, _ KWArgs) (*Object, *BaseException) {
 		}
 		n := 0
 		if i.isInstance(LongType) {
-			n, raised = toLongUnsafe(i).ToNativeInt(f)
+			n, raised = toLongUnsafe(i).IntValue(f)
 			if raised != nil {
 				return nil, raised
 			}
@@ -212,17 +212,10 @@ func intNew(f *Frame, t *Type, args Args, _ KWArgs) (*Object, *BaseException) {
 	s := toStrUnsafe(o).Value()
 	base := 10
 	if len(args) == 2 {
-		baseArg, raised := ToInt(f, args[1])
+		var raised *BaseException
+		base, raised = ToIntValue(f, args[1])
 		if raised != nil {
 			return nil, raised
-		}
-		if baseArg.isInstance(LongType) {
-			base, raised = toLongUnsafe(baseArg).ToNativeInt(f)
-			if raised != nil {
-				return nil, raised
-			}
-		} else {
-			base = toIntUnsafe(baseArg).Value()
 		}
 		if base < 0 || base == 1 || base > 36 {
 			return nil, f.RaiseType(ValueErrorType, "int() base must be >= 2 and <= 36")

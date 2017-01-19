@@ -855,18 +855,9 @@ func strZFill(f *Frame, args Args, _ KWArgs) (*Object, *BaseException) {
 	}
 	s := toStrUnsafe(args[0]).Value()
 	l := len(s)
-	o, raised := ToInt(f, args[1])
+	width, raised := ToIntValue(f, args[1])
 	if raised != nil {
 		return nil, raised
-	}
-	width := 0
-	if o.isInstance(LongType) {
-		width, raised = toLongUnsafe(o).ToNativeInt(f)
-		if raised != nil {
-			return nil, raised
-		}
-	} else {
-		width = toIntUnsafe(o).Value()
 	}
 	if width <= l {
 		return args[0], nil

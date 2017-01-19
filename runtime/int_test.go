@@ -135,7 +135,6 @@ func TestIntNew(t *testing.T) {
 			return subTypeObject, nil
 		}).ToObject(),
 	}))
-	overflowLong := big.NewInt(0).Add(maxIntBig, big.NewInt(101))
 	cases := []invokeTestCase{
 		{args: wrapArgs(IntType), want: NewInt(0).ToObject()},
 		{args: wrapArgs(IntType, "123"), want: NewInt(123).ToObject()},

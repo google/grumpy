@@ -796,6 +796,20 @@ func ToInt(f *Frame, o *Object) (*Object, *BaseException) {
 	return nil, f.RaiseType(TypeErrorType, fmt.Sprintf("__int__ returned non-int (type %s)", i.typ.Name()))
 }
 
+// ToIntValue converts o to an integer according to the __int__ slot. If the
+// result is not an int or long, or if the long value is too large to fit into
+// an int, then an exception is raised.
+func ToIntValue(f *Frame, o *Object) (int, *BaseException) {
+	i, raised := ToInt(f, o)
+	if raised != nil {
+		return 0, raised
+	}
+	if i.isInstance(IntType) {
+		return toIntUnsafe(i).Value(), nil
+	}
+	return toLongUnsafe(i).IntValue(f)
+}
+
 // ToNative converts o to a native Go object according to the __native__
 // operator.
 func ToNative(f *Frame, o *Object) (reflect.Value, *BaseException) {

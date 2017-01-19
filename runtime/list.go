@@ -310,17 +310,10 @@ func listPop(f *Frame, args Args, _ KWArgs) (*Object, *BaseException) {
 	}
 	i := -1
 	if argc == 2 {
-		o, raised := ToInt(f, args[1])
+		var raised *BaseException
+		i, raised = ToIntValue(f, args[1])
 		if raised != nil {
 			return nil, raised
-		}
-		if o.isInstance(LongType) {
-			i, raised = toLongUnsafe(o).ToNativeInt(f)
-			if raised != nil {
-				return nil, raised
-			}
-		} else {
-			i = toIntUnsafe(o).Value()
 		}
 	}
 	l := toListUnsafe(args[0])
