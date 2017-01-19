@@ -263,12 +263,11 @@ func TestStrMethods(t *testing.T) {
 			return NewInt(2).ToObject(), nil
 		}).ToObject(),
 	}))
-	// TODO: Support long maxReplace
-	// longIntType := newTestClass("LongInt", []*Type{ObjectType}, newStringDict(map[string]*Object{
-	// 	"__int__": newBuiltinFunction("__int__", func(f *Frame, _ Args, _ KWArgs) (*Object, *BaseException) {
-	// 		return NewLong(big.NewInt(2)).ToObject(), nil
-	// 	}).ToObject(),
-	// }))
+	longIntType := newTestClass("LongInt", []*Type{ObjectType}, newStringDict(map[string]*Object{
+		"__int__": newBuiltinFunction("__int__", func(f *Frame, _ Args, _ KWArgs) (*Object, *BaseException) {
+			return NewLong(big.NewInt(2)).ToObject(), nil
+		}).ToObject(),
+	}))
 	cases := []struct {
 		methodName string
 		args       Args
@@ -382,6 +381,8 @@ func TestStrMethods(t *testing.T) {
 		{"replace", wrapArgs("one!two!three!", "!", "@"), NewStr("one@two@three@").ToObject(), nil},
 		{"replace", wrapArgs("one!two!three!", "x", "@"), NewStr("one!two!three!").ToObject(), nil},
 		{"replace", wrapArgs("one!two!three!", "x", "@", 2), NewStr("one!two!three!").ToObject(), nil},
+		{"replace", wrapArgs("\x10\xc4\x80\xe1\x80\x80\xe3\x80\x80\xe8\x80\x80\xef\xbf\xbf", "\xe3\x80\x80", " "), NewStr("\x10\xc4\x80\xe1\x80\x80 \xe8\x80\x80\xef\xbf\xbf").ToObject(), nil},
+		{"replace", wrapArgs("\x10\xc4\x80\xe1\x80\x80\xe3\x80\x80\xe8\x80\x80\xef\xbf\xbf", "\x80", " "), NewStr("\x10\xc4 \xe1  \xe3  \xe8  \xef\xbf\xbf").ToObject(), nil},
 		{"replace", wrapArgs("abc", "", "-"), NewStr("-a-b-c-").ToObject(), nil},
 		{"replace", wrapArgs("abc", "", "-", 3), NewStr("-a-b-c").ToObject(), nil},
 		{"replace", wrapArgs("abc", "", "-", 0), NewStr("abc").ToObject(), nil},
@@ -394,8 +395,7 @@ func TestStrMethods(t *testing.T) {
 		{"replace", wrapArgs("123x123", "123", ""), NewStr("x").ToObject(), nil},
 		{"replace", wrapArgs("one!two!three!", "!", "@", NewLong(big.NewInt(1))), NewStr("one@two!three!").ToObject(), nil},
 		{"replace", wrapArgs("foobar", "bar", "baz", newObject(intIntType)), NewStr("foobaz").ToObject(), nil},
-		// TODO: Support long maxReplace.
-		// {"replace", wrapArgs("foobar", "bar", "baz", newObject(longIntType)), NewStr("foobaz").ToObject(), nil},
+		{"replace", wrapArgs("foobar", "bar", "baz", newObject(longIntType)), NewStr("foobaz").ToObject(), nil},
 		{"replace", wrapArgs("", "", "x"), NewStr("x").ToObject(), nil},
 		{"replace", wrapArgs("", "", "x", -1), NewStr("x").ToObject(), nil},
 		{"replace", wrapArgs("", "", "x", 0), NewStr("").ToObject(), nil},
@@ -404,9 +404,9 @@ func TestStrMethods(t *testing.T) {
 		// TODO: Support unicode substring.
 		{"replace", wrapArgs("foobar", "", NewUnicode("bar")), nil, mustCreateException(TypeErrorType, "'replace' requires a 'str' object but received a 'unicode'")},
 		{"replace", wrapArgs("foobar", NewUnicode("bar"), ""), nil, mustCreateException(TypeErrorType, "'replace' requires a 'str' object but received a 'unicode'")},
-		{"replace", wrapArgs("foobar", "bar", "baz", None), nil, mustCreateException(TypeErrorType, "int() argument must be a string or a number, not 'NoneType'")},
-		{"replace", wrapArgs("foobar", "bar", "baz", newObject(intIndexType)), nil, mustCreateException(TypeErrorType, "int() argument must be a string or a number, not 'IntIndex'")},
-		{"replace", wrapArgs("foobar", "bar", "baz", newObject(longIndexType)), nil, mustCreateException(TypeErrorType, "int() argument must be a string or a number, not 'LongIndex'")},
+		{"replace", wrapArgs("foobar", "bar", "baz", None), nil, mustCreateException(TypeErrorType, "an integer is required")},
+		{"replace", wrapArgs("foobar", "bar", "baz", newObject(intIndexType)), nil, mustCreateException(TypeErrorType, "an integer is required")},
+		{"replace", wrapArgs("foobar", "bar", "baz", newObject(longIndexType)), nil, mustCreateException(TypeErrorType, "an integer is required")},
 		{"rstrip", wrapArgs("foo "), NewStr("foo").ToObject(), nil},
 		{"rstrip", wrapArgs(" foo bar "), NewStr(" foo bar").ToObject(), nil},
 		{"rstrip", wrapArgs("foo foo", "o"), NewStr("foo f").ToObject(), nil},

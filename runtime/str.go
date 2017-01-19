@@ -454,34 +454,35 @@ func strNew(f *Frame, t *Type, args Args, _ KWArgs) (*Object, *BaseException) {
 }
 
 // strReplace returns a copy of the string s with the first n non-overlapping
-// instances of old replaced by new. If old is empty, it matches at the
+// instances of old replaced by sub. If old is empty, it matches at the
 // beginning of the string. If n < 0, there is no limit on the number of
 // replacements.
 func strReplace(f *Frame, args Args, _ KWArgs) (*Object, *BaseException) {
+	var raised *BaseException
 	// TODO: Support unicode replace.
 	expectedTypes := []*Type{StrType, StrType, StrType, ObjectType}
-	argc, n := len(args), -1
+	argc := len(args)
 	if argc == 3 {
 		expectedTypes = expectedTypes[:argc]
 	}
 	if raised := checkMethodArgs(f, "replace", args, expectedTypes...); raised != nil {
 		return nil, raised
 	}
+	n := -1
 	if argc == 4 {
-		o, raised := IntType.Call(f, Args{args[3]}, nil)
+		n, raised = ToIntValue(f, args[3])
 		if raised != nil {
 			return nil, raised
 		}
-		n = toIntUnsafe(o).Value()
 	}
 	s := toStrUnsafe(args[0]).Value()
 	old := toStrUnsafe(args[1]).Value()
-	new := toStrUnsafe(args[2]).Value()
-	// CPython only, pypy supposed to be same as Go
+	sub := toStrUnsafe(args[2]).Value()
+	// CPython only, pypy supposed to be same as Go.
 	if len(s) == 0 && len(old) == 0 && n >= 0 {
 		return NewStr("").ToObject(), nil
 	}
-	return NewStr(strings.Replace(s, old, new, n)).ToObject(), nil
+	return NewStr(strings.Replace(s, old, sub, n)).ToObject(), nil
 }
 
 func strRepr(_ *Frame, o *Object) (*Object, *BaseException) {
