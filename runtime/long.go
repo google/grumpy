@@ -60,6 +60,15 @@ func toLongUnsafe(o *Object) *Long {
 	return (*Long)(o.toPointer())
 }
 
+// IntValue returns l's value as a plain int if it will not overflow.
+// Otherwise raises OverflowErrorType.
+func (l *Long) IntValue(f *Frame) (int, *BaseException) {
+	if !numInIntRange(&l.value) {
+		return 0, f.RaiseType(OverflowErrorType, "Python int too large to convert to a Go int")
+	}
+	return int(l.value.Int64()), nil
+}
+
 // ToObject upcasts l to an Object.
 func (l *Long) ToObject() *Object {
 	return &l.Object

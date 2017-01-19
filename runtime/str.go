@@ -690,10 +690,7 @@ func strInterpolate(f *Frame, format string, values *Tuple) (*Object, *BaseExcep
 		case "d", "x", "X":
 			var val string
 			o := values.elems[valueIndex]
-			if o.typ.slots.Int == nil {
-				return nil, f.RaiseType(TypeErrorType, "%d format: a number is required, not "+o.typ.Name())
-			}
-			i, raised := intFromObject(f, values.elems[valueIndex])
+			i, raised := ToInt(f, values.elems[valueIndex])
 			if raised != nil {
 				return nil, raised
 			}
@@ -704,7 +701,11 @@ func strInterpolate(f *Frame, format string, values *Tuple) (*Object, *BaseExcep
 				}
 				val = s.Value()
 			} else {
-				val = strconv.FormatInt(int64(toIntUnsafe(i).Value()), 16)
+				if o.isInstance(LongType) {
+					val = toLongUnsafe(o).Value().Text(16)
+				} else {
+					val = strconv.FormatInt(int64(toIntUnsafe(i).Value()), 16)
+				}
 				if matches[7] == "X" {
 					val = strings.ToUpper(val)
 				}
@@ -854,11 +855,10 @@ func strZFill(f *Frame, args Args, _ KWArgs) (*Object, *BaseException) {
 	}
 	s := toStrUnsafe(args[0]).Value()
 	l := len(s)
-	o, raised := IntType.Call(f, Args{args[1]}, nil)
+	width, raised := ToIntValue(f, args[1])
 	if raised != nil {
 		return nil, raised
 	}
-	width := toIntUnsafe(o).Value()
 	if width <= l {
 		return args[0], nil
 	}

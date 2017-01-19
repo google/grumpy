@@ -180,15 +180,25 @@ func intNew(f *Frame, t *Type, args Args, _ KWArgs) (*Object, *BaseException) {
 	}
 	o := args[0]
 	if len(args) == 1 && o.typ.slots.Int != nil {
-		result, raised := intFromObject(f, o)
-		if result != nil || raised != nil {
-			if t == IntType || raised != nil {
-				return result, raised
-			}
-			o := newObject(t)
-			toIntUnsafe(o).value = toIntUnsafe(result).value
-			return o, nil
+		i, raised := ToInt(f, o)
+		if raised != nil {
+			return nil, raised
 		}
+		if t == IntType {
+			return i, nil
+		}
+		n := 0
+		if i.isInstance(LongType) {
+			n, raised = toLongUnsafe(i).IntValue(f)
+			if raised != nil {
+				return nil, raised
+			}
+		} else {
+			n = toIntUnsafe(i).Value()
+		}
+		ret := newObject(t)
+		toIntUnsafe(ret).value = n
+		return ret, nil
 	}
 	if len(args) > 2 {
 		return nil, f.RaiseType(TypeErrorType, fmt.Sprintf("int() takes at most 2 arguments (%d given)", len(args)))
@@ -202,14 +212,11 @@ func intNew(f *Frame, t *Type, args Args, _ KWArgs) (*Object, *BaseException) {
 	s := toStrUnsafe(o).Value()
 	base := 10
 	if len(args) == 2 {
-		if args[1].typ.slots.Int == nil {
-			return nil, f.RaiseType(TypeErrorType, "an integer is required")
-		}
-		baseArg, raised := intFromObject(f, args[1])
+		var raised *BaseException
+		base, raised = ToIntValue(f, args[1])
 		if raised != nil {
 			return nil, raised
 		}
-		base = toIntUnsafe(baseArg).Value()
 		if base < 0 || base == 1 || base > 36 {
 			return nil, f.RaiseType(ValueErrorType, "int() base must be >= 2 and <= 36")
 		}
@@ -528,22 +535,6 @@ func intShiftOp(f *Frame, v, w *Object, fun func(int, int) (int, int, bool)) (*O
 		}
 	}
 	return NewInt(result).ToObject(), nil
-}
-
-func intFromObject(f *Frame, o *Object) (*Object, *BaseException) {
-	if o.typ.slots.Int == nil {
-		return nil, nil
-	}
-	r, raised := o.typ.slots.Int.Fn(f, o)
-	switch {
-	case raised != nil:
-		return nil, raised
-	case r.isInstance(IntType) || r.isInstance(LongType):
-		return r, nil
-	default:
-		format := "__int__ returned non-int (type %s)"
-		return nil, f.RaiseType(TypeErrorType, fmt.Sprintf(format, r.typ.Name()))
-	}
 }
 
 func intToLong(o *Int) *Long {

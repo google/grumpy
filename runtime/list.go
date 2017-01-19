@@ -310,11 +310,11 @@ func listPop(f *Frame, args Args, _ KWArgs) (*Object, *BaseException) {
 	}
 	i := -1
 	if argc == 2 {
-		o, raised := IntType.Call(f, Args{args[1]}, nil)
+		var raised *BaseException
+		i, raised = ToIntValue(f, args[1])
 		if raised != nil {
 			return nil, raised
 		}
-		i = toIntUnsafe(o).Value()
 	}
 	l := toListUnsafe(args[0])
 	l.mutex.Lock()
