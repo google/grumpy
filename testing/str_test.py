@@ -174,8 +174,7 @@ try:
       return 3L
 
   assert 'aaaaa'.replace('a', 'b', A()) == 'bbbaa'
-  # TODO: Support long maxReplace.
-  # assert 'aaaaa'.replace('a', 'b', AL()) == 'bbbaa'
+  assert 'aaaaa'.replace('a', 'b', AL()) == 'bbbaa'
   try:
     'aaaaa'.replace('a', 'b', B())
     raise AssertionError
