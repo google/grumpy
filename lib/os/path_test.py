@@ -35,6 +35,11 @@ def TestAbspath():
   _AssertEqual(path.abspath('a/b/c'), path.normpath(os.getcwd() + '/a/b/c'))
 
 
+def TestBasename():
+  assert path.basename('/a/b/c') == 'c'
+  assert path.basename('/a/b/c/') == ''
+
+
 def TestDirname():
   assert path.dirname('/a/b/c') == '/a/b'
   assert path.dirname('/a/b/c/') == '/a/b/c'
@@ -108,6 +113,15 @@ def TestNormPath():
   _AssertEqual(path.normpath(u'abc/../123'), u'123')
   _AssertEqual(path.normpath(u'../abc/123'), u'../abc/123')
   _AssertEqual(path.normpath(u'x/y/./z'), u'x/y/z')
+
+
+def TestSplit():
+  assert path.split('a/b') == ('a', 'b')
+  assert path.split('a/b/') == ('a/b', '')
+  assert path.split('a/') == ('a', '')
+  assert path.split('a') == ('', 'a')
+  assert path.split('/') == ('/', '')
+  assert path.split('/a/./b') == ('/a/.', 'b')
 
 
 if __name__ == '__main__':
