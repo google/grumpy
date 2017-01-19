@@ -247,6 +247,7 @@ func TestStrRepr(t *testing.T) {
 }
 
 func TestStrMethods(t *testing.T) {
+	fooType := newTestClass("Foo", []*Type{ObjectType}, newStringDict(map[string]*Object{"bar": None}))
 	cases := []struct {
 		methodName string
 		args       Args
@@ -269,6 +270,7 @@ func TestStrMethods(t *testing.T) {
 		{"find", wrapArgs("", "", -1), NewInt(0).ToObject(), nil},
 		{"find", wrapArgs("", "", None, -1), NewInt(0).ToObject(), nil},
 		{"find", wrapArgs("foobar", "bar"), NewInt(3).ToObject(), nil},
+		{"find", wrapArgs("foobar", "bar", fooType), nil, mustCreateException(TypeErrorType, "slice indices must be integers or None or have an __index__ method")},
 		{"find", wrapArgs("foobar", "bar", NewInt(MaxInt)), NewInt(-1).ToObject(), nil},
 		// TODO: Support unicode substring.
 		{"find", wrapArgs("foobar", NewUnicode("bar")), nil, mustCreateException(TypeErrorType, "'find/index' requires a 'str' object but received a 'unicode'")},
