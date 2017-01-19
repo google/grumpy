@@ -208,7 +208,6 @@ func strEq(f *Frame, v, w *Object) (*Object, *BaseException) {
 // strFind returns the lowest index in s where the substring sub is found such
 // that sub is wholly contained in s[start:end]. Return -1 on failure.
 func strFind(f *Frame, args Args, _ KWArgs) (*Object, *BaseException) {
-	var raised *BaseException
 	// TODO: Support for unicode substring.
 	expectedTypes := []*Type{StrType, StrType, ObjectType, ObjectType}
 	argc := len(args)
@@ -219,31 +218,26 @@ func strFind(f *Frame, args Args, _ KWArgs) (*Object, *BaseException) {
 		return nil, raised
 	}
 	s := toStrUnsafe(args[0]).Value()
-	l := len(s)
-	start, end := 0, l
-	if argc >= 3 && args[2] != None {
-		start, raised = IndexInt(f, args[2])
-		if raised != nil {
-			return nil, raised
-		}
+	l := int64(len(s))
+	oStart, oStop := None, None
+	if argc >= 3 {
+		oStart = args[2]
 	}
-	if argc == 4 && args[3] != None {
-		end, raised = IndexInt(f, args[3])
-		if raised != nil {
-			return nil, raised
-		}
+	if argc >= 4 {
+		oStop = args[3]
 	}
-	if start > l {
-		return NewInt(-1).ToObject(), nil
+	start, stop, raised := sliceGetIndices(f, oStart, oStop, l)
+	if raised != nil {
+		return nil, raised
 	}
-	start, end = adjustIndex(start, l), adjustIndex(end, l)
-	if start > end {
+	if start > l || start > stop {
 		return NewInt(-1).ToObject(), nil
 	}
 	sub := toStrUnsafe(args[1]).Value()
-	index := strings.Index(s[start:end], sub)
+	index := strings.Index(s[start:stop], sub)
 	if index != -1 {
-		index += start
+		// TODO: check numInIntRange
+		index += int(start)
 	}
 	return NewInt(index).ToObject(), nil
 }

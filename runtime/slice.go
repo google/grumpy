@@ -156,6 +156,58 @@ func initSliceType(map[string]*Object) {
 	SliceType.slots.Repr = &unaryOpSlot{sliceRepr}
 }
 
+func sliceIndex(f *Frame, o *Object) (i int64, raised *BaseException) {
+	if index := o.typ.slots.Index; index != nil {
+		o, raised = index.Fn(f, o)
+		if raised != nil {
+			return int64(0), raised
+		}
+	}
+	if o.isInstance(IntType) {
+		return int64(toIntUnsafe(o).Value()), nil
+	}
+	if o.isInstance(LongType) {
+		return toLongUnsafe(o).Value().Int64(), nil
+	}
+	return 0, f.RaiseType(TypeErrorType, errBadSliceIndex)
+}
+
+func sliceGetIndices(f *Frame, oStart, oStop *Object, length int64) (start, stop int64, raised *BaseException) {
+	// TODO: Implement step
+	if oStart == None {
+		start = 0
+	} else {
+		start, raised = sliceIndex(f, oStart)
+		if raised != nil {
+			return
+		}
+		if start < 0 {
+			start += length
+		}
+		if start < 0 {
+			start = 0
+		}
+	}
+	if oStop == None {
+		stop = length
+	} else {
+		stop, raised = sliceIndex(f, oStop)
+		if raised != nil {
+			return
+		}
+		if stop < 0 {
+			stop += length
+		}
+		if stop < 0 {
+			stop = 0
+		}
+		if stop >= length {
+			stop = length
+		}
+	}
+	return
+}
+
 func sliceClampIndex(f *Frame, index *Object, def, seqLen int) (int, *BaseException) {
 	if index == nil || index == None {
 		return def, nil

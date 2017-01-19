@@ -266,6 +266,8 @@ func TestStrMethods(t *testing.T) {
 		{"endswith", wrapArgs("foo", newTestTuple(123).ToObject()), nil, mustCreateException(TypeErrorType, "expected a str")},
 		{"find", wrapArgs("", ""), NewInt(0).ToObject(), nil},
 		{"find", wrapArgs("", "", 1), NewInt(-1).ToObject(), nil},
+		{"find", wrapArgs("", "", -1), NewInt(0).ToObject(), nil},
+		{"find", wrapArgs("", "", None, -1), NewInt(0).ToObject(), nil},
 		{"find", wrapArgs("foobar", "bar"), NewInt(3).ToObject(), nil},
 		{"find", wrapArgs("foobar", "bar", NewInt(MaxInt)), NewInt(-1).ToObject(), nil},
 		// TODO: Support unicode substring.

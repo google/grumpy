@@ -24,6 +24,8 @@ assert "baz" + "" == "baz"
 # Test find
 assert "".find("") == 0
 assert "".find("", 1) == -1
+assert "".find("", -1) == 0
+assert "".find("", None, -1) == 0
 assert "foobar".find("bar") == 3
 assert "foobar".find("bar", 0, -2) == -1
 assert "foobar".find("foo", 0, 3) == 0
@@ -44,18 +46,17 @@ assert 'abc'.find('', 4) == -1
 assert 'rrarrrrrrrrra'.find('a') == 2
 assert 'rrarrrrrrrrra'.find('a', 4) == 12
 assert 'rrarrrrrrrrra'.find('a', 4, 6) == -1
+assert 'rrarrrrrrrrra'.find('a', 4, None) == 12
+assert 'rrarrrrrrrrra'.find('a', None, 6) == 2
 assert ''.find('') == 0
 assert ''.find('', 1, 1) == -1
 assert ''.find('', sys.maxint, 0) == -1
 assert ''.find('xx') == -1
 assert ''.find('xx', 1, 1) == -1
 assert ''.find('xx', sys.maxint, 0) == -1
+assert 'ab'.find('xxx', sys.maxsize + 1, 0) == -1
 # TODO: Support unicode substring.
 # assert "foobar".find(u"bar") == 3
-# TODO: Support None.
-# assert 'rrarrrrrrrrra'.find('a', 4, None) == 12
-# assert 'rrarrrrrrrrra'.find('a', None, 6) == 2
-
 
 class Foo(object):
 
@@ -63,8 +64,6 @@ class Foo(object):
     return 3
 assert 'abcd'.find('a', Foo()) == -1
 
-# TODO: This raises IndexError under Grumpy but returns -1 for CPython.
-# 'ab'.find('xxx', sys.maxsize + 1, 0)
 
 try:
   "foo".find(123)
