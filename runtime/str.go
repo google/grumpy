@@ -221,13 +221,13 @@ func strFind(f *Frame, args Args, _ KWArgs) (*Object, *BaseException) {
 	s := toStrUnsafe(args[0]).Value()
 	l := len(s)
 	start, end := 0, l
-	if argc >= 3 {
+	if argc >= 3 && args[2] != None {
 		start, raised = IndexInt(f, args[2])
 		if raised != nil {
 			return nil, raised
 		}
 	}
-	if argc == 4 {
+	if argc == 4 && args[3] != None {
 		end, raised = IndexInt(f, args[3])
 		if raised != nil {
 			return nil, raised
@@ -236,7 +236,7 @@ func strFind(f *Frame, args Args, _ KWArgs) (*Object, *BaseException) {
 	if start > l {
 		return NewInt(-1).ToObject(), nil
 	}
-	start, end = adjustIndex(start, l), adjustIndex(end, l)
+	start, end = adjustIndex(start, end, l)
 	if start > end {
 		return NewInt(-1).ToObject(), nil
 	}
@@ -750,16 +750,22 @@ func strRepeatCount(f *Frame, numChars int, mult *Object) (int, bool, *BaseExcep
 	return n, true, nil
 }
 
-func adjustIndex(i, l int) int {
-	switch {
-	case i <= -l:
-		i = 0
-	case i < 0:
-		i += l
-	case i > l:
-		i = l
+func adjustIndex(start, end, length int) (int, int) {
+	if end > length {
+		end = length
+	} else if end < 0 {
+		end += length
+		if end < 0 {
+			end = 0
+		}
 	}
-	return i
+	if start < 0 {
+		start += length
+		if start < 0 {
+			start = 0
+		}
+	}
+	return start, end
 }
 
 func strStartsEndsWith(f *Frame, method string, args Args) (*Object, *BaseException) {
@@ -801,11 +807,12 @@ func strStartsEndsWith(f *Frame, method string, args Args) (*Object, *BaseExcept
 	l := len(s)
 	start, end := 0, l
 	if argc >= 3 {
-		start = adjustIndex(toIntUnsafe(args[2]).Value(), l)
+		start = toIntUnsafe(args[2]).Value()
 	}
 	if argc == 4 {
-		end = adjustIndex(toIntUnsafe(args[3]).Value(), l)
+		end = toIntUnsafe(args[3]).Value()
 	}
+	start, end = adjustIndex(start, end, l)
 	if start > end {
 		// start == end may still return true when matching ''.
 		return False.ToObject(), nil

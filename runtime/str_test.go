@@ -247,6 +247,17 @@ func TestStrRepr(t *testing.T) {
 }
 
 func TestStrMethods(t *testing.T) {
+	fooType := newTestClass("Foo", []*Type{ObjectType}, newStringDict(map[string]*Object{"bar": None}))
+	intIndexType := newTestClass("IntIndex", []*Type{ObjectType}, newStringDict(map[string]*Object{
+		"__index__": newBuiltinFunction("__index__", func(f *Frame, _ Args, _ KWArgs) (*Object, *BaseException) {
+			return NewInt(2).ToObject(), nil
+		}).ToObject(),
+	}))
+	longIndexType := newTestClass("LongIndex", []*Type{ObjectType}, newStringDict(map[string]*Object{
+		"__index__": newBuiltinFunction("__index__", func(f *Frame, _ Args, _ KWArgs) (*Object, *BaseException) {
+			return NewLong(big.NewInt(2)).ToObject(), nil
+		}).ToObject(),
+	}))
 	cases := []struct {
 		methodName string
 		args       Args
@@ -254,7 +265,7 @@ func TestStrMethods(t *testing.T) {
 		wantExc    *BaseException
 	}{
 		{"endswith", wrapArgs("", ""), True.ToObject(), nil},
-		{"endswith", wrapArgs("", "", 1), True.ToObject(), nil},
+		{"endswith", wrapArgs("", "", 1), False.ToObject(), nil},
 		{"endswith", wrapArgs("foobar", "bar"), True.ToObject(), nil},
 		{"endswith", wrapArgs("foobar", "bar", 0, -2), False.ToObject(), nil},
 		{"endswith", wrapArgs("foobar", "foo", 0, 3), True.ToObject(), nil},
@@ -266,12 +277,22 @@ func TestStrMethods(t *testing.T) {
 		{"endswith", wrapArgs("foo", newTestTuple(123).ToObject()), nil, mustCreateException(TypeErrorType, "expected a str")},
 		{"find", wrapArgs("", ""), NewInt(0).ToObject(), nil},
 		{"find", wrapArgs("", "", 1), NewInt(-1).ToObject(), nil},
+		{"find", wrapArgs("", "", -1), NewInt(0).ToObject(), nil},
+		{"find", wrapArgs("", "", None, -1), NewInt(0).ToObject(), nil},
 		{"find", wrapArgs("foobar", "bar"), NewInt(3).ToObject(), nil},
+		{"find", wrapArgs("foobar", "bar", fooType), nil, mustCreateException(TypeErrorType, "slice indices must be integers or None or have an __index__ method")},
 		{"find", wrapArgs("foobar", "bar", NewInt(MaxInt)), NewInt(-1).ToObject(), nil},
+		{"find", wrapArgs("foobar", "bar", None, NewInt(MaxInt)), NewInt(3).ToObject(), nil},
+		{"find", wrapArgs("foobar", "bar", newObject(intIndexType)), NewInt(3).ToObject(), nil},
+		{"find", wrapArgs("foobar", "bar", None, newObject(intIndexType)), NewInt(-1).ToObject(), nil},
+		{"find", wrapArgs("foobar", "bar", newObject(longIndexType)), NewInt(3).ToObject(), nil},
+		{"find", wrapArgs("foobar", "bar", None, newObject(longIndexType)), NewInt(-1).ToObject(), nil},
 		// TODO: Support unicode substring.
 		{"find", wrapArgs("foobar", NewUnicode("bar")), nil, mustCreateException(TypeErrorType, "'find/index' requires a 'str' object but received a 'unicode'")},
-		{"find", wrapArgs("foobar", "bar", "baz"), nil, mustCreateException(IndexErrorType, "cannot fit '<type 'str'>' into an index-sized integer")},
-		{"find", wrapArgs("foobar", "bar", 0, "baz"), nil, mustCreateException(IndexErrorType, "cannot fit '<type 'str'>' into an index-sized integer")},
+		{"find", wrapArgs("foobar", "bar", "baz"), nil, mustCreateException(TypeErrorType, "slice indices must be integers or None or have an __index__ method")},
+		{"find", wrapArgs("foobar", "bar", 0, "baz"), nil, mustCreateException(TypeErrorType, "slice indices must be integers or None or have an __index__ method")},
+		{"find", wrapArgs("foobar", "bar", None), NewInt(3).ToObject(), nil},
+		{"find", wrapArgs("foobar", "bar", 0, None), NewInt(3).ToObject(), nil},
 		{"find", wrapArgs("foobar", "bar", 0, -2), NewInt(-1).ToObject(), nil},
 		{"find", wrapArgs("foobar", "foo", 0, 3), NewInt(0).ToObject(), nil},
 		{"find", wrapArgs("foobar", "foo", 10), NewInt(-1).ToObject(), nil},
@@ -321,7 +342,7 @@ func TestStrMethods(t *testing.T) {
 		{"split", wrapArgs("foo", 1), nil, mustCreateException(TypeErrorType, "expected a str separator")},
 		{"split", wrapArgs("foo", ""), nil, mustCreateException(ValueErrorType, "empty separator")},
 		{"startswith", wrapArgs("", ""), True.ToObject(), nil},
-		{"startswith", wrapArgs("", "", 1), True.ToObject(), nil},
+		{"startswith", wrapArgs("", "", 1), False.ToObject(), nil},
 		{"startswith", wrapArgs("foobar", "foo"), True.ToObject(), nil},
 		{"startswith", wrapArgs("foobar", "foo", 2), False.ToObject(), nil},
 		{"startswith", wrapArgs("foobar", "bar", 3), True.ToObject(), nil},

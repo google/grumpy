@@ -487,21 +487,26 @@ func Index(f *Frame, o *Object) (*Object, *BaseException) {
 // IndexInt returns the value of o converted to a Go int according to o's
 // __index__ slot.
 // It raises a TypeError if o doesn't have an __index__ method.
-// If the returned value doesn't fit into an int, it raises an OverflowError.
-func IndexInt(f *Frame, o *Object) (int, *BaseException) {
-	i, raised := Index(f, o)
-	if raised != nil {
-		return 0, raised
-	}
-	if i != nil {
-		if i.isInstance(IntType) {
-			return toIntUnsafe(i).Value(), nil
-		}
-		if l := toLongUnsafe(i).Value(); numInIntRange(l) {
-			return int(l.Int64()), nil
+func IndexInt(f *Frame, o *Object) (i int, raised *BaseException) {
+	if index := o.typ.slots.Index; index != nil {
+		// Unwrap __index__ slot and fall through.
+		o, raised = index.Fn(f, o)
+		if raised != nil {
+			return 0, raised
 		}
 	}
-	return 0, f.RaiseType(IndexErrorType, fmt.Sprintf("cannot fit '%s' into an index-sized integer", o.typ))
+	if o.isInstance(IntType) {
+		return toIntUnsafe(o).Value(), nil
+	}
+	if o.isInstance(LongType) {
+		l := toLongUnsafe(o).Value()
+		// Anything bigger than maxIntBig will treat as maxIntBig.
+		if !numInIntRange(l) {
+			l = maxIntBig
+		}
+		return int(l.Int64()), nil
+	}
+	return 0, f.RaiseType(TypeErrorType, errBadSliceIndex)
 }
 
 // Invoke calls the given callable with the positional arguments given by args
