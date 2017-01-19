@@ -90,6 +90,7 @@ var builtinTypes = map[*Type]*builtinTypeInfo{
 	DeprecationWarningType:        {global: true},
 	dictItemIteratorType:          {init: initDictItemIteratorType},
 	dictKeyIteratorType:           {init: initDictKeyIteratorType},
+	dictValueIteratorType:         {init: initDictValueIteratorType},
 	DictType:                      {init: initDictType, global: true},
 	enumerateType:                 {init: initEnumerateType, global: true},
 	EnvironmentErrorType:          {global: true},
