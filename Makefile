@@ -69,8 +69,26 @@ THIRD_PARTY_STDLIB_PACKAGES := $(foreach x,$(THIRD_PARTY_STDLIB_SRCS),$(patsubst
 STDLIB_SRCS := $(GRUMPY_STDLIB_SRCS) $(THIRD_PARTY_STDLIB_SRCS)
 STDLIB_PACKAGES := $(GRUMPY_STDLIB_PACKAGES) $(THIRD_PARTY_STDLIB_PACKAGES)
 STDLIB := $(patsubst %,$(PKG_DIR)/grumpy/lib/%.a,$(STDLIB_PACKAGES))
-STDLIB_TESTS := $(patsubst lib/%.py,%,$(shell find lib -name '*_test.py'))
-STDLIB_PASS_FILES := $(patsubst %,$(PKG_DIR)/grumpy/lib/%.pass,$(STDLIB_TESTS))
+LIB_TEST_SRCS := \
+  lib/itertools_test.py \
+  lib/math_test.py \
+  lib/os/path_test.py \
+  lib/os_test.py \
+  lib/random_test.py \
+  lib/sys_test.py \
+  lib/tempfile_test.py \
+  lib/threading_test.py \
+  lib/time_test.py \
+  lib/types_test.py \
+  lib/weetest_test.py
+LIB_PASS_FILES := $(patsubst %.py,$(PKG_DIR)/grumpy/%.pass,$(LIB_TEST_SRCS))
+CPYTHON_TEST_SRCS := \
+  third_party/stdlib/re_tests.py \
+  third_party/stdlib/test/seq_tests.py \
+  third_party/stdlib/test/test_support.py \
+  third_party/stdlib/test/test_tuple.py
+CPYTHON_PASS_FILES := $(patsubst third_party/stdlib/%.py,$(PKG_DIR)/grumpy/lib/%.pass,$(CPYTHON_TEST_SRCS))
+STDLIB_PASS_FILES := $(LIB_PASS_FILES) $(CPYTHON_PASS_FILES)
 
 ACCEPT_TESTS := $(patsubst %.py,%,$(wildcard testing/*.py))
 ACCEPT_PASS_FILES := $(patsubst %,build/%.pass,$(ACCEPT_TESTS))

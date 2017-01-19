@@ -64,13 +64,15 @@ func seqCompare(f *Frame, elems1, elems2 []*Object, cmp binaryOpFunc) (*Object, 
 // object.
 func seqApply(f *Frame, seq *Object, fun func([]*Object, bool) *BaseException) *BaseException {
 	switch {
-	case seq.isInstance(ListType):
+	// Don't use fast path referencing the underlying slice directly for
+	// list and tuple subtypes. See comment in listextend in listobject.c.
+	case seq.typ == ListType:
 		l := toListUnsafe(seq)
 		l.mutex.RLock()
 		raised := fun(l.elems, true)
 		l.mutex.RUnlock()
 		return raised
-	case seq.isInstance(TupleType):
+	case seq.typ == TupleType:
 		return fun(toTupleUnsafe(seq).elems, true)
 	default:
 		elems := []*Object{}

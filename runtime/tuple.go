@@ -138,6 +138,10 @@ func tupleNE(f *Frame, v, w *Object) (*Object, *BaseException) {
 }
 
 func tupleNew(f *Frame, t *Type, args Args, _ KWArgs) (*Object, *BaseException) {
+	if t == TupleType && len(args) == 1 && args[0].typ == TupleType {
+		// Tuples are immutable so just return the tuple provided.
+		return args[0], nil
+	}
 	elems, raised := seqNew(f, args)
 	if raised != nil {
 		return nil, raised
