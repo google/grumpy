@@ -33,7 +33,7 @@ endif
 PYTHON_BIN := $(shell which $(PYTHON))
 PYTHON_VER := $(word 2,$(shell $(PYTHON) -V 2>&1))
 PY_DIR := build/lib/python2.7/site-packages
-PY_INSTALL_DIR := $(shell python2 -c "from distutils.sysconfig import get_python_lib; print(get_python_lib())")
+PY_INSTALL_DIR := $(shell $(PYTHON) -c "from distutils.sysconfig import get_python_lib; print(get_python_lib())")
 
 ifeq ($(filter 2.7.%,$(PYTHON_VER)),)
   $(error unsupported Python version $(PYTHON_VER), Grumpy only supports 2.7.x. To use a different python binary such as python2, run: 'make PYTHON=python2 ...')
