@@ -208,6 +208,7 @@ func strEq(f *Frame, v, w *Object) (*Object, *BaseException) {
 // strFind returns the lowest index in s where the substring sub is found such
 // that sub is wholly contained in s[start:end]. Return -1 on failure.
 func strFind(f *Frame, args Args, _ KWArgs) (*Object, *BaseException) {
+	var raised *BaseException
 	// TODO: Support for unicode substring.
 	expectedTypes := []*Type{StrType, StrType, ObjectType, ObjectType}
 	argc := len(args)
@@ -218,26 +219,31 @@ func strFind(f *Frame, args Args, _ KWArgs) (*Object, *BaseException) {
 		return nil, raised
 	}
 	s := toStrUnsafe(args[0]).Value()
-	l := int64(len(s))
-	oStart, oStop := None, None
-	if argc >= 3 {
-		oStart = args[2]
+	l := len(s)
+	start, end := 0, l
+	if argc >= 3 && args[2] != None {
+		start, raised = IndexInt(f, args[2])
+		if raised != nil {
+			return nil, raised
+		}
 	}
-	if argc >= 4 {
-		oStop = args[3]
+	if argc == 4 && args[3] != None {
+		end, raised = IndexInt(f, args[3])
+		if raised != nil {
+			return nil, raised
+		}
 	}
-	start, stop, raised := sliceGetIndices(f, oStart, oStop, l)
-	if raised != nil {
-		return nil, raised
+	if start > l {
+		return NewInt(-1).ToObject(), nil
 	}
-	if start > l || start > stop {
+	start, end = adjustIndex(start, end, l)
+	if start > end {
 		return NewInt(-1).ToObject(), nil
 	}
 	sub := toStrUnsafe(args[1]).Value()
-	index := strings.Index(s[start:stop], sub)
+	index := strings.Index(s[start:end], sub)
 	if index != -1 {
-		// TODO: check numInIntRange
-		index += int(start)
+		index += start
 	}
 	return NewInt(index).ToObject(), nil
 }
@@ -744,16 +750,22 @@ func strRepeatCount(f *Frame, numChars int, mult *Object) (int, bool, *BaseExcep
 	return n, true, nil
 }
 
-func adjustIndex(i, l int) int {
-	switch {
-	case i <= -l:
-		i = 0
-	case i < 0:
-		i += l
-	case i > l:
-		i = l
+func adjustIndex(start, end, length int) (int, int) {
+	if end > length {
+		end = length
+	} else if end < 0 {
+		end += length
+		if end < 0 {
+			end = 0
+		}
 	}
-	return i
+	if start < 0 {
+		start += length
+		if start < 0 {
+			start = 0
+		}
+	}
+	return start, end
 }
 
 func strStartsEndsWith(f *Frame, method string, args Args) (*Object, *BaseException) {
@@ -795,11 +807,12 @@ func strStartsEndsWith(f *Frame, method string, args Args) (*Object, *BaseExcept
 	l := len(s)
 	start, end := 0, l
 	if argc >= 3 {
-		start = adjustIndex(toIntUnsafe(args[2]).Value(), l)
+		start = toIntUnsafe(args[2]).Value()
 	}
 	if argc == 4 {
-		end = adjustIndex(toIntUnsafe(args[3]).Value(), l)
+		end = toIntUnsafe(args[3]).Value()
 	}
+	start, end = adjustIndex(start, end, l)
 	if start > end {
 		// start == end may still return true when matching ''.
 		return False.ToObject(), nil

@@ -156,64 +156,6 @@ func initSliceType(map[string]*Object) {
 	SliceType.slots.Repr = &unaryOpSlot{sliceRepr}
 }
 
-func sliceIndex(f *Frame, o *Object) (i int, raised *BaseException) {
-	if index := o.typ.slots.Index; index != nil {
-		// Unwrap __index__ slot and fall through.
-		o, raised = index.Fn(f, o)
-		if raised != nil {
-			return 0, raised
-		}
-	}
-	if o.isInstance(IntType) {
-		return toIntUnsafe(o).Value(), nil
-	}
-	if o.isInstance(LongType) {
-		l := toLongUnsafe(o).Value()
-		// Anything bigger than maxIntBig will treat as maxIntBig.
-		if maxIntBig.Cmp(l) < 0 {
-			l = maxIntBig
-		}
-		return int(l.Int64()), nil
-	}
-	return 0, f.RaiseType(TypeErrorType, errBadSliceIndex)
-}
-
-func sliceGetIndices(f *Frame, oStart, oStop *Object, length int) (start, stop int, raised *BaseException) {
-	// TODO: Implement step
-	if oStart == None {
-		start = 0
-	} else {
-		start, raised = sliceIndex(f, oStart)
-		if raised != nil {
-			return
-		}
-		if start < 0 {
-			start += length
-		}
-		if start < 0 {
-			start = 0
-		}
-	}
-	if oStop == None {
-		stop = length
-	} else {
-		stop, raised = sliceIndex(f, oStop)
-		if raised != nil {
-			return
-		}
-		if stop < 0 {
-			stop += length
-		}
-		if stop < 0 {
-			stop = 0
-		}
-		if stop >= length {
-			stop = length
-		}
-	}
-	return
-}
-
 func sliceClampIndex(f *Frame, index *Object, def, seqLen int) (int, *BaseException) {
 	if index == nil || index == None {
 		return def, nil
