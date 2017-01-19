@@ -1033,6 +1033,25 @@ func TestTie(t *testing.T) {
 	}
 }
 
+func TestToInt(t *testing.T) {
+	fun := wrapFuncForTest(func(f *Frame, o *Object) (*Tuple, *BaseException) {
+		i, raised := ToInt(f, o)
+		if raised != nil {
+			return nil, raised
+		}
+		return newTestTuple(i, i.Type()), nil
+	})
+	cases := []invokeTestCase{
+		{args: wrapArgs(42), want: newTestTuple(42, IntType).ToObject()},
+		{args: wrapArgs(big.NewInt(123)), want: newTestTuple(123, LongType).ToObject()},
+	}
+	for _, cas := range cases {
+		if err := runInvokeTestCase(fun, &cas); err != "" {
+			t.Error(err)
+		}
+	}
+}
+
 func TestToNative(t *testing.T) {
 	foo := newObject(ObjectType)
 	cases := []struct {

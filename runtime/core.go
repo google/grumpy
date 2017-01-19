@@ -776,6 +776,26 @@ func Tie(f *Frame, t TieTarget, o *Object) *BaseException {
 	return nil
 }
 
+// ToInt converts o to an integer type according to the __int__ slot. If the
+// result is not an int or long, then an exception is raised.
+func ToInt(f *Frame, o *Object) (*Object, *BaseException) {
+	if o.typ == IntType || o.typ == LongType {
+		return o, nil
+	}
+	intSlot := o.typ.slots.Int
+	if intSlot == nil {
+		return nil, f.RaiseType(TypeErrorType, "an integer is required")
+	}
+	i, raised := intSlot.Fn(f, o)
+	if raised != nil {
+		return nil, raised
+	}
+	if i.isInstance(IntType) || i.isInstance(LongType) {
+		return i, nil
+	}
+	return nil, f.RaiseType(TypeErrorType, fmt.Sprintf("__int__ returned non-int (type %s)", i.typ.Name()))
+}
+
 // ToNative converts o to a native Go object according to the __native__
 // operator.
 func ToNative(f *Frame, o *Object) (reflect.Value, *BaseException) {
