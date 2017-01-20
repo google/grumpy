@@ -451,6 +451,12 @@ func Mul(f *Frame, v, w *Object) (*Object, *BaseException) {
 	return binaryOp(f, v, w, v.typ.slots.Mul, v.typ.slots.RMul, w.typ.slots.RMul, "*")
 }
 
+// Pow returns the result of x**y, the base-x exponential of y according to the
+// __pow/rpow__ operator.
+func Pow(f *Frame, v, w *Object) (*Object, *BaseException) {
+	return binaryOp(f, v, w, v.typ.slots.Pow, v.typ.slots.RPow, w.typ.slots.RPow, "**")
+}
+
 // Or returns the result of the bitwise or operator v | w according to
 // __or/ror__.
 func Or(f *Frame, v, w *Object) (*Object, *BaseException) {
@@ -481,21 +487,26 @@ func Index(f *Frame, o *Object) (*Object, *BaseException) {
 // IndexInt returns the value of o converted to a Go int according to o's
 // __index__ slot.
 // It raises a TypeError if o doesn't have an __index__ method.
-// If the returned value doesn't fit into an int, it raises an OverflowError.
-func IndexInt(f *Frame, o *Object) (int, *BaseException) {
-	i, raised := Index(f, o)
-	if raised != nil {
-		return 0, raised
-	}
-	if i != nil {
-		if i.isInstance(IntType) {
-			return toIntUnsafe(i).Value(), nil
-		}
-		if l := toLongUnsafe(i).Value(); numInIntRange(l) {
-			return int(l.Int64()), nil
+func IndexInt(f *Frame, o *Object) (i int, raised *BaseException) {
+	if index := o.typ.slots.Index; index != nil {
+		// Unwrap __index__ slot and fall through.
+		o, raised = index.Fn(f, o)
+		if raised != nil {
+			return 0, raised
 		}
 	}
-	return 0, f.RaiseType(IndexErrorType, fmt.Sprintf("cannot fit '%s' into an index-sized integer", o.typ))
+	if o.isInstance(IntType) {
+		return toIntUnsafe(o).Value(), nil
+	}
+	if o.isInstance(LongType) {
+		l := toLongUnsafe(o).Value()
+		// Anything bigger than maxIntBig will treat as maxIntBig.
+		if !numInIntRange(l) {
+			l = maxIntBig
+		}
+		return int(l.Int64()), nil
+	}
+	return 0, f.RaiseType(TypeErrorType, errBadSliceIndex)
 }
 
 // Invoke calls the given callable with the positional arguments given by args
@@ -749,7 +760,7 @@ func Tie(f *Frame, t TieTarget, o *Object) *BaseException {
 				return raised
 			}
 		} else if raised.isInstance(StopIterationType) {
-			return f.RaiseType(TypeErrorType, fmt.Sprintf("need more than %d values to unpack", i))
+			return f.RaiseType(ValueErrorType, fmt.Sprintf("need more than %d values to unpack", i))
 		} else {
 			return raised
 		}
@@ -763,6 +774,40 @@ func Tie(f *Frame, t TieTarget, o *Object) *BaseException {
 	}
 	f.RestoreExc(nil, nil)
 	return nil
+}
+
+// ToInt converts o to an integer type according to the __int__ slot. If the
+// result is not an int or long, then an exception is raised.
+func ToInt(f *Frame, o *Object) (*Object, *BaseException) {
+	if o.typ == IntType || o.typ == LongType {
+		return o, nil
+	}
+	intSlot := o.typ.slots.Int
+	if intSlot == nil {
+		return nil, f.RaiseType(TypeErrorType, "an integer is required")
+	}
+	i, raised := intSlot.Fn(f, o)
+	if raised != nil {
+		return nil, raised
+	}
+	if i.isInstance(IntType) || i.isInstance(LongType) {
+		return i, nil
+	}
+	return nil, f.RaiseType(TypeErrorType, fmt.Sprintf("__int__ returned non-int (type %s)", i.typ.Name()))
+}
+
+// ToIntValue converts o to an integer according to the __int__ slot. If the
+// result is not an int or long, or if the long value is too large to fit into
+// an int, then an exception is raised.
+func ToIntValue(f *Frame, o *Object) (int, *BaseException) {
+	i, raised := ToInt(f, o)
+	if raised != nil {
+		return 0, raised
+	}
+	if i.isInstance(IntType) {
+		return toIntUnsafe(i).Value(), nil
+	}
+	return toLongUnsafe(i).IntValue(f)
 }
 
 // ToNative converts o to a native Go object according to the __native__

@@ -44,7 +44,7 @@ else:
 
 try:
   bar, baz, qux, quux = foo
-except TypeError as e:
+except ValueError as e:
   assert str(e) == 'need more than 3 values to unpack'
 else:
   raise AssertionError('this was supposed to raise an exception')

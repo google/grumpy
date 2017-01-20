@@ -78,10 +78,10 @@ func TestStrBinaryOps(t *testing.T) {
 		{args: wrapArgs(Mod, "%X", 0xffff), want: NewStr("FFFF").ToObject()},
 		{args: wrapArgs(Mod, "%x", 1.2), want: NewStr("1").ToObject()},
 		{args: wrapArgs(Mod, "abc %x", NewLong(big.NewInt(123))), want: NewStr("abc 7b").ToObject()},
-		{args: wrapArgs(Mod, "%x", None), wantExc: mustCreateException(TypeErrorType, "%d format: a number is required, not NoneType")},
+		{args: wrapArgs(Mod, "%x", None), wantExc: mustCreateException(TypeErrorType, "an integer is required")},
 		{args: wrapArgs(Mod, "%f", None), wantExc: mustCreateException(TypeErrorType, "float argument required, not NoneType")},
 		{args: wrapArgs(Mod, "%s", newTestTuple(123, None)), wantExc: mustCreateException(TypeErrorType, "not all arguments converted during string formatting")},
-		{args: wrapArgs(Mod, "%d", newTestTuple("123")), wantExc: mustCreateException(TypeErrorType, "%d format: a number is required, not str")},
+		{args: wrapArgs(Mod, "%d", newTestTuple("123")), wantExc: mustCreateException(TypeErrorType, "an integer is required")},
 		{args: wrapArgs(Mul, "", 10), want: NewStr("").ToObject()},
 		{args: wrapArgs(Mul, "foo", -2), want: NewStr("").ToObject()},
 		{args: wrapArgs(Mul, "foobar", 0), want: NewStr("").ToObject()},
@@ -175,6 +175,7 @@ func TestStrGetItem(t *testing.T) {
 		{args: wrapArgs("bar", newTestSlice(1, 3)), want: NewStr("ar").ToObject()},
 		{args: wrapArgs("bar", newTestSlice(1, None)), want: NewStr("ar").ToObject()},
 		{args: wrapArgs("foobarbaz", newTestSlice(1, 8, 2)), want: NewStr("obra").ToObject()},
+		{args: wrapArgs("abc", newTestSlice(None, None, -1)), want: NewStr("cba").ToObject()},
 		{args: wrapArgs("bar", newTestSlice(1, 2, 0)), wantExc: mustCreateException(ValueErrorType, "slice step cannot be zero")},
 	}
 	for _, cas := range cases {
@@ -247,6 +248,17 @@ func TestStrRepr(t *testing.T) {
 }
 
 func TestStrMethods(t *testing.T) {
+	fooType := newTestClass("Foo", []*Type{ObjectType}, newStringDict(map[string]*Object{"bar": None}))
+	intIndexType := newTestClass("IntIndex", []*Type{ObjectType}, newStringDict(map[string]*Object{
+		"__index__": newBuiltinFunction("__index__", func(f *Frame, _ Args, _ KWArgs) (*Object, *BaseException) {
+			return NewInt(2).ToObject(), nil
+		}).ToObject(),
+	}))
+	longIndexType := newTestClass("LongIndex", []*Type{ObjectType}, newStringDict(map[string]*Object{
+		"__index__": newBuiltinFunction("__index__", func(f *Frame, _ Args, _ KWArgs) (*Object, *BaseException) {
+			return NewLong(big.NewInt(2)).ToObject(), nil
+		}).ToObject(),
+	}))
 	cases := []struct {
 		methodName string
 		args       Args
@@ -260,7 +272,7 @@ func TestStrMethods(t *testing.T) {
 		{"capitalize", wrapArgs("вол"), NewStr("вол").ToObject(), nil},
 		{"capitalize", wrapArgs("foobar", 123), nil, mustCreateException(TypeErrorType, "'capitalize' of 'str' requires 1 arguments")},
 		{"endswith", wrapArgs("", ""), True.ToObject(), nil},
-		{"endswith", wrapArgs("", "", 1), True.ToObject(), nil},
+		{"endswith", wrapArgs("", "", 1), False.ToObject(), nil},
 		{"endswith", wrapArgs("foobar", "bar"), True.ToObject(), nil},
 		{"endswith", wrapArgs("foobar", "bar", 0, -2), False.ToObject(), nil},
 		{"endswith", wrapArgs("foobar", "foo", 0, 3), True.ToObject(), nil},
@@ -272,12 +284,22 @@ func TestStrMethods(t *testing.T) {
 		{"endswith", wrapArgs("foo", newTestTuple(123).ToObject()), nil, mustCreateException(TypeErrorType, "expected a str")},
 		{"find", wrapArgs("", ""), NewInt(0).ToObject(), nil},
 		{"find", wrapArgs("", "", 1), NewInt(-1).ToObject(), nil},
+		{"find", wrapArgs("", "", -1), NewInt(0).ToObject(), nil},
+		{"find", wrapArgs("", "", None, -1), NewInt(0).ToObject(), nil},
 		{"find", wrapArgs("foobar", "bar"), NewInt(3).ToObject(), nil},
+		{"find", wrapArgs("foobar", "bar", fooType), nil, mustCreateException(TypeErrorType, "slice indices must be integers or None or have an __index__ method")},
 		{"find", wrapArgs("foobar", "bar", NewInt(MaxInt)), NewInt(-1).ToObject(), nil},
+		{"find", wrapArgs("foobar", "bar", None, NewInt(MaxInt)), NewInt(3).ToObject(), nil},
+		{"find", wrapArgs("foobar", "bar", newObject(intIndexType)), NewInt(3).ToObject(), nil},
+		{"find", wrapArgs("foobar", "bar", None, newObject(intIndexType)), NewInt(-1).ToObject(), nil},
+		{"find", wrapArgs("foobar", "bar", newObject(longIndexType)), NewInt(3).ToObject(), nil},
+		{"find", wrapArgs("foobar", "bar", None, newObject(longIndexType)), NewInt(-1).ToObject(), nil},
 		// TODO: Support unicode substring.
 		{"find", wrapArgs("foobar", NewUnicode("bar")), nil, mustCreateException(TypeErrorType, "'find/index' requires a 'str' object but received a 'unicode'")},
-		{"find", wrapArgs("foobar", "bar", "baz"), nil, mustCreateException(IndexErrorType, "cannot fit '<type 'str'>' into an index-sized integer")},
-		{"find", wrapArgs("foobar", "bar", 0, "baz"), nil, mustCreateException(IndexErrorType, "cannot fit '<type 'str'>' into an index-sized integer")},
+		{"find", wrapArgs("foobar", "bar", "baz"), nil, mustCreateException(TypeErrorType, "slice indices must be integers or None or have an __index__ method")},
+		{"find", wrapArgs("foobar", "bar", 0, "baz"), nil, mustCreateException(TypeErrorType, "slice indices must be integers or None or have an __index__ method")},
+		{"find", wrapArgs("foobar", "bar", None), NewInt(3).ToObject(), nil},
+		{"find", wrapArgs("foobar", "bar", 0, None), NewInt(3).ToObject(), nil},
 		{"find", wrapArgs("foobar", "bar", 0, -2), NewInt(-1).ToObject(), nil},
 		{"find", wrapArgs("foobar", "foo", 0, 3), NewInt(0).ToObject(), nil},
 		{"find", wrapArgs("foobar", "foo", 10), NewInt(-1).ToObject(), nil},
@@ -326,8 +348,18 @@ func TestStrMethods(t *testing.T) {
 		{"split", wrapArgs("a \tb\nc", None, 1), newTestList("a", "b\nc").ToObject(), nil},
 		{"split", wrapArgs("foo", 1), nil, mustCreateException(TypeErrorType, "expected a str separator")},
 		{"split", wrapArgs("foo", ""), nil, mustCreateException(ValueErrorType, "empty separator")},
+		{"splitlines", wrapArgs(""), NewList().ToObject(), nil},
+		{"splitlines", wrapArgs("\n"), newTestList("").ToObject(), nil},
+		{"splitlines", wrapArgs("foo"), newTestList("foo").ToObject(), nil},
+		{"splitlines", wrapArgs("foo\r"), newTestList("foo").ToObject(), nil},
+		{"splitlines", wrapArgs("foo\r", true), newTestList("foo\r").ToObject(), nil},
+		{"splitlines", wrapArgs("foo\r\nbar\n", big.NewInt(12)), newTestList("foo\r\n", "bar\n").ToObject(), nil},
+		{"splitlines", wrapArgs("foo\n\r\nbar\n\n"), newTestList("foo", "", "bar", "").ToObject(), nil},
+		{"splitlines", wrapArgs("foo", newObject(ObjectType)), nil, mustCreateException(TypeErrorType, "an integer is required")},
+		{"splitlines", wrapArgs("foo", "bar", "baz"), nil, mustCreateException(TypeErrorType, "'splitlines' of 'str' requires 2 arguments")},
+		{"splitlines", wrapArgs("foo", overflowLong), nil, mustCreateException(OverflowErrorType, "Python int too large to convert to a Go int")},
 		{"startswith", wrapArgs("", ""), True.ToObject(), nil},
-		{"startswith", wrapArgs("", "", 1), True.ToObject(), nil},
+		{"startswith", wrapArgs("", "", 1), False.ToObject(), nil},
 		{"startswith", wrapArgs("foobar", "foo"), True.ToObject(), nil},
 		{"startswith", wrapArgs("foobar", "foo", 2), False.ToObject(), nil},
 		{"startswith", wrapArgs("foobar", "bar", 3), True.ToObject(), nil},
@@ -391,10 +423,10 @@ func TestStrMethods(t *testing.T) {
 		{"zfill", wrapArgs("", -1), NewStr("").ToObject(), nil},
 		{"zfill", wrapArgs("34", 1), NewStr("34").ToObject(), nil},
 		{"zfill", wrapArgs("34", 4), NewStr("0034").ToObject(), nil},
-		{"zfill", wrapArgs("34", None), nil, mustCreateException(TypeErrorType, "int() argument must be a string or a number, not 'NoneType'")},
+		{"zfill", wrapArgs("34", None), nil, mustCreateException(TypeErrorType, "an integer is required")},
 		{"zfill", wrapArgs("", True), NewStr("0").ToObject(), nil},
 		{"zfill", wrapArgs("", False), NewStr("").ToObject(), nil},
-		{"zfill", wrapArgs("34", NewStr("test")), nil, mustCreateException(ValueErrorType, "invalid literal for int() with base 10: test")},
+		{"zfill", wrapArgs("34", NewStr("test")), nil, mustCreateException(TypeErrorType, "an integer is required")},
 		{"zfill", wrapArgs("34"), nil, mustCreateException(TypeErrorType, "'zfill' of 'str' requires 2 arguments")},
 	}
 	for _, cas := range cases {

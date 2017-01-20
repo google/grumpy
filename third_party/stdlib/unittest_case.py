@@ -124,7 +124,8 @@ class _AssertRaisesContext(object):
             except AttributeError:
                 exc_name = str(self.expected)
             raise self.failureException(
-                "{0} not raised".format(exc_name))
+                # "{0} not raised".format(exc_name))
+                "%s not raised" % (exc_name))
         if not issubclass(exc_type, self.expected):
             # let unexpected exceptions pass through
             return False
@@ -622,7 +623,8 @@ class TestCase(object):
     def _deprecate(original_func):
         def deprecated_func(*args, **kwargs):
             warnings.warn(
-                'Please use {0} instead.'.format(original_func.__name__),
+                # 'Please use {0} instead.'.format(original_func.__name__),
+                'Please use %s instead.' % (original_func.__name__),
                 PendingDeprecationWarning, 2)
             return original_func(*args, **kwargs)
         return deprecated_func
@@ -684,7 +686,8 @@ class TestCase(object):
                 seq1_repr = seq1_repr[:30] + '...'
             if len(seq2_repr) > 30:
                 seq2_repr = seq2_repr[:30] + '...'
-            elements = (seq_type_name.capitalize(), seq1_repr, seq2_repr)
+            #elements = (seq_type_name.capitalize(), seq1_repr, seq2_repr)
+            elements = (seq_type_name[0].upper() + seq_type_name[1:].lower(), seq1_repr, seq2_repr)
             differing = '%ss differ: %s != %s\n' % elements
 
             for i in xrange(min(len1, len2)):

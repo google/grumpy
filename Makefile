@@ -21,14 +21,24 @@ GOOS ?= $(word 1,$(GO_ENV))
 GOARCH ?= $(word 2,$(GO_ENV))
 ROOT_DIR := $(realpath .)
 PKG_DIR := build/pkg/$(GOOS)_$(GOARCH)
-PYTHON ?= python
+
+# Try python2 and then python if PYTHON has not been set
+ifeq ($(PYTHON),)
+  ifneq ($(shell which python2),)
+    PYTHON = python2
+  else
+    PYTHON = python
+  endif
+endif
 PYTHON_BIN := $(shell which $(PYTHON))
 PYTHON_VER := $(word 2,$(shell $(PYTHON) -V 2>&1))
-PY_DIR := build/lib/python2.7/site-packages
 
 ifeq ($(filter 2.7.%,$(PYTHON_VER)),)
   $(error unsupported Python version $(PYTHON_VER), Grumpy only supports 2.7.x. To use a different python binary such as python2, run: 'make PYTHON=python2 ...')
 endif
+
+PY_DIR := build/lib/python2.7/site-packages
+PY_INSTALL_DIR := $(shell $(PYTHON) -c "from distutils.sysconfig import get_python_lib; print(get_python_lib())")
 
 export GOPATH := $(ROOT_DIR)/build
 export PYTHONPATH := $(ROOT_DIR)/$(PY_DIR)
@@ -59,11 +69,30 @@ THIRD_PARTY_STDLIB_PACKAGES := $(foreach x,$(THIRD_PARTY_STDLIB_SRCS),$(patsubst
 STDLIB_SRCS := $(GRUMPY_STDLIB_SRCS) $(THIRD_PARTY_STDLIB_SRCS)
 STDLIB_PACKAGES := $(GRUMPY_STDLIB_PACKAGES) $(THIRD_PARTY_STDLIB_PACKAGES)
 STDLIB := $(patsubst %,$(PKG_DIR)/grumpy/lib/%.a,$(STDLIB_PACKAGES))
-STDLIB_TESTS := $(patsubst lib/%.py,%,$(shell find lib -name '*_test.py'))
-STDLIB_PASS_FILES := $(patsubst %,$(PKG_DIR)/grumpy/lib/%.pass,$(STDLIB_TESTS))
+LIB_TEST_SRCS := \
+  lib/itertools_test.py \
+  lib/math_test.py \
+  lib/os/path_test.py \
+  lib/os_test.py \
+  lib/random_test.py \
+  lib/sys_test.py \
+  lib/tempfile_test.py \
+  lib/threading_test.py \
+  lib/time_test.py \
+  lib/types_test.py \
+  lib/weetest_test.py
+LIB_PASS_FILES := $(patsubst %.py,$(PKG_DIR)/grumpy/%.pass,$(LIB_TEST_SRCS))
+CPYTHON_TEST_SRCS := \
+  third_party/stdlib/re_tests.py \
+  third_party/stdlib/test/seq_tests.py \
+  third_party/stdlib/test/test_support.py \
+  third_party/stdlib/test/test_tuple.py
+CPYTHON_PASS_FILES := $(patsubst third_party/stdlib/%.py,$(PKG_DIR)/grumpy/lib/%.pass,$(CPYTHON_TEST_SRCS))
+STDLIB_PASS_FILES := $(LIB_PASS_FILES) $(CPYTHON_PASS_FILES)
 
 ACCEPT_TESTS := $(patsubst %.py,%,$(wildcard testing/*.py))
 ACCEPT_PASS_FILES := $(patsubst %,build/%.pass,$(ACCEPT_TESTS))
+ACCEPT_PY_PASS_FILES := $(patsubst %,build/%_py.pass,$(filter-out %/native_test,$(ACCEPT_TESTS)))
 
 BENCHMARKS := $(patsubst %.py,%,$(wildcard benchmarks/*.py))
 BENCHMARK_BINS := $(patsubst %,build/%_benchmark,$(BENCHMARKS))
@@ -84,11 +113,11 @@ clean:
 run: $(RUNNER)
 	@$(RUNNER_BIN)
 
-test: $(ACCEPT_PASS_FILES) $(COMPILER_PASS_FILES) $(COMPILER_EXPR_VISITOR_PASS_FILES) $(COMPILER_STMT_PASS_FILES) $(RUNTIME_PASS_FILE) $(STDLIB_PASS_FILES)
+test: $(ACCEPT_PASS_FILES) $(ACCEPT_PY_PASS_FILES) $(COMPILER_PASS_FILES) $(COMPILER_EXPR_VISITOR_PASS_FILES) $(COMPILER_STMT_PASS_FILES) $(RUNTIME_PASS_FILE) $(STDLIB_PASS_FILES)
 
 precommit: cover gofmt lint test
 
-.PHONY: all benchmarks clean cover gofmt golint lint precommit pylint run test
+.PHONY: all benchmarks clean cover gofmt golint install lint precommit pylint run test
 
 # ------------------------------------------------------------------------------
 # grumpc compiler
@@ -159,13 +188,15 @@ gofmt: build/gofmt.diff
 $(GOLINT_BIN):
 	@go get -u github.com/golang/lint/golint
 
-golint: $(GOLINT_BIN) $(PYLINT_BIN)
+golint: $(GOLINT_BIN)
 	@$(GOLINT_BIN) -set_exit_status runtime
 
-# Old versions of pip don't support the --prefix param so specify the bin dir
-# (--install-scripts) and the Python dir (--target) separately.
+# Don't use system pip for this since behavior varies a lot between versions.
+# Instead build pylint from source. Dependencies will be fetched by distutils.
 $(PYLINT_BIN):
-	@pip install --install-option=--install-scripts='$(ROOT_DIR)/build/bin' --target '$(PY_DIR)' pylint
+	@mkdir -p build/third_party
+	@cd build/third_party && curl -sL https://pypi.io/packages/source/p/pylint/pylint-1.6.4.tar.gz | tar -zx
+	@cd build/third_party/pylint-1.6.4 && $(PYTHON) setup.py install --prefix $(ROOT_DIR)/build
 
 pylint: $(PYLINT_BIN)
 	@$(PYLINT_BIN) compiler/*.py $(addprefix tools/,benchcmp coverparse diffrange grumpc grumprun)
@@ -204,6 +235,9 @@ $(eval $(foreach x,$(shell seq $(words $(STDLIB_SRCS))),$(call GRUMPY_STDLIB,$(w
 # Acceptance tests & benchmarks
 # ------------------------------------------------------------------------------
 
+$(PY_DIR)/weetest.py: lib/weetest.py
+	@cp -f $< $@
+
 $(patsubst %_test,build/%.go,$(ACCEPT_TESTS)): build/%.go: %_test.py $(COMPILER)
 	@mkdir -p $(@D)
 	@$(COMPILER_BIN) $< > $@
@@ -218,6 +252,11 @@ $(ACCEPT_PASS_FILES): build/%_test.pass: build/%_test
 	@touch $@
 	@echo '$*_test PASS'
 
+$(ACCEPT_PY_PASS_FILES): build/%_py.pass: %.py $(PY_DIR)/weetest.py
+	@$(PYTHON) $<
+	@touch $@
+	@echo '$*_py PASS'
+
 $(patsubst %,build/%.go,$(BENCHMARKS)): build/%.go: %.py $(COMPILER)
 	@mkdir -p $(@D)
 	@$(COMPILER_BIN) $< > $@
@@ -225,3 +264,18 @@ $(patsubst %,build/%.go,$(BENCHMARKS)): build/%.go: %.py $(COMPILER)
 $(BENCHMARK_BINS): build/benchmarks/%_benchmark: build/benchmarks/%.go $(RUNTIME) $(STDLIB)
 	@mkdir -p $(@D)
 	@go build -o $@ $<
+
+# ------------------------------------------------------------------------------
+# Installation
+# ------------------------------------------------------------------------------
+
+install: $(RUNNER_BIN) $(COMPILER) $(RUNTIME) $(STDLIB)
+	# Binary executables
+	install -Dm755 build/bin/grumpc "$(DESTDIR)/usr/bin/grumpc"
+	install -Dm755 build/bin/grumprun "$(DESTDIR)/usr/bin/grumprun"
+	# Python module
+	install -d "$(DESTDIR)"{/usr/lib/go,"$(PY_INSTALL_DIR)"}
+	cp -rv --no-preserve=ownership "$(PY_DIR)/grumpy" "$(DESTDIR)$(PY_INSTALL_DIR)"
+	# Go package and sources
+	cp -rv --no-preserve=ownership build/pkg build/src "$(DESTDIR)/usr/lib/go/"
+

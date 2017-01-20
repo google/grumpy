@@ -140,6 +140,8 @@ func TestBinaryOps(t *testing.T) {
 		{Mul, newObject(ObjectType), newObject(fooType), nil, mustCreateException(TypeErrorType, "unsupported operand type(s) for *: 'object' and 'Foo'")},
 		{Or, NewInt(-42).ToObject(), NewInt(244).ToObject(), NewInt(-10).ToObject(), nil},
 		{Or, NewInt(42).ToObject(), NewStr("foo").ToObject(), nil, mustCreateException(TypeErrorType, "unsupported operand type(s) for |: 'int' and 'str'")},
+		{Pow, NewInt(2).ToObject(), NewInt(-2).ToObject(), NewFloat(0.25).ToObject(), nil},
+		{Pow, NewInt(2).ToObject(), newObject(fooType), nil, mustCreateException(TypeErrorType, "unsupported operand type(s) for **: 'int' and 'Foo'")},
 		{Sub, NewInt(3).ToObject(), NewInt(-3).ToObject(), NewInt(6).ToObject(), nil},
 		{Xor, NewInt(-42).ToObject(), NewInt(244).ToObject(), NewInt(-222).ToObject(), nil},
 		{Xor, NewInt(42).ToObject(), NewStr("foo").ToObject(), nil, mustCreateException(TypeErrorType, "unsupported operand type(s) for ^: 'int' and 'str'")},
@@ -997,7 +999,7 @@ func TestTie(t *testing.T) {
 			},
 			NewList(NewStr("foo").ToObject()).ToObject(),
 			nil,
-			mustCreateException(TypeErrorType, "need more than 1 values to unpack"),
+			mustCreateException(ValueErrorType, "need more than 1 values to unpack"),
 		},
 		{
 			TieTarget{Children: []TieTarget{{Target: &targets[0]}}},
@@ -1027,6 +1029,38 @@ func TestTie(t *testing.T) {
 			t.Errorf("Tie(%+v, %v) raised %v, want %v", cas.t, cas.o, raised, cas.wantExc)
 		case checkInvokeResultReturnValueMismatch:
 			t.Errorf("Tie(%+v, %v) = %v, want %v", cas.t, cas.o, got, cas.want)
+		}
+	}
+}
+
+func TestToInt(t *testing.T) {
+	fun := wrapFuncForTest(func(f *Frame, o *Object) (*Tuple, *BaseException) {
+		i, raised := ToInt(f, o)
+		if raised != nil {
+			return nil, raised
+		}
+		return newTestTuple(i, i.Type()), nil
+	})
+	cases := []invokeTestCase{
+		{args: wrapArgs(42), want: newTestTuple(42, IntType).ToObject()},
+		{args: wrapArgs(big.NewInt(123)), want: newTestTuple(123, LongType).ToObject()},
+	}
+	for _, cas := range cases {
+		if err := runInvokeTestCase(fun, &cas); err != "" {
+			t.Error(err)
+		}
+	}
+}
+
+func TestToIntValue(t *testing.T) {
+	cases := []invokeTestCase{
+		{args: wrapArgs(42), want: NewInt(42).ToObject()},
+		{args: wrapArgs(big.NewInt(123)), want: NewInt(123).ToObject()},
+		{args: wrapArgs(overflowLong), wantExc: mustCreateException(OverflowErrorType, "Python int too large to convert to a Go int")},
+	}
+	for _, cas := range cases {
+		if err := runInvokeTestCase(wrapFuncForTest(ToIntValue), &cas); err != "" {
+			t.Error(err)
 		}
 	}
 }

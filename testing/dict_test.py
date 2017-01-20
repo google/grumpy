@@ -50,3 +50,14 @@ except KeyError:
   pass
 else:
   raise AssertionError
+
+# Test clear
+d = {1: 1, 2: 2, 3: 3}
+d.clear()
+assert d == {}
+
+try:
+  d.clear()
+  assert AssertionError
+except TypeError:
+  pass

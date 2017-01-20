@@ -10,16 +10,14 @@
 
 """Internal support module for sre"""
 
-# TODO: Support from foo import * syntax.
-import sre_constants
-for name in sre_constants.__all__:
-  globals()[name] = getattr(sre_constants, name)
-
 # XXX: show string offset and offending character for all errors
 
 import sys
 
-newdict = lambda _ : {}
+# from sre_constants import *
+import sre_constants
+for name in sre_constants.__all__:
+  globals()[name] = getattr(sre_constants, name)
 
 SPECIAL_CHARS = ".\\[{()*+?^$|"
 REPEAT_CHARS = "*+?{"
@@ -73,7 +71,7 @@ class Pattern(object):
         self.flags = 0
         self.open = []
         self.groups = 1
-        self.groupdict = newdict("module")
+        self.groupdict = {}
         self.lookbehind = 0
 
     def opengroup(self, name=None):

@@ -90,6 +90,7 @@ var builtinTypes = map[*Type]*builtinTypeInfo{
 	DeprecationWarningType:        {global: true},
 	dictItemIteratorType:          {init: initDictItemIteratorType},
 	dictKeyIteratorType:           {init: initDictKeyIteratorType},
+	dictValueIteratorType:         {init: initDictValueIteratorType},
 	DictType:                      {init: initDictType, global: true},
 	enumerateType:                 {init: initEnumerateType, global: true},
 	EnvironmentErrorType:          {global: true},
@@ -448,7 +449,10 @@ func builtinLen(f *Frame, args Args, kwargs KWArgs) (*Object, *BaseException) {
 		return nil, raised
 	}
 	ret, raised := Len(f, args[0])
-	return ret.ToObject(), raised
+	if raised != nil {
+		return nil, raised
+	}
+	return ret.ToObject(), nil
 }
 
 func builtinMax(f *Frame, args Args, kwargs KWArgs) (*Object, *BaseException) {

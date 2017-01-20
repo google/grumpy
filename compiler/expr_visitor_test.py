@@ -76,12 +76,9 @@ class ExprVisitorTest(unittest.TestCase):
   testBinOpArithmeticMod = _MakeExprTest('9 % 5')
   testBinOpArithmeticMul = _MakeExprTest('3 * 2')
   testBinOpArithmeticOr = _MakeExprTest('2 | 6')
+  testBinOpArithmeticPow = _MakeExprTest('2 ** 16')
   testBinOpArithmeticSub = _MakeExprTest('10 - 3')
   testBinOpArithmeticXor = _MakeExprTest('3 ^ 5')
-
-  def testBinOpNotImplemented(self):
-    self.assertRaisesRegexp(util.ParseError, 'binary op not implemented',
-                            _ParseAndVisitExpr, 'x ** y')
 
   testBoolOpTrueAndFalse = _MakeExprTest('True and False')
   testBoolOpTrueAndTrue = _MakeExprTest('True and True')

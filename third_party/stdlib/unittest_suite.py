@@ -48,7 +48,8 @@ class BaseTestSuite(object):
     def addTest(self, test):
         # sanity checks
         if not hasattr(test, '__call__'):
-            raise TypeError("{} is not callable".format(repr(test)))
+            # raise TypeError("{} is not callable".format(repr(test)))
+            raise TypeError("%s is not callable" % (repr(test)))
         if isinstance(test, type) and issubclass(test,
                                                  (case.TestCase, TestSuite)):
             raise TypeError("TestCases and TestSuites must be instantiated "

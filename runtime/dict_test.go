@@ -46,6 +46,29 @@ func TestNewStringDict(t *testing.T) {
 	}
 }
 
+func TestDictClear(t *testing.T) {
+	clear := mustNotRaise(GetAttr(NewRootFrame(), DictType.ToObject(), NewStr("clear"), nil))
+	fun := newBuiltinFunction("TestDictClear", func(f *Frame, args Args, _ KWArgs) (*Object, *BaseException) {
+		if _, raised := clear.Call(f, args, nil); raised != nil {
+			return nil, raised
+		}
+		return args[0], nil
+	}).ToObject()
+	cases := []invokeTestCase{
+		{args: wrapArgs(NewDict()), want: NewDict().ToObject()},
+		{args: wrapArgs(newStringDict(map[string]*Object{"foo": NewInt(1).ToObject()})), want: NewDict().ToObject()},
+		{args: wrapArgs(newTestDict(2, None, "baz", 3.14)), want: NewDict().ToObject()},
+		{args: wrapArgs(NewDict(), NewList()), wantExc: mustCreateException(TypeErrorType, "'clear' of 'dict' requires 1 arguments")},
+		{args: wrapArgs(NewDict(), None), wantExc: mustCreateException(TypeErrorType, "'clear' of 'dict' requires 1 arguments")},
+		{args: wrapArgs(None), wantExc: mustCreateException(TypeErrorType, "unbound method clear() must be called with dict instance as first argument (got NoneType instance instead)")},
+	}
+	for _, cas := range cases {
+		if err := runInvokeTestCase(fun, &cas); err != "" {
+			t.Error(err)
+		}
+	}
+}
+
 func TestDictContains(t *testing.T) {
 	cases := []invokeTestCase{
 		{args: wrapArgs(NewDict(), "foo"), want: False.ToObject()},
@@ -297,6 +320,48 @@ func TestDictIter(t *testing.T) {
 	}
 }
 
+func TestDictIterKeys(t *testing.T) {
+	iterkeys := mustNotRaise(GetAttr(NewRootFrame(), DictType.ToObject(), NewStr("iterkeys"), nil))
+	fun := wrapFuncForTest(func(f *Frame, args ...*Object) (*Object, *BaseException) {
+		iter, raised := iterkeys.Call(f, args, nil)
+		if raised != nil {
+			return nil, raised
+		}
+		return TupleType.Call(f, Args{iter}, nil)
+	})
+	cases := []invokeTestCase{
+		{args: wrapArgs(NewDict()), want: NewTuple().ToObject()},
+		{args: wrapArgs(newTestDict("foo", 1, "bar", 2)), want: newTestTuple("foo", "bar").ToObject()},
+		{args: wrapArgs(NewDict(), "bad"), wantExc: mustCreateException(TypeErrorType, "'iterkeys' of 'dict' requires 1 arguments")},
+	}
+	for _, cas := range cases {
+		if err := runInvokeTestCase(fun, &cas); err != "" {
+			t.Error(err)
+		}
+	}
+}
+
+func TestDictIterValues(t *testing.T) {
+	itervalues := mustNotRaise(GetAttr(NewRootFrame(), DictType.ToObject(), NewStr("itervalues"), nil))
+	fun := wrapFuncForTest(func(f *Frame, args ...*Object) (*Object, *BaseException) {
+		iter, raised := itervalues.Call(f, args, nil)
+		if raised != nil {
+			return nil, raised
+		}
+		return TupleType.Call(f, Args{iter}, nil)
+	})
+	cases := []invokeTestCase{
+		{args: wrapArgs(NewDict()), want: NewTuple().ToObject()},
+		{args: wrapArgs(newTestDict("foo", 1, "bar", 2)), want: newTestTuple(1, 2).ToObject()},
+		{args: wrapArgs(NewDict(), "bad"), wantExc: mustCreateException(TypeErrorType, "'itervalues' of 'dict' requires 1 arguments")},
+	}
+	for _, cas := range cases {
+		if err := runInvokeTestCase(fun, &cas); err != "" {
+			t.Error(err)
+		}
+	}
+}
+
 // Tests dict.items and dict.iteritems.
 func TestDictItems(t *testing.T) {
 	f := NewRootFrame()
@@ -533,6 +598,19 @@ func TestDictUpdate(t *testing.T) {
 	}
 	for _, cas := range cases {
 		if err := runInvokeTestCase(update, &cas); err != "" {
+			t.Error(err)
+		}
+	}
+}
+
+func TestDictValues(t *testing.T) {
+	cases := []invokeTestCase{
+		{args: wrapArgs(NewDict()), want: NewList().ToObject()},
+		{args: wrapArgs(newTestDict("foo", 1, "bar", 2)), want: newTestList(1, 2).ToObject()},
+		{args: wrapArgs(NewDict(), "bad"), wantExc: mustCreateException(TypeErrorType, "'values' of 'dict' requires 1 arguments")},
+	}
+	for _, cas := range cases {
+		if err := runInvokeMethodTestCase(DictType, "values", &cas); err != "" {
 			t.Error(err)
 		}
 	}

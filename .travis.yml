@@ -1,8 +1,7 @@
 language: go
-# Upgrade default Travis pip which is old and doesn't work the way we expect.
-# Need sudo to do that.
-sudo: required
-install: pip install --upgrade pip
+os:
+  - linux
+  - osx
 # Run gofmt and lint serially to avoid confusing output. Run tests in parallel
 # for speed.
-script: make gofmt lint; make -j2 test
+script: make gofmt lint && make -j2 test

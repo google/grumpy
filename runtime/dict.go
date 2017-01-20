@@ -24,10 +24,11 @@ import (
 
 var (
 	// DictType is the object representing the Python 'dict' type.
-	DictType             = newBasisType("dict", reflect.TypeOf(Dict{}), toDictUnsafe, ObjectType)
-	dictItemIteratorType = newBasisType("dictionary-itemiterator", reflect.TypeOf(dictItemIterator{}), toDictItemIteratorUnsafe, ObjectType)
-	dictKeyIteratorType  = newBasisType("dictionary-keyiterator", reflect.TypeOf(dictKeyIterator{}), toDictKeyIteratorUnsafe, ObjectType)
-	deletedEntry         = &dictEntry{}
+	DictType              = newBasisType("dict", reflect.TypeOf(Dict{}), toDictUnsafe, ObjectType)
+	dictItemIteratorType  = newBasisType("dictionary-itemiterator", reflect.TypeOf(dictItemIterator{}), toDictItemIteratorUnsafe, ObjectType)
+	dictKeyIteratorType   = newBasisType("dictionary-keyiterator", reflect.TypeOf(dictKeyIterator{}), toDictKeyIteratorUnsafe, ObjectType)
+	dictValueIteratorType = newBasisType("dictionary-valueiterator", reflect.TypeOf(dictValueIterator{}), toDictValueIteratorUnsafe, ObjectType)
+	deletedEntry          = &dictEntry{}
 )
 
 const (
@@ -65,11 +66,18 @@ type dictTable struct {
 // newDictTable allocates a table where at least minCapacity entries can be
 // accommodated. minCapacity must be <= maxDictSize.
 func newDictTable(minCapacity int) *dictTable {
-	numEntries := minDictSize
-	for numEntries < minCapacity {
-		numEntries <<= 1
-	}
-	return &dictTable{entries: make([]*dictEntry, numEntries)}
+	// This takes the given capacity and sets all bits less than the highest bit.
+	// Adding 1 to that value causes the number to become a multiple of 2 again.
+	// The minDictSize is mixed in to make sure the resulting value is at least
+	// that big. This implementation makes the function able to be inlined, as
+	// well as allows for complete evaluation of constants at compile time.
+	numEntries := (minDictSize - 1) | minCapacity
+	numEntries |= numEntries >> 1
+	numEntries |= numEntries >> 2
+	numEntries |= numEntries >> 4
+	numEntries |= numEntries >> 8
+	numEntries |= numEntries >> 16
+	return &dictTable{entries: make([]*dictEntry, numEntries+1)}
 }
 
 // loadEntry atomically loads the i'th entry in t and returns it.
@@ -508,6 +516,18 @@ func dictsAreEqual(f *Frame, d1, d2 *Dict) (bool, *BaseException) {
 	return result, nil
 }
 
+func dictClear(f *Frame, args Args, _ KWArgs) (*Object, *BaseException) {
+	if raised := checkMethodArgs(f, "clear", args, DictType); raised != nil {
+		return nil, raised
+	}
+	d := toDictUnsafe(args[0])
+	d.mutex.Lock(f)
+	d.table = newDictTable(0)
+	d.incVersion()
+	d.mutex.Unlock(f)
+	return None, nil
+}
+
 func dictContains(f *Frame, seq, value *Object) (*Object, *BaseException) {
 	item, raised := toDictUnsafe(seq).GetItem(f, value)
 	if raised != nil {
@@ -575,6 +595,24 @@ func dictIterItems(f *Frame, args Args, kwargs KWArgs) (*Object, *BaseException)
 	d := toDictUnsafe(args[0])
 	d.mutex.Lock(f)
 	iter := newDictItemIterator(d).ToObject()
+	d.mutex.Unlock(f)
+	return iter, nil
+}
+
+func dictIterKeys(f *Frame, args Args, kwargs KWArgs) (*Object, *BaseException) {
+	if raised := checkMethodArgs(f, "iterkeys", args, DictType); raised != nil {
+		return nil, raised
+	}
+	return dictIter(f, args[0])
+}
+
+func dictIterValues(f *Frame, args Args, kwargs KWArgs) (*Object, *BaseException) {
+	if raised := checkMethodArgs(f, "itervalues", args, DictType); raised != nil {
+		return nil, raised
+	}
+	d := toDictUnsafe(args[0])
+	d.mutex.Lock(f)
+	iter := newDictValueIterator(d).ToObject()
 	d.mutex.Unlock(f)
 	return iter, nil
 }
@@ -712,12 +750,27 @@ func dictUpdate(f *Frame, args Args, kwargs KWArgs) (*Object, *BaseException) {
 	return None, nil
 }
 
+func dictValues(f *Frame, args Args, kwargs KWArgs) (*Object, *BaseException) {
+	if raised := checkMethodArgs(f, "values", args, DictType); raised != nil {
+		return nil, raised
+	}
+	iter, raised := dictIterValues(f, args, nil)
+	if raised != nil {
+		return nil, raised
+	}
+	return ListType.Call(f, Args{iter}, nil)
+}
+
 func initDictType(dict map[string]*Object) {
+	dict["clear"] = newBuiltinFunction("clear", dictClear).ToObject()
 	dict["get"] = newBuiltinFunction("get", dictGet).ToObject()
 	dict["items"] = newBuiltinFunction("items", dictItems).ToObject()
 	dict["iteritems"] = newBuiltinFunction("iteritems", dictIterItems).ToObject()
+	dict["iterkeys"] = newBuiltinFunction("iterkeys", dictIterKeys).ToObject()
+	dict["itervalues"] = newBuiltinFunction("itervalues", dictIterValues).ToObject()
 	dict["keys"] = newBuiltinFunction("keys", dictKeys).ToObject()
 	dict["update"] = newBuiltinFunction("update", dictUpdate).ToObject()
+	dict["values"] = newBuiltinFunction("values", dictValues).ToObject()
 	DictType.slots.Contains = &binaryOpSlot{dictContains}
 	DictType.slots.DelItem = &delItemSlot{dictDelItem}
 	DictType.slots.Eq = &binaryOpSlot{dictEq}
@@ -816,6 +869,49 @@ func initDictKeyIteratorType(map[string]*Object) {
 	dictKeyIteratorType.flags &^= typeFlagBasetype | typeFlagInstantiable
 	dictKeyIteratorType.slots.Iter = &unaryOpSlot{dictKeyIteratorIter}
 	dictKeyIteratorType.slots.Next = &unaryOpSlot{dictKeyIteratorNext}
+}
+
+type dictValueIterator struct {
+	Object
+	iter  *dictEntryIterator
+	guard *dictVersionGuard
+}
+
+// newDictValueIterator creates a dictValueIterator object for d. It assumes
+// that d.mutex is held by the caller.
+func newDictValueIterator(d *Dict) *dictValueIterator {
+	return &dictValueIterator{
+		Object: Object{typ: dictValueIteratorType},
+		iter:   newDictEntryIterator(d),
+		guard:  newDictVersionGuard(d),
+	}
+}
+
+func toDictValueIteratorUnsafe(o *Object) *dictValueIterator {
+	return (*dictValueIterator)(o.toPointer())
+}
+
+func (iter *dictValueIterator) ToObject() *Object {
+	return &iter.Object
+}
+
+func dictValueIteratorIter(f *Frame, o *Object) (*Object, *BaseException) {
+	return o, nil
+}
+
+func dictValueIteratorNext(f *Frame, o *Object) (*Object, *BaseException) {
+	iter := toDictValueIteratorUnsafe(o)
+	entry, raised := dictIteratorNext(f, iter.iter, iter.guard)
+	if raised != nil {
+		return nil, raised
+	}
+	return entry.value, nil
+}
+
+func initDictValueIteratorType(map[string]*Object) {
+	dictValueIteratorType.flags &^= typeFlagBasetype | typeFlagInstantiable
+	dictValueIteratorType.slots.Iter = &unaryOpSlot{dictValueIteratorIter}
+	dictValueIteratorType.slots.Next = &unaryOpSlot{dictValueIteratorNext}
 }
 
 func raiseKeyError(f *Frame, key *Object) *BaseException {

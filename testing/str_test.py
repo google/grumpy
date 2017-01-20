@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# pylint: disable=redefined-outer-name
+# pylint: disable=redefined-outer-name,pointless-statement
 
 import sys
 
@@ -21,14 +21,24 @@ assert "foo" + "bar" == "foobar"
 assert "foo" + u"bar" == u"foobar"
 assert "baz" + "" == "baz"
 
+# Test capitalize
+assert "".capitalize() == ""
+assert "foo".capitalize() == "Foo"
+assert "Foo".capitalize() == "Foo"
+assert "FOO".capitalize() == "Foo"
+
 # Test find
 assert "".find("") == 0
 assert "".find("", 1) == -1
+assert "".find("", -1) == 0
+assert "".find("", None, -1) == 0
 assert "foobar".find("bar") == 3
 assert "foobar".find("bar", 0, -2) == -1
 assert "foobar".find("foo", 0, 3) == 0
 assert "foobar".find("bar", 3, 5) == -1
 assert "foobar".find("bar", 5, 3) == -1
+assert 'foobar'.find("bar", None) == 3
+assert 'foobar'.find("bar", 0, None) == 3
 assert "bar".find("foobar") == -1
 assert "bar".find("a", 0, -1) == 1
 assert 'abcdefghiabc'.find('abc') == 0
@@ -42,18 +52,17 @@ assert 'abc'.find('', 4) == -1
 assert 'rrarrrrrrrrra'.find('a') == 2
 assert 'rrarrrrrrrrra'.find('a', 4) == 12
 assert 'rrarrrrrrrrra'.find('a', 4, 6) == -1
+assert 'rrarrrrrrrrra'.find('a', 4, None) == 12
+assert 'rrarrrrrrrrra'.find('a', None, 6) == 2
 assert ''.find('') == 0
 assert ''.find('', 1, 1) == -1
 assert ''.find('', sys.maxint, 0) == -1
 assert ''.find('xx') == -1
 assert ''.find('xx', 1, 1) == -1
 assert ''.find('xx', sys.maxint, 0) == -1
+assert 'ab'.find('xxx', sys.maxsize + 1, 0) == -1
 # TODO: Support unicode substring.
 # assert "foobar".find(u"bar") == 3
-# TODO: Support None.
-# assert 'rrarrrrrrrrra'.find('a', 4, None) == 12
-# assert 'rrarrrrrrrrra'.find('a', None, 6) == 2
-
 
 class Foo(object):
 
@@ -61,11 +70,6 @@ class Foo(object):
     return 3
 assert 'abcd'.find('a', Foo()) == -1
 
-try:
-  'ab'.find('xxx', sys.maxsize + 1, 0)
-  raise AssertionError
-except IndexError:
-  pass
 
 try:
   "foo".find(123)
@@ -88,13 +92,66 @@ except TypeError:
 try:
   'foobar'.find("bar", "baz")
   raise AssertionError
-except IndexError:
+except TypeError:
   pass
 
 try:
   'foobar'.find("bar", 0, "baz")
   raise AssertionError
+except TypeError:
+  pass
+
+# Test GetItem
+class IntIndexType(object):
+  def __index__(self):
+    return 2
+
+class LongIndexType(object):
+  def __index__(self):
+    return 2L
+
+class IntIntType(object):
+  def __int__(self):
+    return 2
+
+class LongIntType(object):
+  def __int__(self):
+    return 2L
+
+assert "bar"[1] == "a"
+assert "bar"[long(1)] == "a"
+assert "baz"[-1] == "z"
+assert "baz"[IntIndexType()] == "z"
+assert "baz"[LongIndexType()] == "z"
+assert "bar"[None:2] == "ba"
+assert "bar"[1:3] == "ar"
+assert "bar"[1:None] == "ar"
+assert "foobarbaz"[1:8:2] == "obra"
+assert "abc"[None:None:-1] == "cba"
+try:
+  "baz"[-4]
+  raise AssertionError
 except IndexError:
+  pass
+try:
+  ""[0]
+  raise AssertionError
+except IndexError:
+  pass
+try:
+  "foo"[3]
+  raise AssertionError
+except IndexError:
+  pass
+try:
+  "foo"[3.14] #pylint: disable=invalid-sequence-index
+  raise AssertionError
+except TypeError:
+  pass
+try:
+  "bar"[1:2:0]
+  raise AssertionError
+except ValueError:
   pass
 
 # Test Mod
@@ -132,9 +189,5 @@ class A(object):
     return 3
 
 assert '3'.zfill(A()) == '003'
-
-# Test capitalize
-assert "".capitalize() == ""
-assert "foo".capitalize() == "Foo"
-assert "Foo".capitalize() == "Foo"
-assert "FOO".capitalize() == "Foo"
+assert '3'.zfill(IntIntType()) == '03'
+assert '3'.zfill(LongIntType()) == '03'
