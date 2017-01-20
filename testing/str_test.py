@@ -130,3 +130,7 @@ class A(object):
     return 3
 
 assert '3'.zfill(A()) == '003'
+
+assert '%o' % 8 == '10'
+assert '%o' % -8 == '-10'
+assert '%o %o' % (8, -8) == '10 -10'

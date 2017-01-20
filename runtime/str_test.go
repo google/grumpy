@@ -84,6 +84,7 @@ func TestStrBinaryOps(t *testing.T) {
 		{args: wrapArgs(Mod, "%d", newTestTuple("123")), wantExc: mustCreateException(TypeErrorType, "an integer is required")},
 		{args: wrapArgs(Mod, "%o", newTestTuple(123)), want: NewStr("173").ToObject()},
 		{args: wrapArgs(Mod, "%o", 8), want: NewStr("10").ToObject()},
+		{args: wrapArgs(Mod, "%o", -8), want: NewStr("-10").ToObject()},
 		{args: wrapArgs(Mod, "%03o", newTestTuple(123)), wantExc: mustCreateException(NotImplementedErrorType, "conversion flags not yet supported")},
 		{args: wrapArgs(Mod, "%o", newTestTuple("123")), wantExc: mustCreateException(TypeErrorType, "an integer is required")},
 		{args: wrapArgs(Mod, "%o", None), wantExc: mustCreateException(TypeErrorType, "an integer is required")},
