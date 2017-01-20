@@ -623,7 +623,7 @@ class Formatter(object):
             return str(value)
         elif conversion == 'r':
             return repr(value)
-        raise ValueError("Unknown conversion specifier {0!s}".format(conversion))
+        raise ValueError("Unknown conversion specifier %s" % (conversion))
 
 
     # returns an iterable that contains tuples of the form:

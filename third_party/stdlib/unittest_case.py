@@ -124,7 +124,8 @@ class _AssertRaisesContext(object):
             except AttributeError:
                 exc_name = str(self.expected)
             raise self.failureException(
-                "{0} not raised".format(exc_name))
+                # "{0} not raised".format(exc_name))
+                "%s not raised" % (exc_name))
         if not issubclass(exc_type, self.expected):
             # let unexpected exceptions pass through
             return False
@@ -622,7 +623,8 @@ class TestCase(object):
     def _deprecate(original_func):
         def deprecated_func(*args, **kwargs):
             warnings.warn(
-                'Please use {0} instead.'.format(original_func.__name__),
+                # 'Please use {0} instead.'.format(original_func.__name__),
+                'Please use %s instead.' % (original_func.__name__),
                 PendingDeprecationWarning, 2)
             return original_func(*args, **kwargs)
         return deprecated_func
