@@ -125,68 +125,64 @@ assert 'abc'.replace('xy', '--') == 'abc'
 assert '123'.replace('123', '') == ''
 assert '123123'.replace('123', '') == ''
 assert '123x123'.replace('123', '') == 'x'
-assert '\x10\xc4\x80\xe1\x80\x80\xe3\x80\x80\xe8\x80\x80\xef\xbf\xbf'.replace('\xe3\x80\x80', ' ') == '\x10\xc4\x80\xe1\x80\x80 \xe8\x80\x80\xef\xbf\xbf'
-assert '\x10\xc4\x80\xe1\x80\x80\xe3\x80\x80\xe8\x80\x80\xef\xbf\xbf'.replace('\x80', ' ') == '\x10\xc4 \xe1  \xe3  \xe8  \xef\xbf\xbf'
+assert "\xd0\xb2\xd0\xbe\xd0\xbb".replace('', '\0') == "\x00\xd0\x00\xb2\x00\xd0\x00\xbe\x00\xd0\x00\xbb\x00"
+assert "\xd0\xb2\xd0\xbe\xd0\xbb".replace('', '\1\2') == '\x01\x02\xd0\x01\x02\xb2\x01\x02\xd0\x01\x02\xbe\x01\x02\xd0\x01\x02\xbb\x01\x02'
 
-import traceback
+class S(str):
+  pass
+
+s = S('abc')
+assert type(s.replace(s, s)) is str
+assert type(s.replace('x', 'y')) is str
+assert type(s.replace('x', 'y', 0)) is str
+# CPython only, pypy supposed to be same as Go
+assert ''.replace('', 'x') == 'x'
+assert ''.replace('', 'x', -1) == 'x'
+assert ''.replace('', 'x', 0) == ''
+assert ''.replace('', 'x', 1) == ''
+assert ''.replace('', 'x', 1000) == ''
 try:
-  class S(str):
-    pass
+  ''.replace(None, '')
+  raise AssertionError
+except TypeError:
+  pass
+try:
+  ''.replace('', None)
+  raise AssertionError
+except TypeError:
+  pass
+try:
+  ''.replace('', '', None)
+  raise AssertionError
+except TypeError:
+  pass
 
-  s = S('abc')
-  assert type(s.replace(s, s)) is str
-  assert type(s.replace('x', 'y')) is str
-  assert type(s.replace('x', 'y', 0)) is str
-  # CPython only, pypy supposed to be same as Go
-  assert ''.replace('', 'x') == 'x'
-  assert ''.replace('', 'x', -1) == 'x'
-  assert ''.replace('', 'x', 0) == ''
-  assert ''.replace('', 'x', 1) == ''
-  assert ''.replace('', 'x', 1000) == ''
-  try:
-    ''.replace(None, '')
-    raise AssertionError
-  except TypeError:
-    pass
-  try:
-    ''.replace('', None)
-    raise AssertionError
-  except TypeError:
-    pass
-  try:
-    ''.replace('', '', None)
-    raise AssertionError
-  except TypeError:
-    pass
+class A(object):
+  def __int__(self):
+    return 3
+class AL(object):
+  def __int__(self):
+    return 3L
 
-  class A(object):
-    def __int__(self):
-      return 3
-  class AL(object):
-    def __int__(self):
-      return 3L
+class B(object):
+  def __index__(self):
+    return 3
+class BL(object):
+  def __index__(self):
+    return 3L
 
-  class B(object):
-    def __index__(self):
-      return 3
-  class BL(object):
-    def __index__(self):
-      return 3L
-
-  assert 'aaaaa'.replace('a', 'b', A()) == 'bbbaa'
-  assert 'aaaaa'.replace('a', 'b', AL()) == 'bbbaa'
-  try:
-    'aaaaa'.replace('a', 'b', B())
-    raise AssertionError
-  except TypeError:
-    pass
-  try:
-    'aaaaa'.replace('a', 'b', BL())
-    raise AssertionError
-  except TypeError:
-    pass
-except:
-  print traceback.print_exc()
+assert 'aaaaa'.replace('a', 'b', A()) == 'bbbaa'
+assert 'aaaaa'.replace('a', 'b', AL()) == 'bbbaa'
+try:
+  'aaaaa'.replace('a', 'b', B())
+  raise AssertionError
+except TypeError:
+  pass
+try:
+  'aaaaa'.replace('a', 'b', BL())
+  raise AssertionError
+except TypeError:
+  pass
 
 # Test zfill
 assert '123'.zfill(2) == '123'
