@@ -212,6 +212,17 @@ class StatementVisitorTest(unittest.TestCase):
         util.ParseError, "'continue' not in loop",
         _ParseAndVisit, 'for i in (1,):\n  pass\nelse:\n  continue')
 
+  def testFunctionDecorator(self):
+    self.assertEqual((0, '<b>foo</b>\n'), _GrumpRun(textwrap.dedent("""\
+        def bold(fn):
+          def wrapped():
+            return '<b>' + fn() + '</b>'
+          return wrapped
+        @bold
+        def foo():
+          return 'foo'
+        print foo()""")))
+
   def testFunctionDef(self):
     self.assertEqual((0, 'bar baz\n'), _GrumpRun(textwrap.dedent("""\
         def foo(a, b):
