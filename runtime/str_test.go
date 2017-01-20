@@ -175,6 +175,7 @@ func TestStrGetItem(t *testing.T) {
 		{args: wrapArgs("bar", newTestSlice(1, 3)), want: NewStr("ar").ToObject()},
 		{args: wrapArgs("bar", newTestSlice(1, None)), want: NewStr("ar").ToObject()},
 		{args: wrapArgs("foobarbaz", newTestSlice(1, 8, 2)), want: NewStr("obra").ToObject()},
+		{args: wrapArgs("abc", newTestSlice(None, None, -1)), want: NewStr("cba").ToObject()},
 		{args: wrapArgs("bar", newTestSlice(1, 2, 0)), wantExc: mustCreateException(ValueErrorType, "slice step cannot be zero")},
 	}
 	for _, cas := range cases {

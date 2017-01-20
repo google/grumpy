@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# pylint: disable=redefined-outer-name
+# pylint: disable=redefined-outer-name,pointless-statement
 
 import sys
 
@@ -95,6 +95,59 @@ try:
 except TypeError:
   pass
 
+# Test GetItem
+class IntIndexType(object):
+  def __index__(self):
+    return 2
+
+class LongIndexType(object):
+  def __index__(self):
+    return 2L
+
+class IntIntType(object):
+  def __int__(self):
+    return 2
+
+class LongIntType(object):
+  def __int__(self):
+    return 2L
+
+assert "bar"[1] == "a"
+assert "bar"[long(1)] == "a"
+assert "baz"[-1] == "z"
+assert "baz"[IntIndexType()] == "z"
+assert "baz"[LongIndexType()] == "z"
+assert "bar"[None:2] == "ba"
+assert "bar"[1:3] == "ar"
+assert "bar"[1:None] == "ar"
+assert "foobarbaz"[1:8:2] == "obra"
+assert "abc"[None:None:-1] == "cba"
+try:
+  "baz"[-4]
+  raise AssertionError
+except IndexError:
+  pass
+try:
+  ""[0]
+  raise AssertionError
+except IndexError:
+  pass
+try:
+  "foo"[3]
+  raise AssertionError
+except IndexError:
+  pass
+try:
+  "foo"[3.14] #pylint: disable=invalid-sequence-index
+  raise AssertionError
+except TypeError:
+  pass
+try:
+  "bar"[1:2:0]
+  raise AssertionError
+except ValueError:
+  pass
+
 # Test Mod
 assert "%s" % 42 == "42"
 assert "%f" % 3.14 == "3.140000"
@@ -125,8 +178,5 @@ try:
 except TypeError:
   pass
 
-class A(object):
-  def __int__(self):
-    return 3
-
-assert '3'.zfill(A()) == '003'
+assert '3'.zfill(IntIntType()) == '03'
+assert '3'.zfill(LongIntType()) == '03'
