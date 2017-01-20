@@ -277,7 +277,7 @@ func strGetItem(f *Frame, o, key *Object) (*Object, *BaseException) {
 			return NewStr(s[start:stop]).ToObject(), nil
 		}
 		result := make([]byte, 0, sliceLen)
-		for j := start; j < stop; j += step {
+		for j := start; j != stop; j += step {
 			result = append(result, s[j])
 		}
 		return NewStr(string(result)).ToObject(), nil
