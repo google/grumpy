@@ -265,6 +265,12 @@ func TestStrMethods(t *testing.T) {
 		want       *Object
 		wantExc    *BaseException
 	}{
+		{"capitalize", wrapArgs(""), NewStr("").ToObject(), nil},
+		{"capitalize", wrapArgs("foobar"), NewStr("Foobar").ToObject(), nil},
+		{"capitalize", wrapArgs("FOOBAR"), NewStr("Foobar").ToObject(), nil},
+		{"capitalize", wrapArgs("ùBAR"), NewStr("ùbar").ToObject(), nil},
+		{"capitalize", wrapArgs("вол"), NewStr("вол").ToObject(), nil},
+		{"capitalize", wrapArgs("foobar", 123), nil, mustCreateException(TypeErrorType, "'capitalize' of 'str' requires 1 arguments")},
 		{"endswith", wrapArgs("", ""), True.ToObject(), nil},
 		{"endswith", wrapArgs("", "", 1), False.ToObject(), nil},
 		{"endswith", wrapArgs("foobar", "bar"), True.ToObject(), nil},

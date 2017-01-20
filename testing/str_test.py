@@ -21,6 +21,12 @@ assert "foo" + "bar" == "foobar"
 assert "foo" + u"bar" == u"foobar"
 assert "baz" + "" == "baz"
 
+# Test capitalize
+assert "".capitalize() == ""
+assert "foo".capitalize() == "Foo"
+assert "Foo".capitalize() == "Foo"
+assert "FOO".capitalize() == "Foo"
+
 # Test find
 assert "".find("") == 0
 assert "".find("", 1) == -1
@@ -178,5 +184,10 @@ try:
 except TypeError:
   pass
 
+class A(object):
+  def __int__(self):
+    return 3
+
+assert '3'.zfill(A()) == '003'
 assert '3'.zfill(IntIntType()) == '03'
 assert '3'.zfill(LongIntType()) == '03'

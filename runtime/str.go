@@ -157,6 +157,31 @@ func strAdd(f *Frame, v, w *Object) (*Object, *BaseException) {
 	return NewStr(stringV + stringW).ToObject(), nil
 }
 
+func strCapitalize(f *Frame, args Args, kwargs KWArgs) (*Object, *BaseException) {
+	if raised := checkMethodArgs(f, "capitalize", args, StrType); raised != nil {
+		return nil, raised
+	}
+	s := toStrUnsafe(args[0])
+	sv := s.Value()
+	numBytes := len(sv)
+	if numBytes == 0 {
+		return s.ToObject(), nil
+	}
+	buf := make([]byte, numBytes)
+	offset := byte('a' - 'A')
+	buf[0] = sv[0]
+	if sv[0] >= 'a' && sv[0] <= 'z' {
+		buf[0] -= offset
+	}
+	for i := 1; i < numBytes; i++ {
+		buf[i] = sv[i]
+		if sv[i] >= 'A' && sv[i] <= 'Z' {
+			buf[i] += offset
+		}
+	}
+	return NewStr(string(buf)).ToObject(), nil
+}
+
 func strContains(f *Frame, o *Object, value *Object) (*Object, *BaseException) {
 	if value.isInstance(UnicodeType) {
 		decoded, raised := toStrUnsafe(o).Decode(f, EncodeDefault, EncodeStrict)
@@ -645,6 +670,7 @@ func strStr(_ *Frame, o *Object) (*Object, *BaseException) {
 
 func initStrType(dict map[string]*Object) {
 	dict["__getnewargs__"] = newBuiltinFunction("__getnewargs__", strGetNewArgs).ToObject()
+	dict["capitalize"] = newBuiltinFunction("capitalize", strCapitalize).ToObject()
 	dict["decode"] = newBuiltinFunction("decode", strDecode).ToObject()
 	dict["endswith"] = newBuiltinFunction("endswith", strEndsWith).ToObject()
 	dict["find"] = newBuiltinFunction("find", strFind).ToObject()
