@@ -23,8 +23,8 @@ class GeneratorContextManager(object):
         except StopIteration:
             raise RuntimeError("generator didn't yield")
 
-    def __exit__(self, type, value, traceback):
-        if type is None:
+    def __exit__(self, t, value, tb):
+        if t is None:
             try:
                 self.gen.next()
             except StopIteration:
@@ -35,10 +35,11 @@ class GeneratorContextManager(object):
             if value is None:
                 # Need to force instantiation so we can reliably
                 # tell if we get the same exception back
-                value = type()
+                value = t()
             try:
-                self.gen.throw(type, value, traceback)
-                raise RuntimeError("generator didn't stop after throw()")
+                # self.gen.throw(t, value, traceback)
+                # raise RuntimeError("generator didn't stop after throw()")
+                raise t(value)
             except StopIteration, exc:
                 # Suppress the exception *unless* it's the same exception that
                 # was passed to throw().  This prevents a StopIteration
