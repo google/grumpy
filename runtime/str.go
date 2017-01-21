@@ -476,40 +476,45 @@ func strReplace(f *Frame, args Args, _ KWArgs) (*Object, *BaseException) {
 		}
 	}
 	s := toStrUnsafe(args[0]).Value()
-	old := toStrUnsafe(args[1]).Value()
-	sub := toStrUnsafe(args[2]).Value()
-	// CPython only, pypy supposed to be same as Go.
-	if len(s) == 0 && len(old) == 0 && n >= 0 {
-		return NewStr("").ToObject(), nil
-	}
+	// Returns early if no need to replace.
 	if n == 0 {
 		return NewStr(s).ToObject(), nil
 	}
-	if len(old) == 0 {
-		if n < 0 {
-			n = len(s) + 1
-		}
-		buf := bytes.Buffer{}
-		if n > 0 {
-			buf.WriteString(sub)
-			n--
-		}
-		for i := 0; i < len(s); i++ {
-			buf.WriteByte(s[i])
-			if n > 0 {
-				buf.WriteString(sub)
-				n--
-			} else {
-				i++
-				if i < len(s) {
-					buf.WriteString(s[i:])
-					break
-				}
-			}
-		}
-		return NewStr(buf.String()).ToObject(), nil
+
+	old := toStrUnsafe(args[1]).Value()
+	sub := toStrUnsafe(args[2]).Value()
+	numBytes := len(s)
+	// Even if s and old is blank, replace should return sub, except n is negative.
+	// This is CPython specific behavior.
+	if numBytes == 0 && old == "" && n >= 0 {
+		return NewStr("").ToObject(), nil
 	}
-	return NewStr(strings.Replace(s, old, sub, n)).ToObject(), nil
+	// If old is non-blank, pass to strings.Replace.
+	if len(old) > 0 {
+		return NewStr(strings.Replace(s, old, sub, n)).ToObject(), nil
+	}
+
+	// If old is blank, insert sub after every bytes on s and beginning.
+	if n < 0 {
+		n = numBytes + 1
+	}
+	// Insert sub at beginning.
+	buf := bytes.Buffer{}
+	buf.WriteString(sub)
+	n--
+	// Insert after every byte.
+	i := 0
+	for n > 0 && i < numBytes {
+		buf.WriteByte(s[i])
+		buf.WriteString(sub)
+		i++
+		n--
+	}
+	// Write the remaining string.
+	if i < numBytes {
+		buf.WriteString(s[i:])
+	}
+	return NewStr(buf.String()).ToObject(), nil
 }
 
 func strRepr(_ *Frame, o *Object) (*Object, *BaseException) {
