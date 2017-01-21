@@ -470,7 +470,7 @@ func TestNativeTypeName(t *testing.T) {
 }
 
 func TestNewNativeFieldChecksInstanceType(t *testing.T) {
-	f := newFrame(nil)
+	f := NewRootFrame()
 
 	// Given a native object
 	native, raised := WrapNative(f, reflect.ValueOf(struct{ foo string }{}))

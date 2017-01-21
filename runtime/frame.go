@@ -39,18 +39,43 @@ type Frame struct {
 	globals     *Dict `attr:"f_globals"`
 	lineno      int   `attr:"f_lineno"`
 	code        *Code `attr:"f_code"`
+	taken       bool
 }
 
 // NewRootFrame creates a Frame that is the bottom of a new stack.
 func NewRootFrame() *Frame {
-	return newFrame(nil)
+	f := &Frame{Object: Object{typ: FrameType}}
+	f.pushFrame(nil)
+	return f
 }
 
-// newFrame creates a new Frame whose parent frame is back.
-func newFrame(back *Frame) *Frame {
-	f := &Frame{Object: Object{typ: FrameType}}
+// newChildFrame creates a new Frame whose parent frame is back.
+func newChildFrame(back *Frame) *Frame {
+	f := back.frameCache
+	if f == nil {
+		f = &Frame{Object: Object{typ: FrameType}}
+	} else {
+		back.frameCache, f.back = f.back, nil
+		// Reset local state late.
+		f.checkpoints = f.checkpoints[:0]
+		f.state = 0
+		f.lineno = 0
+	}
 	f.pushFrame(back)
 	return f
+}
+
+func (f *Frame) release() {
+	if !f.taken {
+		// TODO: Track cache depth and release memory.
+		f.frameCache, f.back = f, f.frameCache
+		// Clear pointers early.
+		f.dict = nil
+		f.globals = nil
+		f.code = nil
+	} else if f.back != nil {
+		f.back.taken = true
+	}
 }
 
 // pushFrame adds f to the top of the stack, above back.

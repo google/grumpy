@@ -44,6 +44,12 @@ type Generator struct {
 
 // NewGenerator returns a new Generator object that runs the given Block b.
 func NewGenerator(f *Frame, fn func(*Object) (*Object, *BaseException)) *Generator {
+	f.taken = true // Claim the frame from being returned.
+
+	// The code generator basically gives us the Frame, so we can tare it
+	// off and prevent a parasitic `taken` from creeping up the frames.
+	f.back = nil
+
 	return &Generator{Object: Object{typ: GeneratorType}, frame: f, fn: fn}
 }
 

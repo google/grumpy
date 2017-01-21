@@ -134,10 +134,11 @@ func (c *Code) Eval(f *Frame, globals *Dict, args Args, kwargs KWArgs) (*Object,
 		}
 	}
 	oldExc, oldTraceback := f.ExcInfo()
-	next := newFrame(f)
+	next := newChildFrame(f)
 	next.code = c
 	next.globals = globals
 	ret, raised := c.fn(next, bodyArgs)
+	next.release()
 	f.FreeArgs(bodyArgs)
 	if raised == nil {
 		// Restore exc_info to what it was when we left the previous
