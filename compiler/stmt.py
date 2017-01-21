@@ -309,9 +309,16 @@ class StatementVisitor(ast.NodeVisitor):
     self.writer.write_label(loop.end_label)
 
   def visit_FunctionDef(self, node):
-    self._write_py_context(node.lineno)
+    self._write_py_context(node.lineno + len(node.decorator_list))
     func = self.expr_visitor.visit_function_inline(node)
     self.block.bind_var(self.writer, node.name, func.expr)
+    while node.decorator_list:
+      decorator = node.decorator_list.pop()
+      wrapped = ast.Name(node.name, ast.Load)
+      decorated = ast.Call(decorator, [wrapped], [], None, None)
+      target = ast.Assign([wrapped], decorated)
+      target.lineno = node.lineno + len(node.decorator_list)
+      self.visit_Assign(target)
 
   def visit_Global(self, node):
     self._write_py_context(node.lineno)
