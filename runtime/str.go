@@ -590,7 +590,12 @@ func strSplit(f *Frame, args Args, kwargs KWArgs) (*Object, *BaseException) {
 	s := toStrUnsafe(args[0]).Value()
 	var parts []string
 	if sep == "" {
+		s = strings.TrimLeft(s, string(strASCIISpaces))
 		parts = whitespaceSplitRegexp.Split(s, maxSplit)
+		l := len(parts)
+		if l > 0 && strings.Trim(parts[l-1], string(strASCIISpaces)) == "" {
+			parts = parts[:l-1]
+		}
 	} else {
 		parts = strings.SplitN(s, sep, maxSplit)
 	}

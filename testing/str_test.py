@@ -243,6 +243,19 @@ try:
 except TypeError:
   pass
 
+# Test split
+assert "".split() == []
+assert " ".split() == []
+assert "".split('x') == ['']
+assert "a".split() == ['a']
+assert " ".split(" ", 1) == ['', '']
+assert "aa".split("a", 2) == ['', '', '']
+assert " a ".split() == ['a']
+assert 'a b c d'.split(None, 1) == ['a', 'b c d']
+assert 'a b c d '.split() == ['a', 'b', 'c', 'd']
+assert ' a b c d '.split(None, 1) == ['a', 'b c d ']
+assert '   a b c d'.split(None, 0) == ['a b c d']
+
 # Test zfill
 assert '123'.zfill(2) == '123'
 assert '123'.zfill(3) == '123'
