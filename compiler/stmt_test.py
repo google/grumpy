@@ -215,10 +215,19 @@ class StatementVisitorTest(unittest.TestCase):
   def testFunctionDecorator(self):
     self.assertEqual((0, '<b>foo</b>\n'), _GrumpRun(textwrap.dedent("""\
         def bold(fn):
-          def wrapped():
-            return '<b>' + fn() + '</b>'
-          return wrapped
+          return lambda: '<b>' + fn() + '</b>'
         @bold
+        def foo():
+          return 'foo'
+        print foo()""")))
+
+  def testFunctionDecoratorWithArg(self):
+    self.assertEqual((0, '<b id=red>foo</b>\n'), _GrumpRun(textwrap.dedent("""\
+        def tag(name):
+          def bold(fn):
+            return lambda: '<b id=' + name + '>' + fn() + '</b>'
+          return bold
+        @tag('red')
         def foo():
           return 'foo'
         print foo()""")))
