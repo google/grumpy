@@ -593,10 +593,8 @@ func strSplit(f *Frame, args Args, kwargs KWArgs) (*Object, *BaseException) {
 		s = strings.TrimLeft(s, string(strASCIISpaces))
 		parts = whitespaceSplitRegexp.Split(s, maxSplit)
 		l := len(parts)
-		if l > 0 {
-			if strings.Trim(parts[l-1], string(strASCIISpaces)) == "" {
-				parts = parts[:l-1]
-			}
+		if l > 0 && strings.Trim(parts[l-1], string(strASCIISpaces)) == "" {
+			parts = parts[:l-1]
 		}
 	} else {
 		parts = strings.SplitN(s, sep, maxSplit)
