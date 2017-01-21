@@ -4,6 +4,8 @@ import string
 Template = string.Template
 from test import test_support, string_tests
 # from UserList import UserList
+import UserList as _UserList
+UserList = _UserList.UserList
 
 class StringTest(
     string_tests.CommonTest,
@@ -35,7 +37,7 @@ class StringTest(
         self.checkequal('abcd', ('a', 'b', 'c', 'd'), 'join', '')
         self.checkequal('w x y z', string_tests.Sequence(), 'join', ' ')
         self.checkequal('abc', ('abc',), 'join', 'a')
-        # self.checkequal('z', UserList(['z']), 'join', 'a')
+        self.checkequal('z', UserList(['z']), 'join', 'a')
         if test_support.have_unicode:
             self.checkequal(unicode('a.b.c'), ['a', 'b', 'c'], 'join', unicode('.'))
             self.checkequal(unicode('a.b.c'), [unicode('a'), 'b', 'c'], 'join', '.')

@@ -10,7 +10,7 @@ import types
 
 __all__ = ["warn", "warn_explicit", "showwarning",
            "formatwarning", "filterwarnings", "simplefilter",
-           "resetwarnings", "catch_warnings"]
+           "resetwarnings", "catch_warnings", "warnpy3k"]
 
 
 def warnpy3k(message, category=None, stacklevel=1):

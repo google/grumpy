@@ -7,6 +7,8 @@ import unittest, string, sys
 import _struct as struct
 from test import test_support
 # from UserList import UserList
+import UserList as _UserList
+UserList = _UserList.UserList
 
 class Sequence(object):
     def __init__(self, seq='wxyz'): self.seq = seq
@@ -1094,7 +1096,7 @@ class MixinStrUnicodeUserStringTest(NonStringModuleTest):
         self.checkequal('ac', '', 'join', ('a', '', 'c', ''))
         self.checkequal('w x y z', ' ', 'join', Sequence())
         self.checkequal('abc', 'a', 'join', ('abc',))
-        # self.checkequal('z', 'a', 'join', UserList(['z']))
+        self.checkequal('z', 'a', 'join', UserList(['z']))
         if test_support.have_unicode:
             self.checkequal(unicode('a.b.c'), unicode('.'), 'join', ['a', 'b', 'c'])
             self.checkequal(unicode('a.b.c'), '.', 'join', [unicode('a'), 'b', 'c'])
