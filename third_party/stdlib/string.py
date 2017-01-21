@@ -82,7 +82,7 @@ def maketrans(fromstr, tostr):
 
 
 ####################################################################
-#import re as _re
+import re as _re
 
 class _multimap(object):
     """Helper class for combining multiple mappings.
@@ -101,36 +101,47 @@ class _multimap(object):
             return self._secondary[key]
 
 
-# class _TemplateMetaclass(type):
-#     pattern = r"""
-#     %(delim)s(?:
-#       (?P<escaped>%(delim)s) |   # Escape sequence of two delimiters
-#       (?P<named>%(id)s)      |   # delimiter and a Python identifier
-#       {(?P<braced>%(id)s)}   |   # delimiter and a braced identifier
-#       (?P<invalid>)              # Other ill-formed delimiter exprs
-#     )
-#     """
+class _TemplateMetaclass(type):
+    # pattern = r"""
+    # %(delim)s(?:
+    #   (?P<escaped>%(delim)s) |   # Escape sequence of two delimiters
+    #   (?P<named>%(id)s)      |   # delimiter and a Python identifier
+    #   {(?P<braced>%(id)s)}   |   # delimiter and a braced identifier
+    #   (?P<invalid>)              # Other ill-formed delimiter exprs
+    # )
+    # """
+    pattern = r"""
+    %s(?:
+      (?P<escaped>%s) |   # Escape sequence of two delimiters
+      (?P<named>%s)      |   # delimiter and a Python identifier
+      {(?P<braced>%s)}   |   # delimiter and a braced identifier
+      (?P<invalid>)              # Other ill-formed delimiter exprs
+    )
+    """
 
-#     def __init__(cls, name, bases, dct):
-#         super(_TemplateMetaclass, cls).__init__(name, bases, dct)
-#         if 'pattern' in dct:
-#             pattern = cls.pattern
-#         else:
-#             pattern = _TemplateMetaclass.pattern % {
-#                 'delim' : _re.escape(cls.delimiter),
-#                 'id'    : cls.idpattern,
-#                 }
-#         cls.pattern = _re.compile(pattern, _re.IGNORECASE | _re.VERBOSE)
+    def __init__(cls, name, bases, dct):
+        # super(_TemplateMetaclass, cls).__init__(name, bases, dct)
+        super(_TemplateMetaclass, cls)
+        if 'pattern' in dct:
+            pattern = cls.pattern
+        else:
+            # pattern = _TemplateMetaclass.pattern % {
+            #     'delim' : _re.escape(cls.delimiter),
+            #     'id'    : cls.idpattern,
+            #     }
+            cls_delim, cls_id = _re.escape(cls.delimiter), cls.idpattern
+            pattern = _TemplateMetaclass.pattern % (cls_delim, cls_delim, cls_id, cls_id)
+        cls.pattern = _re.compile(pattern, _re.IGNORECASE | _re.VERBOSE)
 
 
 class Template(object):
     """A string class for supporting $-substitutions."""
-    # __metaclass__ = _TemplateMetaclass
+    __metaclass__ = _TemplateMetaclass
 
     delimiter = '$'
     idpattern = r'[_a-z][_a-z0-9]*'
 
-    def __init__(self, template):
+    def __init__(self, template, *arg):
         self.template = template
 
     # Search for $$, $identifier, ${identifier}, and any bare $'s

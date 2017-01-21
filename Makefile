@@ -80,6 +80,10 @@ STDLIB_TESTS := \
   tempfile_test \
   test/seq_tests \
   test/test_tuple \
+  test/mapping_tests \
+  test/test_dict \
+  test/string_tests \
+  test/test_string \
   threading_test \
   time_test \
   types_test \
