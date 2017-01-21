@@ -69,26 +69,22 @@ THIRD_PARTY_STDLIB_PACKAGES := $(foreach x,$(THIRD_PARTY_STDLIB_SRCS),$(patsubst
 STDLIB_SRCS := $(GRUMPY_STDLIB_SRCS) $(THIRD_PARTY_STDLIB_SRCS)
 STDLIB_PACKAGES := $(GRUMPY_STDLIB_PACKAGES) $(THIRD_PARTY_STDLIB_PACKAGES)
 STDLIB := $(patsubst %,$(PKG_DIR)/grumpy/lib/%.a,$(STDLIB_PACKAGES))
-LIB_TEST_SRCS := \
-  lib/itertools_test.py \
-  lib/math_test.py \
-  lib/os/path_test.py \
-  lib/os_test.py \
-  lib/random_test.py \
-  lib/sys_test.py \
-  lib/tempfile_test.py \
-  lib/threading_test.py \
-  lib/time_test.py \
-  lib/types_test.py \
-  lib/weetest_test.py
-LIB_PASS_FILES := $(patsubst %.py,$(PKG_DIR)/grumpy/%.pass,$(LIB_TEST_SRCS))
-CPYTHON_TEST_SRCS := \
-  third_party/stdlib/re_tests.py \
-  third_party/stdlib/test/seq_tests.py \
-  third_party/stdlib/test/test_support.py \
-  third_party/stdlib/test/test_tuple.py
-CPYTHON_PASS_FILES := $(patsubst third_party/stdlib/%.py,$(PKG_DIR)/grumpy/lib/%.pass,$(CPYTHON_TEST_SRCS))
-STDLIB_PASS_FILES := $(LIB_PASS_FILES) $(CPYTHON_PASS_FILES)
+STDLIB_TESTS := \
+  itertools_test \
+  math_test \
+  os/path_test \
+  os_test \
+  random_test \
+  re_tests \
+  sys_test \
+  tempfile_test \
+  test/seq_tests \
+  test/test_tuple \
+  threading_test \
+  time_test \
+  types_test \
+  weetest_test
+STDLIB_PASS_FILES := $(patsubst %,build/testing/%.pass,$(notdir $(STDLIB_TESTS)))
 
 ACCEPT_TESTS := $(patsubst %.py,%,$(wildcard testing/*.py))
 ACCEPT_PASS_FILES := $(patsubst %,build/%.pass,$(ACCEPT_TESTS))
@@ -207,11 +203,6 @@ lint: golint pylint
 # Standard library
 # ------------------------------------------------------------------------------
 
-$(STDLIB_PASS_FILES): $(PKG_DIR)/grumpy/lib/%.pass: $(PKG_DIR)/grumpy/lib/%.a
-	@$(RUNNER_BIN) -m `echo $* | tr / .`
-	@touch $@
-	@echo 'lib/$* PASS'
-
 define GRUMPY_STDLIB
 build/src/grumpy/lib/$(2)/module.go: $(1) $(COMPILER)
 	@mkdir -p build/src/grumpy/lib/$(2)
@@ -230,6 +221,31 @@ $(PKG_DIR)/grumpy/lib/$(2).a: build/src/grumpy/lib/$(2)/module.go $(RUNTIME)
 endef
 
 $(eval $(foreach x,$(shell seq $(words $(STDLIB_SRCS))),$(call GRUMPY_STDLIB,$(word $(x),$(STDLIB_SRCS)),$(word $(x),$(STDLIB_PACKAGES)))))
+
+define GRUMPY_STDLIB_TEST
+build/testing/$(patsubst %_test,%_test_,$(notdir $(1))).go:
+	@mkdir -p build/testing
+	@echo 'package main' > $$@
+	@echo 'import (' >> $$@
+	@echo '	"os"' >> $$@
+	@echo '	"grumpy"' >> $$@
+	@echo '	mod "grumpy/lib/$(1)"' >> $$@
+	@echo ')' >> $$@
+	@echo 'func main() {' >> $$@
+	@echo '	os.Exit(grumpy.RunMain(mod.Code))' >> $$@
+	@echo '}' >> $$@
+
+build/testing/$(notdir $(1)): build/testing/$(patsubst %_test,%_test_,$(notdir $(1))).go $(RUNTIME) $(PKG_DIR)/grumpy/lib/$(1).a
+	@go build -o $$@ $$<
+
+build/testing/$(notdir $(1)).pass: build/testing/$(notdir $(1))
+	@$$<
+	@touch $$@
+	@echo 'lib/$(1) PASS'
+
+endef
+
+$(eval $(foreach x,$(STDLIB_TESTS),$(call GRUMPY_STDLIB_TEST,$(x))))
 
 # ------------------------------------------------------------------------------
 # Acceptance tests & benchmarks
