@@ -1273,7 +1273,7 @@ def check_py3k_warnings(*filters, **kwargs):
 # _2G = 2 * _1G
 # _4G = 4 * _1G
 
-# MAX_Py_ssize_t = sys.maxsize
+MAX_Py_ssize_t = sys.maxsize
 
 # def set_memlimit(limit):
 #     global max_memuse
