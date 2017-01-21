@@ -478,6 +478,70 @@ func strNew(f *Frame, t *Type, args Args, _ KWArgs) (*Object, *BaseException) {
 	return s.ToObject(), nil
 }
 
+// strReplace returns a copy of the string s with the first n non-overlapping
+// instances of old replaced by sub. If old is empty, it matches at the
+// beginning of the string. If n < 0, there is no limit on the number of
+// replacements.
+func strReplace(f *Frame, args Args, _ KWArgs) (*Object, *BaseException) {
+	var raised *BaseException
+	// TODO: Support unicode replace.
+	expectedTypes := []*Type{StrType, StrType, StrType, ObjectType}
+	argc := len(args)
+	if argc == 3 {
+		expectedTypes = expectedTypes[:argc]
+	}
+	if raised := checkMethodArgs(f, "replace", args, expectedTypes...); raised != nil {
+		return nil, raised
+	}
+	n := -1
+	if argc == 4 {
+		n, raised = ToIntValue(f, args[3])
+		if raised != nil {
+			return nil, raised
+		}
+	}
+	s := toStrUnsafe(args[0]).Value()
+	// Returns early if no need to replace.
+	if n == 0 {
+		return NewStr(s).ToObject(), nil
+	}
+
+	old := toStrUnsafe(args[1]).Value()
+	sub := toStrUnsafe(args[2]).Value()
+	numBytes := len(s)
+	// Even if s and old is blank, replace should return sub, except n is negative.
+	// This is CPython specific behavior.
+	if numBytes == 0 && old == "" && n >= 0 {
+		return NewStr("").ToObject(), nil
+	}
+	// If old is non-blank, pass to strings.Replace.
+	if len(old) > 0 {
+		return NewStr(strings.Replace(s, old, sub, n)).ToObject(), nil
+	}
+
+	// If old is blank, insert sub after every bytes on s and beginning.
+	if n < 0 {
+		n = numBytes + 1
+	}
+	// Insert sub at beginning.
+	buf := bytes.Buffer{}
+	buf.WriteString(sub)
+	n--
+	// Insert after every byte.
+	i := 0
+	for n > 0 && i < numBytes {
+		buf.WriteByte(s[i])
+		buf.WriteString(sub)
+		i++
+		n--
+	}
+	// Write the remaining string.
+	if i < numBytes {
+		buf.WriteString(s[i:])
+	}
+	return NewStr(buf.String()).ToObject(), nil
+}
+
 func strRepr(_ *Frame, o *Object) (*Object, *BaseException) {
 	s := toStrUnsafe(o).Value()
 	buf := bytes.Buffer{}
@@ -681,6 +745,7 @@ func initStrType(dict map[string]*Object) {
 	dict["splitlines"] = newBuiltinFunction("splitlines", strSplitLines).ToObject()
 	dict["startswith"] = newBuiltinFunction("startswith", strStartsWith).ToObject()
 	dict["strip"] = newBuiltinFunction("strip", strStrip).ToObject()
+	dict["replace"] = newBuiltinFunction("replace", strReplace).ToObject()
 	dict["rstrip"] = newBuiltinFunction("rstrip", strRStrip).ToObject()
 	dict["title"] = newBuiltinFunction("title", strTitle).ToObject()
 	dict["upper"] = newBuiltinFunction("upper", strUpper).ToObject()

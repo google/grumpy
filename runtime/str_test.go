@@ -259,6 +259,16 @@ func TestStrMethods(t *testing.T) {
 			return NewLong(big.NewInt(2)).ToObject(), nil
 		}).ToObject(),
 	}))
+	intIntType := newTestClass("IntInt", []*Type{ObjectType}, newStringDict(map[string]*Object{
+		"__int__": newBuiltinFunction("__int__", func(f *Frame, _ Args, _ KWArgs) (*Object, *BaseException) {
+			return NewInt(2).ToObject(), nil
+		}).ToObject(),
+	}))
+	longIntType := newTestClass("LongInt", []*Type{ObjectType}, newStringDict(map[string]*Object{
+		"__int__": newBuiltinFunction("__int__", func(f *Frame, _ Args, _ KWArgs) (*Object, *BaseException) {
+			return NewLong(big.NewInt(2)).ToObject(), nil
+		}).ToObject(),
+	}))
 	cases := []struct {
 		methodName string
 		args       Args
@@ -379,6 +389,41 @@ func TestStrMethods(t *testing.T) {
 		{"strip", wrapArgs("foo", "bar", "baz"), nil, mustCreateException(TypeErrorType, "'strip' of 'str' requires 2 arguments")},
 		{"strip", wrapArgs("\xfboo", NewUnicode("o")), nil, mustCreateException(UnicodeDecodeErrorType, "'utf8' codec can't decode byte 0xfb in position 0")},
 		{"strip", wrapArgs("foo", NewUnicode("o")), NewUnicode("f").ToObject(), nil},
+		{"replace", wrapArgs("one!two!three!", "!", "@", 1), NewStr("one@two!three!").ToObject(), nil},
+		{"replace", wrapArgs("one!two!three!", "!", ""), NewStr("onetwothree").ToObject(), nil},
+		{"replace", wrapArgs("one!two!three!", "!", "@", 2), NewStr("one@two@three!").ToObject(), nil},
+		{"replace", wrapArgs("one!two!three!", "!", "@", 3), NewStr("one@two@three@").ToObject(), nil},
+		{"replace", wrapArgs("one!two!three!", "!", "@", 4), NewStr("one@two@three@").ToObject(), nil},
+		{"replace", wrapArgs("one!two!three!", "!", "@", 0), NewStr("one!two!three!").ToObject(), nil},
+		{"replace", wrapArgs("one!two!three!", "!", "@"), NewStr("one@two@three@").ToObject(), nil},
+		{"replace", wrapArgs("one!two!three!", "x", "@"), NewStr("one!two!three!").ToObject(), nil},
+		{"replace", wrapArgs("one!two!three!", "x", "@", 2), NewStr("one!two!three!").ToObject(), nil},
+		{"replace", wrapArgs("\xd0\xb2\xd0\xbe\xd0\xbb", "", "\x00", -1), NewStr("\x00\xd0\x00\xb2\x00\xd0\x00\xbe\x00\xd0\x00\xbb\x00").ToObject(), nil},
+		{"replace", wrapArgs("\xd0\xb2\xd0\xbe\xd0\xbb", "", "\x01\x02", -1), NewStr("\x01\x02\xd0\x01\x02\xb2\x01\x02\xd0\x01\x02\xbe\x01\x02\xd0\x01\x02\xbb\x01\x02").ToObject(), nil},
+		{"replace", wrapArgs("abc", "", "-"), NewStr("-a-b-c-").ToObject(), nil},
+		{"replace", wrapArgs("abc", "", "-", 3), NewStr("-a-b-c").ToObject(), nil},
+		{"replace", wrapArgs("abc", "", "-", 0), NewStr("abc").ToObject(), nil},
+		{"replace", wrapArgs("", "", ""), NewStr("").ToObject(), nil},
+		{"replace", wrapArgs("", "", "a"), NewStr("a").ToObject(), nil},
+		{"replace", wrapArgs("abc", "a", "--", 0), NewStr("abc").ToObject(), nil},
+		{"replace", wrapArgs("abc", "xy", "--"), NewStr("abc").ToObject(), nil},
+		{"replace", wrapArgs("123", "123", ""), NewStr("").ToObject(), nil},
+		{"replace", wrapArgs("123123", "123", ""), NewStr("").ToObject(), nil},
+		{"replace", wrapArgs("123x123", "123", ""), NewStr("x").ToObject(), nil},
+		{"replace", wrapArgs("one!two!three!", "!", "@", NewLong(big.NewInt(1))), NewStr("one@two!three!").ToObject(), nil},
+		{"replace", wrapArgs("foobar", "bar", "baz", newObject(intIntType)), NewStr("foobaz").ToObject(), nil},
+		{"replace", wrapArgs("foobar", "bar", "baz", newObject(longIntType)), NewStr("foobaz").ToObject(), nil},
+		{"replace", wrapArgs("", "", "x"), NewStr("x").ToObject(), nil},
+		{"replace", wrapArgs("", "", "x", -1), NewStr("x").ToObject(), nil},
+		{"replace", wrapArgs("", "", "x", 0), NewStr("").ToObject(), nil},
+		{"replace", wrapArgs("", "", "x", 1), NewStr("").ToObject(), nil},
+		{"replace", wrapArgs("", "", "x", 1000), NewStr("").ToObject(), nil},
+		// TODO: Support unicode substring.
+		{"replace", wrapArgs("foobar", "", NewUnicode("bar")), nil, mustCreateException(TypeErrorType, "'replace' requires a 'str' object but received a 'unicode'")},
+		{"replace", wrapArgs("foobar", NewUnicode("bar"), ""), nil, mustCreateException(TypeErrorType, "'replace' requires a 'str' object but received a 'unicode'")},
+		{"replace", wrapArgs("foobar", "bar", "baz", None), nil, mustCreateException(TypeErrorType, "an integer is required")},
+		{"replace", wrapArgs("foobar", "bar", "baz", newObject(intIndexType)), nil, mustCreateException(TypeErrorType, "an integer is required")},
+		{"replace", wrapArgs("foobar", "bar", "baz", newObject(longIndexType)), nil, mustCreateException(TypeErrorType, "an integer is required")},
 		{"rstrip", wrapArgs("foo "), NewStr("foo").ToObject(), nil},
 		{"rstrip", wrapArgs(" foo bar "), NewStr(" foo bar").ToObject(), nil},
 		{"rstrip", wrapArgs("foo foo", "o"), NewStr("foo f").ToObject(), nil},

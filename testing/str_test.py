@@ -164,6 +164,85 @@ assert "%r" % "abc" == "'abc'"
 assert "%x" % 0x1f == "1f"
 assert "%X" % 0xffff == "FFFF"
 
+# Test replace
+assert 'one!two!three!'.replace('!', '@', 1) == 'one@two!three!'
+assert 'one!two!three!'.replace('!', '') == 'onetwothree'
+assert 'one!two!three!'.replace('!', '@', 2) == 'one@two@three!'
+assert 'one!two!three!'.replace('!', '@', 3) == 'one@two@three@'
+assert 'one!two!three!'.replace('!', '@', 4) == 'one@two@three@'
+assert 'one!two!three!'.replace('!', '@', 0) == 'one!two!three!'
+assert 'one!two!three!'.replace('!', '@') == 'one@two@three@'
+assert 'one!two!three!'.replace('x', '@') == 'one!two!three!'
+assert 'one!two!three!'.replace('x', '@', 2) == 'one!two!three!'
+assert 'abc'.replace('', '-') == '-a-b-c-'
+assert 'abc'.replace('', '-', 3) == '-a-b-c'
+assert 'abc'.replace('', '-', 0) == 'abc'
+assert ''.replace('', '') == ''
+assert ''.replace('', 'a') == 'a'
+assert 'abc'.replace('a', '--', 0) == 'abc'
+assert 'abc'.replace('xy', '--') == 'abc'
+assert '123'.replace('123', '') == ''
+assert '123123'.replace('123', '') == ''
+assert '123x123'.replace('123', '') == 'x'
+assert "\xd0\xb2\xd0\xbe\xd0\xbb".replace('', '\0') == "\x00\xd0\x00\xb2\x00\xd0\x00\xbe\x00\xd0\x00\xbb\x00"
+assert "\xd0\xb2\xd0\xbe\xd0\xbb".replace('', '\1\2') == '\x01\x02\xd0\x01\x02\xb2\x01\x02\xd0\x01\x02\xbe\x01\x02\xd0\x01\x02\xbb\x01\x02'
+
+class S(str):
+  pass
+
+s = S('abc')
+assert type(s.replace(s, s)) is str
+assert type(s.replace('x', 'y')) is str
+assert type(s.replace('x', 'y', 0)) is str
+# CPython only, pypy supposed to be same as Go
+assert ''.replace('', 'x') == 'x'
+assert ''.replace('', 'x', -1) == 'x'
+assert ''.replace('', 'x', 0) == ''
+assert ''.replace('', 'x', 1) == ''
+assert ''.replace('', 'x', 1000) == ''
+try:
+  ''.replace(None, '')
+  raise AssertionError
+except TypeError:
+  pass
+try:
+  ''.replace('', None)
+  raise AssertionError
+except TypeError:
+  pass
+try:
+  ''.replace('', '', None)
+  raise AssertionError
+except TypeError:
+  pass
+
+class A(object):
+  def __int__(self):
+    return 3
+class AL(object):
+  def __int__(self):
+    return 3L
+
+class B(object):
+  def __index__(self):
+    return 3
+class BL(object):
+  def __index__(self):
+    return 3L
+
+assert 'aaaaa'.replace('a', 'b', A()) == 'bbbaa'
+assert 'aaaaa'.replace('a', 'b', AL()) == 'bbbaa'
+try:
+  'aaaaa'.replace('a', 'b', B())
+  raise AssertionError
+except TypeError:
+  pass
+try:
+  'aaaaa'.replace('a', 'b', BL())
+  raise AssertionError
+except TypeError:
+  pass
+
 # Test zfill
 assert '123'.zfill(2) == '123'
 assert '123'.zfill(3) == '123'
