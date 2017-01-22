@@ -83,15 +83,6 @@ type Function struct {
 	globals *Dict  `attr:"func_globals"`
 }
 
-// FunctionArg describes a parameter to a Python function.
-type FunctionArg struct {
-	// Name is the argument name.
-	Name string
-	// Def is the default value to use if the argument is not provided. If
-	// no default is specified then Def is nil.
-	Def *Object
-}
-
 // NewFunction creates a function object corresponding to a Python function
 // taking the given args, vararg and kwarg. When called, the arguments are
 // validated before calling fn. This includes checking that an appropriate
