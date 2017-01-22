@@ -34,6 +34,7 @@ var (
 	strASCIISpaces         = []byte(" \t\n\v\f\r")
 	strInterpolationRegexp = regexp.MustCompile(`^%([#0 +-]?)((\*|[0-9]+)?)((\.(\*|[0-9]+))?)[hlL]?([diouxXeEfFgGcrs%])`)
 	internedStrs           = map[string]*Str{}
+	caseOffset             = byte('a' - 'A')
 )
 
 type stripSide int
@@ -161,25 +162,17 @@ func strCapitalize(f *Frame, args Args, kwargs KWArgs) (*Object, *BaseException)
 	if raised := checkMethodArgs(f, "capitalize", args, StrType); raised != nil {
 		return nil, raised
 	}
-	s := toStrUnsafe(args[0])
-	sv := s.Value()
-	numBytes := len(sv)
+	s := toStrUnsafe(args[0]).Value()
+	numBytes := len(s)
 	if numBytes == 0 {
-		return s.ToObject(), nil
+		return args[0], nil
 	}
-	buf := make([]byte, numBytes)
-	offset := byte('a' - 'A')
-	buf[0] = sv[0]
-	if sv[0] >= 'a' && sv[0] <= 'z' {
-		buf[0] -= offset
-	}
+	b := make([]byte, numBytes)
+	b[0] = toUpper(s[0])
 	for i := 1; i < numBytes; i++ {
-		buf[i] = sv[i]
-		if sv[i] >= 'A' && sv[i] <= 'Z' {
-			buf[i] += offset
-		}
+		b[i] = toLower(s[i])
 	}
-	return NewStr(string(buf)).ToObject(), nil
+	return NewStr(string(b)).ToObject(), nil
 }
 
 func strContains(f *Frame, o *Object, value *Object) (*Object, *BaseException) {
@@ -396,7 +389,15 @@ func strLower(f *Frame, args Args, kwargs KWArgs) (*Object, *BaseException) {
 		return nil, raised
 	}
 	s := toStrUnsafe(args[0]).Value()
-	return NewStr(strings.ToLower(s)).ToObject(), nil
+	numBytes := len(s)
+	if numBytes == 0 {
+		return args[0], nil
+	}
+	b := make([]byte, numBytes)
+	for i := 0; i < numBytes; i++ {
+		b[i] = toLower(s[i])
+	}
+	return NewStr(string(b)).ToObject(), nil
 }
 
 func strLStrip(f *Frame, args Args, _ KWArgs) (*Object, *BaseException) {
@@ -986,7 +987,31 @@ func strTitle(f *Frame, args Args, kwargs KWArgs) (*Object, *BaseException) {
 		return nil, raised
 	}
 	s := toStrUnsafe(args[0]).Value()
-	return NewStr(strings.Title(strings.ToLower(s))).ToObject(), nil
+	numBytes := len(s)
+	if numBytes == 0 {
+		return args[0], nil
+	}
+	b := make([]byte, numBytes)
+	previousIsCased := false
+	for i := 0; i < numBytes; i++ {
+		c := s[i]
+		switch {
+		case s[i] >= 'a' && s[i] <= 'z':
+			if !previousIsCased {
+				c = toUpper(c)
+			}
+			previousIsCased = true
+		case s[i] >= 'A' && s[i] <= 'Z':
+			if previousIsCased {
+				c = toLower(c)
+			}
+			previousIsCased = true
+		default:
+			previousIsCased = false
+		}
+		b[i] = c
+	}
+	return NewStr(string(b)).ToObject(), nil
 }
 
 func strUpper(f *Frame, args Args, kwargs KWArgs) (*Object, *BaseException) {
@@ -995,7 +1020,15 @@ func strUpper(f *Frame, args Args, kwargs KWArgs) (*Object, *BaseException) {
 		return nil, raised
 	}
 	s := toStrUnsafe(args[0]).Value()
-	return NewStr(strings.ToUpper(s)).ToObject(), nil
+	numBytes := len(s)
+	if numBytes == 0 {
+		return args[0], nil
+	}
+	b := make([]byte, numBytes)
+	for i := 0; i < numBytes; i++ {
+		b[i] = toUpper(s[i])
+	}
+	return NewStr(string(b)).ToObject(), nil
 }
 
 func strZFill(f *Frame, args Args, _ KWArgs) (*Object, *BaseException) {
@@ -1028,4 +1061,18 @@ func init() {
 	for i := 0; i < 256; i++ {
 		InternStr(string([]byte{byte(i)}))
 	}
+}
+
+func toLower(b byte) byte {
+	if b >= 'A' && b <= 'Z' {
+		return b + caseOffset
+	}
+	return b
+}
+
+func toUpper(b byte) byte {
+	if b >= 'a' && b <= 'z' {
+		return b - caseOffset
+	}
+	return b
 }
