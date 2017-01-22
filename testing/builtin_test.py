@@ -247,6 +247,26 @@ a, b = NoCmp(1), Cmp(2)
 assert cmp(a, b) == -1
 assert b.cmp_called
 
+# Test setattr
+
+class Foo(object):
+  pass
+
+setattr(Foo, "a", 1)
+assert Foo.a == 1  # pylint: disable=no-member
+
+try:
+  setattr(Foo, 1, "a")
+  assert AssertionError
+except TypeError:
+  pass
+
+try:
+  setattr(Foo)
+  assert AssertionError
+except TypeError:
+  pass
+
 # Test sorted
 
 assert sorted([3, 2, 4, 1]) == [1, 2, 3, 4]
