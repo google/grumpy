@@ -78,11 +78,10 @@ STDLIB_TESTS := \
   re_tests \
   sys_test \
   tempfile_test \
-  test/seq_tests \
   test/test_tuple \
-  test/mapping_tests \
   test/test_dict \
-  test/string_tests \
+  test/test_list \
+  test/test_slice \
   test/test_string \
   threading_test \
   time_test \
