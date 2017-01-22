@@ -18,6 +18,7 @@ import (
 	"fmt"
 	"math/big"
 	"reflect"
+	"runtime"
 	"testing"
 )
 
@@ -27,6 +28,14 @@ func TestNewStr(t *testing.T) {
 	if !reflect.DeepEqual(s, expected) {
 		t.Errorf(`NewStr("foo") = %+v, expected %+v`, *s, *expected)
 	}
+}
+
+func BenchmarkNewStr(b *testing.B) {
+	var ret *Str
+	for i := 0; i < b.N; i++ {
+		ret = NewStr("foo")
+	}
+	runtime.KeepAlive(ret)
 }
 
 // # On a 64bit system:

@@ -16,6 +16,7 @@ package grumpy
 
 import (
 	"math/big"
+	"runtime"
 	"testing"
 )
 
@@ -202,15 +203,19 @@ func TestIntNewInterned(t *testing.T) {
 
 func BenchmarkIntNew(b *testing.B) {
 	b.Run("interned", func(b *testing.B) {
+		var ret *Object
 		for i := 0; i < b.N; i++ {
-			_ = NewInt(1).ToObject()
+			ret = NewInt(1).ToObject()
 		}
+		runtime.KeepAlive(ret)
 	})
 
 	b.Run("not interned", func(b *testing.B) {
+		var ret *Object
 		for i := 0; i < b.N; i++ {
-			_ = NewInt(internedIntMax + 5).ToObject()
+			ret = NewInt(internedIntMax + 5).ToObject()
 		}
+		runtime.KeepAlive(ret)
 	})
 }
 
