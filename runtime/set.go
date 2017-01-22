@@ -82,10 +82,7 @@ func toSetUnsafe(o *Object) *Set {
 // Add inserts key into s. If key already exists then does nothing.
 func (s *Set) Add(f *Frame, key *Object) (bool, *BaseException) {
 	origin, raised := s.dict.putItem(f, key, None)
-	if raised != nil {
-		return false, raised
-	}
-	return origin == nil, nil
+	return origin == nil, raised
 }
 
 // Contains returns true if key exists in s.
@@ -184,10 +181,7 @@ func setIsSuperset(f *Frame, args Args, _ KWArgs) (*Object, *BaseException) {
 
 func setIter(f *Frame, o *Object) (*Object, *BaseException) {
 	s := toSetUnsafe(o)
-	s.dict.mutex.Lock(f)
-	iter := &newDictKeyIterator(s.dict).Object
-	s.dict.mutex.Unlock(f)
-	return iter, nil
+	return newDictKeyIterator(f, s.dict).ToObject(), nil
 }
 
 func setLE(f *Frame, v, w *Object) (*Object, *BaseException) {
@@ -314,10 +308,7 @@ func frozenSetIsSuperset(f *Frame, args Args, _ KWArgs) (*Object, *BaseException
 
 func frozenSetIter(f *Frame, o *Object) (*Object, *BaseException) {
 	s := toFrozenSetUnsafe(o)
-	s.dict.mutex.Lock(f)
-	iter := &newDictKeyIterator(s.dict).Object
-	s.dict.mutex.Unlock(f)
-	return iter, nil
+	return newDictKeyIterator(f, s.dict).ToObject(), nil
 }
 
 func frozenSetLE(f *Frame, v, w *Object) (*Object, *BaseException) {
@@ -391,15 +382,15 @@ func setCompare(f *Frame, op compareOp, v *setBase, w *Object) (*Object, *BaseEx
 		op = op.swapped()
 		v, s2 = s2, v
 	}
-	v.dict.mutex.Lock(f)
-	iter := newDictEntryIterator(v.dict)
-	g1 := newDictVersionGuard(v.dict)
+
+	// NOTE: See comment in dictsAreEqual for why an inconsistent view here is actually ok.
+	iter := newDictEntryIterator(f, v.dict)
 	len1 := v.dict.Len()
-	v.dict.mutex.Unlock(f)
-	s2.dict.mutex.Lock(f)
-	g2 := newDictVersionGuard(s2.dict)
+	g1 := newDictVersionGuard(v.dict)
+
 	len2 := s2.dict.Len()
-	s2.dict.mutex.Unlock(f)
+	g2 := newDictVersionGuard(s2.dict)
+
 	result := (op != compareOpNE)
 	switch op {
 	case compareOpLT:
@@ -415,7 +406,7 @@ func setCompare(f *Frame, op compareOp, v *setBase, w *Object) (*Object, *BaseEx
 			return GetBool(!result).ToObject(), nil
 		}
 	}
-	for entry := iter.next(); entry != nil; entry = iter.next() {
+	for entry := iter.next(); !entry.isEmpty(); entry = iter.next() {
 		contains, raised := s2.contains(f, entry.key)
 		if raised != nil {
 			return nil, raised
