@@ -198,7 +198,7 @@ class BasicTestMappingProtocol(unittest.TestCase):
         self.assertRaises((TypeError, AttributeError), d.update, 42)
 
         outerself = self
-        class SimpleUserDict:
+        class SimpleUserDict(object):
             def __init__(self):
                 self.d = outerself.reference
             def keys(self):
@@ -220,16 +220,16 @@ class BasicTestMappingProtocol(unittest.TestCase):
         class Exc(Exception): pass
 
         d = self._empty_mapping()
-        class FailingUserDict:
+        class FailingUserDict(object):
             def keys(self):
                 raise Exc
         self.assertRaises(Exc, d.update, FailingUserDict())
 
         d.clear()
 
-        class FailingUserDict:
+        class FailingUserDict(object):
             def keys(self):
-                class BogonIter:
+                class BogonIter(object):
                     def __init__(self):
                         self.i = 1
                     def __iter__(self):
@@ -244,9 +244,9 @@ class BasicTestMappingProtocol(unittest.TestCase):
                 return key
         self.assertRaises(Exc, d.update, FailingUserDict())
 
-        class FailingUserDict:
+        class FailingUserDict(object):
             def keys(self):
-                class BogonIter:
+                class BogonIter(object):
                     def __init__(self):
                         self.i = ord('a')
                     def __iter__(self):
@@ -425,7 +425,7 @@ class TestMappingProtocol(BasicTestMappingProtocol):
         d.update(self._full_mapping({1:2, 3:4, 5:6}).iteritems())
         self.assertEqual(d, {1:2, 2:4, 3:4, 5:6})
 
-        class SimpleUserDict:
+        class SimpleUserDict(object):
             def __init__(self):
                 self.d = {1:1, 2:2, 3:3}
             def keys(self):
