@@ -18,6 +18,7 @@
 from os import path
 import stat as stat_module
 import sys
+from __go__.io.ioutil import ReadDir
 from __go__.os import Chdir, Chmod, Environ, Getwd, Remove, Stat
 from __go__.path.filepath import Separator
 from __go__.grumpy import NewFileFromFD
@@ -25,6 +26,9 @@ from __go__.syscall import Close, SYS_FCNTL, Syscall, F_GETFD
 from __go__.time import Second
 
 sep = chr(Separator)
+error = OSError  # pylint: disable=invalid-name
+curdir = "."
+
 
 environ = {}
 for var in Environ():
@@ -57,6 +61,13 @@ def fdopen(fd, mode='r'):  # pylint: disable=unused-argument
   if err:
     raise OSError(err.Error())
   return NewFileFromFD(fd)
+
+
+def listdir(p):
+  files, err = ReadDir(p)
+  if err:
+    raise OSError(err.Error())
+  return [x.Name() for x in files]
 
 
 def getcwd():
