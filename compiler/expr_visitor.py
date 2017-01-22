@@ -400,17 +400,17 @@ class ExprVisitor(ast.NodeVisitor):
       visitor._visit_each(node.body)  # pylint: disable=protected-access
 
     result = self.block.alloc_temp()
-    with self.block.alloc_temp('[]πg.FunctionArg') as func_args:
+    with self.block.alloc_temp('[]πg.Param') as func_args:
       args = node.args
       argc = len(args.args)
-      self.writer.write('{} = make([]πg.FunctionArg, {})'.format(
+      self.writer.write('{} = make([]πg.Param, {})'.format(
           func_args.expr, argc))
       # The list of defaults only contains args for which a default value is
       # specified so pad it with None to make it the same length as args.
       defaults = [None] * (argc - len(args.defaults)) + args.defaults
       for i, (a, d) in enumerate(zip(args.args, defaults)):
         with self.visit(d) if d else expr.nil_expr as default:
-          tmpl = '$args[$i] = πg.FunctionArg{Name: $name, Def: $default}'
+          tmpl = '$args[$i] = πg.Param{Name: $name, Def: $default}'
           self.writer.write_tmpl(tmpl, args=func_args.expr, i=i,
                                  name=util.go_str(a.id), default=default.expr)
       flags = []
