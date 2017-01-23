@@ -79,6 +79,19 @@ func TestListCompare(t *testing.T) {
 	}
 }
 
+func TestListCount(t *testing.T) {
+	cases := []invokeTestCase{
+		{args: wrapArgs(NewList(), NewInt(1)), want: NewInt(0).ToObject()},
+		{args: wrapArgs(NewList(None, None, None), None), want: NewInt(3).ToObject()},
+		{args: wrapArgs(newTestList()), wantExc: mustCreateException(TypeErrorType, "count() takes exactly one argument (1 given)")},
+	}
+	for _, cas := range cases {
+		if err := runInvokeMethodTestCase(ListType, "count", &cas); err != "" {
+			t.Error(err)
+		}
+	}
+}
+
 func BenchmarkListContains(b *testing.B) {
 	b.Run("false-3", func(b *testing.B) {
 		t := newTestList("foo", 42, "bar").ToObject()

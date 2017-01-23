@@ -98,3 +98,15 @@ try:
   assert AssertionError
 except TypeError:
   pass
+
+# Test count
+assert [].count(0) == 0
+assert [1, 2, 3].count(2) == 1
+assert ["a", "b", "a", "a"].count("a") == 3
+assert ([2] * 20).count(2) == 20
+
+try:
+  [].count()
+  assert AssertionError
+except TypeError:
+  pass
