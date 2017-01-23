@@ -216,8 +216,8 @@ type dictEntryIterator struct {
 
 // newDictEntryIterator creates a dictEntryIterator object for d. It assumes
 // that d.mutex is held by the caller.
-func newDictEntryIterator(d *Dict) *dictEntryIterator {
-	return &dictEntryIterator{table: d.loadTable()}
+func newDictEntryIterator(d *Dict) dictEntryIterator {
+	return dictEntryIterator{table: d.loadTable()}
 }
 
 // next advances this iterator to the next occupied entry and returns it. The
@@ -249,8 +249,8 @@ type dictVersionGuard struct {
 	version int64
 }
 
-func newDictVersionGuard(d *Dict) *dictVersionGuard {
-	return &dictVersionGuard{d, d.loadVersion()}
+func newDictVersionGuard(d *Dict) dictVersionGuard {
+	return dictVersionGuard{d, d.loadVersion()}
 }
 
 // check returns false if the dict held by g has changed since g was created,
@@ -787,8 +787,8 @@ func initDictType(dict map[string]*Object) {
 
 type dictItemIterator struct {
 	Object
-	iter  *dictEntryIterator
-	guard *dictVersionGuard
+	iter  dictEntryIterator
+	guard dictVersionGuard
 }
 
 // newDictItemIterator creates a dictItemIterator object for d. It assumes that
@@ -815,7 +815,7 @@ func dictItemIteratorIter(f *Frame, o *Object) (*Object, *BaseException) {
 
 func dictItemIteratorNext(f *Frame, o *Object) (ret *Object, raised *BaseException) {
 	iter := toDictItemIteratorUnsafe(o)
-	entry, raised := dictIteratorNext(f, iter.iter, iter.guard)
+	entry, raised := dictIteratorNext(f, &iter.iter, &iter.guard)
 	if raised != nil {
 		return nil, raised
 	}
@@ -830,8 +830,8 @@ func initDictItemIteratorType(map[string]*Object) {
 
 type dictKeyIterator struct {
 	Object
-	iter  *dictEntryIterator
-	guard *dictVersionGuard
+	iter  dictEntryIterator
+	guard dictVersionGuard
 }
 
 // newDictKeyIterator creates a dictKeyIterator object for d. It assumes that
@@ -858,7 +858,7 @@ func dictKeyIteratorIter(f *Frame, o *Object) (*Object, *BaseException) {
 
 func dictKeyIteratorNext(f *Frame, o *Object) (*Object, *BaseException) {
 	iter := toDictKeyIteratorUnsafe(o)
-	entry, raised := dictIteratorNext(f, iter.iter, iter.guard)
+	entry, raised := dictIteratorNext(f, &iter.iter, &iter.guard)
 	if raised != nil {
 		return nil, raised
 	}
@@ -873,8 +873,8 @@ func initDictKeyIteratorType(map[string]*Object) {
 
 type dictValueIterator struct {
 	Object
-	iter  *dictEntryIterator
-	guard *dictVersionGuard
+	iter  dictEntryIterator
+	guard dictVersionGuard
 }
 
 // newDictValueIterator creates a dictValueIterator object for d. It assumes
@@ -901,7 +901,7 @@ func dictValueIteratorIter(f *Frame, o *Object) (*Object, *BaseException) {
 
 func dictValueIteratorNext(f *Frame, o *Object) (*Object, *BaseException) {
 	iter := toDictValueIteratorUnsafe(o)
-	entry, raised := dictIteratorNext(f, iter.iter, iter.guard)
+	entry, raised := dictIteratorNext(f, &iter.iter, &iter.guard)
 	if raised != nil {
 		return nil, raised
 	}
