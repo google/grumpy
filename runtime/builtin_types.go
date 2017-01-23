@@ -575,6 +575,13 @@ func builtinRepr(f *Frame, args Args, kwargs KWArgs) (*Object, *BaseException) {
 	return s.ToObject(), nil
 }
 
+func builtinSetAttr(f *Frame, args Args, _ KWArgs) (*Object, *BaseException) {
+	if raised := checkFunctionArgs(f, "setattr", args, ObjectType, StrType, ObjectType); raised != nil {
+		return nil, raised
+	}
+	return None, SetAttr(f, args[0], toStrUnsafe(args[1]), args[2])
+}
+
 func builtinSorted(f *Frame, args Args, _ KWArgs) (*Object, *BaseException) {
 	// TODO: Support (cmp=None, key=None, reverse=False)
 	if raised := checkFunctionArgs(f, "sorted", args, ObjectType); raised != nil {
@@ -663,6 +670,7 @@ func init() {
 		"print":          newBuiltinFunction("print", builtinPrint).ToObject(),
 		"range":          newBuiltinFunction("range", builtinRange).ToObject(),
 		"repr":           newBuiltinFunction("repr", builtinRepr).ToObject(),
+		"setattr":        newBuiltinFunction("setattr", builtinSetAttr).ToObject(),
 		"sorted":         newBuiltinFunction("sorted", builtinSorted).ToObject(),
 		"True":           True.ToObject(),
 		"unichr":         newBuiltinFunction("unichr", builtinUniChr).ToObject(),
