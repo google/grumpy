@@ -83,7 +83,7 @@ __all__ = [
 
 
 import collections as _collections
-import copy as _copy
+# import copy as _copy
 import os as _os
 import re as _re
 import sys as _sys
@@ -105,8 +105,11 @@ def dict_pop(d, k, default=None):
   if default:
     return default
 
-def setattr(d, k, v):
-  d.__dict__[k] = v
+def list_remove(l, x):
+  for i in range(len(l)):
+    if l[i] == x:
+      l.pop(i)
+      break
 
 MAPPING_SUB = _re.compile(r'%\(([^)]+)\)s').sub
 
@@ -314,7 +317,8 @@ class HelpFormatter(object):
 
         # if usage is specified, use that
         if usage is not None:
-            usage = usage % dict(prog=self._prog)
+            # usage = usage % dict(prog=self._prog)
+            usage = usage.replace('%(prog)s', str(self._prog))
 
         # if no optionals or positionals are available, usage is just prog
         elif usage is None and not actions:
@@ -417,7 +421,8 @@ class HelpFormatter(object):
                     if actions[i] == group._group_actions[0]:
                         start = i
                         break
-                raise ValueError
+                if start is None:
+                    raise ValueError
             except ValueError:
                 continue
             else:
@@ -503,18 +508,21 @@ class HelpFormatter(object):
         open_bracket = r'[\[(]'
         close = r'[\])]'
         # text = _re.sub(r'(%s) ' % open_bracket, r'\1', text)
+        text = text.replace('[ ', '[').replace('( ', '(')
         # text = _re.sub(r' (%s)' % close, r'\1', text)
+        text = text.replace(' ]', ']').replace(' )', ')')
         text = _re.sub(r'%s *%s' % (open_bracket, close), r'', text)
         # text = _re.sub(r'\(([^|]*)\)', r'\1', text)
+        text = _re.sub(r'\(([^|]*)\)', lambda x: x.group(1), text)
         text = text.strip()
 
         # return the text
         return text
 
     def _format_text(self, text):
-        if '%(prog)' in text:
+        if '%(prog)s' in text:
             # text = text % dict(prog=self._prog)
-            text = self._prog.join(text.split('$(prog)'))
+            text = text.replace('%(prog)s', self._prog)
         text_width = max(self._width - self._current_indent, 11)
         indent = ' ' * self._current_indent
         return self._fill_text(text, text_width, indent) + '\n\n'
@@ -529,20 +537,20 @@ class HelpFormatter(object):
 
         # ho nelp; start on same line and add a final newline
         if not action.help:
-            # tup = self._current_indent, '', action_header
+            tup = self._current_indent, '', action_header
             # action_header = '%*s%s\n' % tup
             action_header = ' ' * self._current_indent + action_header + '\n'
 
         # short action name; start on the same line and pad two spaces
         elif len(action_header) <= action_width:
-            # tup = self._current_indent, '', action_width, action_header
+            tup = self._current_indent, '', action_width, action_header
             # action_header = '%*s%-*s  ' % tup
-            action_header = ' ' * self._current_indent + (action_header + ' ' * action_width)[:10] + '  '
+            action_header = ' ' * self._current_indent + (action_header + ' ' * action_width)[:action_width] + '  '
             indent_first = 0
 
         # long action name; start on the next line
         else:
-            # tup = self._current_indent, '', action_header
+            tup = self._current_indent, '', action_header
             # action_header = '%*s%s\n' % tup
             action_header = ' ' * self._current_indent + action_header + '\n'
             indent_first = help_position
@@ -600,7 +608,8 @@ class HelpFormatter(object):
             result = action.metavar
         elif action.choices is not None:
             choice_strs = [str(choice) for choice in action.choices]
-            result = '{%s}' % ','.join(choice_strs)
+            # result = '{%s}' % ','.join(choice_strs)
+            result = '{%s}' % ','.join(sorted(choice_strs))
         else:
             result = default_metavar
 
@@ -643,9 +652,9 @@ class HelpFormatter(object):
             choices_str = ', '.join([str(c) for c in params['choices']])
             params['choices'] = choices_str
         # return self._get_help_string(action) % params
-        return MAPPING_SUB(lambda x: params.get(
-                           x.group(1), x.group(0)),
-                           self._get_help_string(action))
+        return MAPPING_SUB(lambda x: str(params.get(
+                           x.group(1), x.group(0))),
+                           self._get_help_string(action)).replace('%%', '%')
 
     def _iter_indented_subactions(self, action):
         try:
@@ -745,7 +754,7 @@ class ArgumentError(Exception):
             format = 'argument %(argument_name)s: %(message)s'
         # return format % dict(message=self.message,
                             #  argument_name=self.argument_name)
-        return self.argument_name.join(self.message.join(format.split('%(message)s')).split('%(argument_name)s'))
+        return format.replace('%(message)s', str(self.message)).replace('%(argument_name)s', str(self.argument_name))
 
 
 class ArgumentTypeError(Exception):
@@ -972,7 +981,8 @@ class _AppendAction(Action):
             metavar=metavar)
 
     def __call__(self, parser, namespace, values, option_string=None):
-        items = _copy.copy(_ensure_value(namespace, self.dest, []))
+        # items = _copy.copy(_ensure_value(namespace, self.dest, []))
+        items = (_ensure_value(namespace, self.dest, []))[:]
         items.append(values)
         setattr(namespace, self.dest, items)
 
@@ -998,7 +1008,8 @@ class _AppendConstAction(Action):
             metavar=metavar)
 
     def __call__(self, parser, namespace, values, option_string=None):
-        items = _copy.copy(_ensure_value(namespace, self.dest, []))
+        # items = _copy.copy(_ensure_value(namespace, self.dest, []))
+        items = (_ensure_value(namespace, self.dest, []))[:]
         items.append(self.const)
         setattr(namespace, self.dest, items)
 
@@ -1086,7 +1097,7 @@ class _SubParsersAction(Action):
 
         self._prog_prefix = prog
         self._parser_class = parser_class
-        self._name_parser_map = {} #_collections.OrderedDict()
+        self._name_parser_map = {} # _collections.OrderedDict()
         self._choices_actions = []
 
         super(_SubParsersAction, self).__init__(
@@ -1393,7 +1404,7 @@ class _ActionsContainer(object):
 
     def _remove_action(self, action):
         # self._actions.remove(action)
-        self._actions = [x for x in self._actions if x != action]
+        list_remove(self._actions, action)
 
     def _add_container_actions(self, container):
         # collect groups by titles
@@ -1482,8 +1493,7 @@ class _ActionsContainer(object):
             if not dest:
                 msg = _('dest= is required for options like %r')
                 raise ValueError(msg % option_string)
-            # dest = dest.replace('-', '_')
-            dest = '_'.join(dest.split('-'))
+            dest = dest.replace('-', '_')
 
         # return the updated keyword arguments
         return dict(kwargs, dest=dest, option_strings=option_strings)
@@ -1530,7 +1540,7 @@ class _ActionsContainer(object):
 
             # remove the conflicting option
             # action.option_strings.remove(option_string)
-            action.options_strings = [x for x in action.option_strings if x != option_string]
+            list_remove(action.option_strings, option_string)
             # self._option_string_actions.pop(option_string, None)
             dict_pop(self._option_string_actions, option_string, None)
 
@@ -1631,13 +1641,13 @@ class ArgumentParser(_AttributeHolder, _ActionsContainer):
                  conflict_handler='error',
                  add_help=True):
 
-        if version is not None:
-            import warnings
-            warnings.warn(
-                """The "version" argument to ArgumentParser is deprecated. """
-                """Please use """
-                """"add_argument(..., action='version', version="N", ...)" """
-                """instead""", DeprecationWarning)
+        # if version is not None:
+        #     import warnings
+        #     warnings.warn(
+        #         """The "version" argument to ArgumentParser is deprecated. """
+        #         """Please use """
+        #         """"add_argument(..., action='version', version="N", ...)" """
+        #         """instead""", DeprecationWarning)
 
         superinit = super(ArgumentParser, self).__init__
         superinit(description=description,
@@ -1801,7 +1811,8 @@ class ArgumentParser(_AttributeHolder, _ActionsContainer):
             if hasattr(namespace, _UNRECOGNIZED_ARGS_ATTR):
                 # args.extend(getattr(namespace, _UNRECOGNIZED_ARGS_ATTR))
                 args += (getattr(namespace, _UNRECOGNIZED_ARGS_ATTR))
-                delattr(namespace, _UNRECOGNIZED_ARGS_ATTR)
+                # delattr(namespace, _UNRECOGNIZED_ARGS_ATTR)
+                del namespace.__dict__[_UNRECOGNIZED_ARGS_ATTR]
             return namespace, args
         except ArgumentError:
             err = _sys.exc_info()[1]
@@ -1819,10 +1830,10 @@ class ArgumentParser(_AttributeHolder, _ActionsContainer):
             group_actions = mutex_group._group_actions
             for i, mutex_action in enumerate(mutex_group._group_actions):
                 # conflicts = action_conflicts.setdefault(mutex_action, [])
-                conflicts = setdefault(action_conflicts, mutex_action, [])
                 # conflicts.extend(group_actions[:i])
-                conflicts += (group_actions[:i])
                 # conflicts.extend(group_actions[i + 1:])
+                conflicts = setdefault(action_conflicts, mutex_action, [])
+                conflicts += (group_actions[:i])
                 conflicts += (group_actions[i + 1:])
 
         # find all option indices, and determine the arg_string_pattern
@@ -2263,10 +2274,8 @@ class ArgumentParser(_AttributeHolder, _ActionsContainer):
 
         # if this is an optional action, -- is not allowed
         if action.option_strings:
-            # nargs_pattern = nargs_pattern.replace('-*', '')
-            nargs_pattern = ''.join(nargs_pattern.split('-*'))
-            # nargs_pattern = nargs_pattern.replace('-', '')
-            nargs_pattern = ''.join(nargs_pattern.split('-'))
+            nargs_pattern = nargs_pattern.replace('-*', '')
+            nargs_pattern = nargs_pattern.replace('-', '')
 
         # return the pattern
         return nargs_pattern
@@ -2392,11 +2401,11 @@ class ArgumentParser(_AttributeHolder, _ActionsContainer):
         return formatter.format_help()
 
     def format_version(self):
-        import warnings
-        warnings.warn(
-            'The format_version method is deprecated -- the "version" '
-            'argument to ArgumentParser is no longer supported.',
-            DeprecationWarning)
+        # import warnings
+        # warnings.warn(
+        #     'The format_version method is deprecated -- the "version" '
+        #     'argument to ArgumentParser is no longer supported.',
+        #     DeprecationWarning)
         formatter = self._get_formatter()
         formatter.add_text(self.version)
         return formatter.format_help()
@@ -2418,11 +2427,11 @@ class ArgumentParser(_AttributeHolder, _ActionsContainer):
         self._print_message(self.format_help(), file)
 
     def print_version(self, file=None):
-        import warnings
-        warnings.warn(
-            'The print_version method is deprecated -- the "version" '
-            'argument to ArgumentParser is no longer supported.',
-            DeprecationWarning)
+        # import warnings
+        # warnings.warn(
+        #     'The print_version method is deprecated -- the "version" '
+        #     'argument to ArgumentParser is no longer supported.',
+        #     DeprecationWarning)
         self._print_message(self.format_version(), file)
 
     def _print_message(self, message, file=None):
