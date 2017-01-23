@@ -9,13 +9,13 @@ import contextlib
 # import gc
 # import socket
 import sys
-# import os
+import os
 # import platform
 # import shutil
 import warnings
 import unittest
 # import importlib
-# import UserDict
+import UserDict
 # import re
 # import time
 # import struct
@@ -27,7 +27,8 @@ import unittest
 
 __all__ = [
     "Error", "TestFailed", "have_unicode", "BasicTestRunner", "run_unittest",
-    "check_warnings", "check_py3k_warnings"
+    "check_warnings", "check_py3k_warnings", "CleanImport",
+    "EnvironmentVarGuard"
 ]
 
 # __all__ = ["Error", "TestFailed", "ResourceDenied", "import_module",
@@ -927,83 +928,83 @@ def check_py3k_warnings(*filters, **kwargs):
     return _filterwarnings(filters, kwargs.get('quiet'))
 
 
-# class CleanImport(object):
-#     """Context manager to force import to return a new module reference.
+class CleanImport(object):
+    """Context manager to force import to return a new module reference.
 
-#     This is useful for testing module-level behaviours, such as
-#     the emission of a DeprecationWarning on import.
+    This is useful for testing module-level behaviours, such as
+    the emission of a DeprecationWarning on import.
 
-#     Use like this:
+    Use like this:
 
-#         with CleanImport("foo"):
-#             importlib.import_module("foo") # new reference
-#     """
+        with CleanImport("foo"):
+            importlib.import_module("foo") # new reference
+    """
 
-#     def __init__(self, *module_names):
-#         self.original_modules = sys.modules.copy()
-#         for module_name in module_names:
-#             if module_name in sys.modules:
-#                 module = sys.modules[module_name]
-#                 # It is possible that module_name is just an alias for
-#                 # another module (e.g. stub for modules renamed in 3.x).
-#                 # In that case, we also need delete the real module to clear
-#                 # the import cache.
-#                 if module.__name__ != module_name:
-#                     del sys.modules[module.__name__]
-#                 del sys.modules[module_name]
+    def __init__(self, *module_names):
+        self.original_modules = sys.modules.copy()
+        for module_name in module_names:
+            if module_name in sys.modules:
+                module = sys.modules[module_name]
+                # It is possible that module_name is just an alias for
+                # another module (e.g. stub for modules renamed in 3.x).
+                # In that case, we also need delete the real module to clear
+                # the import cache.
+                if module.__name__ != module_name:
+                    del sys.modules[module.__name__]
+                del sys.modules[module_name]
 
-#     def __enter__(self):
-#         return self
+    def __enter__(self):
+        return self
 
-#     def __exit__(self, *ignore_exc):
-#         sys.modules.update(self.original_modules)
+    def __exit__(self, *ignore_exc):
+        sys.modules.update(self.original_modules)
 
 
-# class EnvironmentVarGuard(UserDict.DictMixin):
+class EnvironmentVarGuard(UserDict.DictMixin):
 
-#     """Class to help protect the environment variable properly.  Can be used as
-#     a context manager."""
+    """Class to help protect the environment variable properly.  Can be used as
+    a context manager."""
 
-#     def __init__(self):
-#         self._environ = os.environ
-#         self._changed = {}
+    def __init__(self):
+        self._environ = os.environ
+        self._changed = {}
 
-#     def __getitem__(self, envvar):
-#         return self._environ[envvar]
+    def __getitem__(self, envvar):
+        return self._environ[envvar]
 
-#     def __setitem__(self, envvar, value):
-#         # Remember the initial value on the first access
-#         if envvar not in self._changed:
-#             self._changed[envvar] = self._environ.get(envvar)
-#         self._environ[envvar] = value
+    def __setitem__(self, envvar, value):
+        # Remember the initial value on the first access
+        if envvar not in self._changed:
+            self._changed[envvar] = self._environ.get(envvar)
+        self._environ[envvar] = value
 
-#     def __delitem__(self, envvar):
-#         # Remember the initial value on the first access
-#         if envvar not in self._changed:
-#             self._changed[envvar] = self._environ.get(envvar)
-#         if envvar in self._environ:
-#             del self._environ[envvar]
+    def __delitem__(self, envvar):
+        # Remember the initial value on the first access
+        if envvar not in self._changed:
+            self._changed[envvar] = self._environ.get(envvar)
+        if envvar in self._environ:
+            del self._environ[envvar]
 
-#     def keys(self):
-#         return self._environ.keys()
+    def keys(self):
+        return self._environ.keys()
 
-#     def set(self, envvar, value):
-#         self[envvar] = value
+    def set(self, envvar, value):
+        self[envvar] = value
 
-#     def unset(self, envvar):
-#         del self[envvar]
+    def unset(self, envvar):
+        del self[envvar]
 
-#     def __enter__(self):
-#         return self
+    def __enter__(self):
+        return self
 
-#     def __exit__(self, *ignore_exc):
-#         for (k, v) in self._changed.items():
-#             if v is None:
-#                 if k in self._environ:
-#                     del self._environ[k]
-#             else:
-#                 self._environ[k] = v
-#         os.environ = self._environ
+    def __exit__(self, *ignore_exc):
+        for (k, v) in self._changed.items():
+            if v is None:
+                if k in self._environ:
+                    del self._environ[k]
+            else:
+                self._environ[k] = v
+        os.environ = self._environ
 
 
 # class DirsOnSysPath(object):

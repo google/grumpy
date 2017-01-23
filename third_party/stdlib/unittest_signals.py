@@ -1,6 +1,6 @@
 # TODO: support signal
 # import signal
-import weakref
+# import weakref
 
 # from functools import wraps
 import functools
@@ -43,7 +43,8 @@ class _InterruptHandler(object):
 #         for result in _results.keys():
 #             result.stop()
 
-_results = weakref.WeakKeyDictionary()
+# _results = weakref.WeakKeyDictionary()
+_results = {}
 def registerResult(result):
     _results[result] = 1
 
