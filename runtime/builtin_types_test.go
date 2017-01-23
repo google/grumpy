@@ -357,3 +357,31 @@ func TestBuiltinPrint(t *testing.T) {
 		}
 	}
 }
+
+func TestBuiltinSetAttr(t *testing.T) {
+	fun := wrapFuncForTest(func(f *Frame, args ...*Object) (*Object, *BaseException) {
+		fooObject := newTestClass("Foo", []*Type{ObjectType}, newStringDict(map[string]*Object{})).ToObject()
+		result, raised := builtinSetAttr(f, append(Args{fooObject}, args...), nil)
+		if raised != nil {
+			return nil, raised
+		}
+		val, raised := GetAttr(f, fooObject, toStrUnsafe(args[0]), nil)
+		if raised != nil {
+			return nil, raised
+		}
+		return newTestTuple(result, val).ToObject(), nil
+	})
+	cases := []invokeTestCase{
+		{args: wrapArgs(), wantExc: mustCreateException(TypeErrorType, "'setattr' requires 3 arguments")},
+		{args: wrapArgs("foo", "bar"), want: newTestTuple(None, "bar").ToObject()},
+		{args: wrapArgs("foo", 123), want: newTestTuple(None, 123).ToObject()},
+		{args: wrapArgs("foo"), wantExc: mustCreateException(TypeErrorType, "'setattr' requires 3 arguments")},
+		{args: wrapArgs("foo", 123, None), wantExc: mustCreateException(TypeErrorType, "'setattr' requires 3 arguments")},
+		{args: wrapArgs(123, 123), wantExc: mustCreateException(TypeErrorType, "'setattr' requires a 'str' object but received a \"int\"")},
+	}
+	for _, cas := range cases {
+		if err := runInvokeTestCase(fun, &cas); err != "" {
+			t.Error(err)
+		}
+	}
+}
