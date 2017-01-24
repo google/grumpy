@@ -303,6 +303,13 @@ func builtinCmp(f *Frame, args Args, _ KWArgs) (*Object, *BaseException) {
 	return Compare(f, args[0], args[1])
 }
 
+func builtinDelAttr(f *Frame, args Args, _ KWArgs) (*Object, *BaseException) {
+	if raised := checkFunctionArgs(f, "delattr", args, ObjectType, StrType); raised != nil {
+		return nil, raised
+	}
+	return None, DelAttr(f, args[0], toStrUnsafe(args[1]))
+}
+
 func builtinDir(f *Frame, args Args, kwargs KWArgs) (*Object, *BaseException) {
 	// TODO: Support __dir__.
 	if raised := checkFunctionArgs(f, "dir", args, ObjectType); raised != nil {
@@ -646,6 +653,7 @@ func init() {
 		"callable":       newBuiltinFunction("callable", builtinCallable).ToObject(),
 		"chr":            newBuiltinFunction("chr", builtinChr).ToObject(),
 		"cmp":            newBuiltinFunction("cmp", builtinCmp).ToObject(),
+		"delattr":        newBuiltinFunction("delattr", builtinDelAttr).ToObject(),
 		"dir":            newBuiltinFunction("dir", builtinDir).ToObject(),
 		"False":          False.ToObject(),
 		"getattr":        newBuiltinFunction("getattr", builtinGetAttr).ToObject(),

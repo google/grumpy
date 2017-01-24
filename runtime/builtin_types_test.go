@@ -23,6 +23,33 @@ import (
 	"testing"
 )
 
+func TestBuiltinDelAttr(t *testing.T) {
+	fun := wrapFuncForTest(func(f *Frame, args ...*Object) (*Object, *BaseException) {
+		fooObject := newTestClass("Foo", []*Type{ObjectType}, toDictUnsafe(args[0])).ToObject()
+		result, raised := builtinDelAttr(f, append(Args{fooObject}, args[1:]...), nil)
+		if raised != nil || result != None {
+			return result, raised
+		}
+		result, raised = GetAttr(f, fooObject, toStrUnsafe(args[1]), nil)
+		if raised != nil || result != nil {
+			return None, raised
+		}
+		return nil, f.RaiseType(RuntimeErrorType, "delattr")
+	})
+	cases := []invokeTestCase{
+		{args: wrapArgs(newTestDict(), "bar"), wantExc: mustCreateException(AttributeErrorType, "'type' object has no attribute 'bar'")},
+		{args: wrapArgs(newTestDict()), wantExc: mustCreateException(TypeErrorType, "'delattr' requires 2 arguments")},
+		{args: wrapArgs(newTestDict(), "foo", "bar"), wantExc: mustCreateException(TypeErrorType, "'delattr' requires 2 arguments")},
+		{args: wrapArgs(newTestDict("bar", True), "bar"), wantExc: mustCreateException(AttributeErrorType, "type object 'Foo' has no attribute 'bar'")},
+		{args: wrapArgs(newTestDict("baz", True), "bar"), wantExc: mustCreateException(AttributeErrorType, "'type' object has no attribute 'bar'")},
+	}
+	for _, cas := range cases {
+		if err := runInvokeTestCase(fun, &cas); err != "" {
+			t.Error(err)
+		}
+	}
+}
+
 func TestBuiltinFuncs(t *testing.T) {
 	f := NewRootFrame()
 	objectDir := ObjectType.dict.Keys(f)
