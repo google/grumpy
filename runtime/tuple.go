@@ -75,6 +75,13 @@ func tupleContains(f *Frame, t, v *Object) (*Object, *BaseException) {
 	return seqContains(f, t, v)
 }
 
+func tupleCount(f *Frame, args Args, kwargs KWArgs) (*Object, *BaseException) {
+	if raised := checkMethodArgs(f, "count", args, TupleType, ObjectType); raised != nil {
+		return nil, raised
+	}
+	return seqCount(f, args[0], args[1])
+}
+
 func tupleEq(f *Frame, v, w *Object) (*Object, *BaseException) {
 	return tupleCompare(f, toTupleUnsafe(v), w, Eq)
 }
@@ -181,6 +188,7 @@ func tupleRMul(f *Frame, v, w *Object) (*Object, *BaseException) {
 }
 
 func initTupleType(dict map[string]*Object) {
+	dict["count"] = newBuiltinFunction("count", tupleCount).ToObject()
 	dict["__getnewargs__"] = newBuiltinFunction("__getnewargs__", tupleGetNewArgs).ToObject()
 	TupleType.slots.Add = &binaryOpSlot{tupleAdd}
 	TupleType.slots.Contains = &binaryOpSlot{tupleContains}

@@ -102,6 +102,19 @@ func TestTupleContains(t *testing.T) {
 	}
 }
 
+func TestTupleCount(t *testing.T) {
+	cases := []invokeTestCase{
+		{args: wrapArgs(NewTuple(), NewInt(1)), want: NewInt(0).ToObject()},
+		{args: wrapArgs(NewTuple(None, None, None), None), want: NewInt(3).ToObject()},
+		{args: wrapArgs(NewTuple()), wantExc: mustCreateException(TypeErrorType, "'count' of 'tuple' requires 2 arguments")},
+	}
+	for _, cas := range cases {
+		if err := runInvokeMethodTestCase(TupleType, "count", &cas); err != "" {
+			t.Error(err)
+		}
+	}
+}
+
 func BenchmarkTupleContains(b *testing.B) {
 	b.Run("false-3", func(b *testing.B) {
 		t := newTestTuple("foo", 42, "bar").ToObject()
