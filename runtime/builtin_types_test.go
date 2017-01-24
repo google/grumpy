@@ -24,24 +24,23 @@ import (
 )
 
 func TestBuiltinDelAttr(t *testing.T) {
+	f := NewRootFrame()
+	delattr := mustNotRaise(Builtins.GetItemString(NewRootFrame(), "delattr"))
+	fooType := newTestClass("Foo", []*Type{ObjectType}, newStringDict(map[string]*Object{}))
+	fooForDelAttr := newObject(fooType)
+	SetAttr(f, fooForDelAttr, NewStr("bar"), None)
 	fun := wrapFuncForTest(func(f *Frame, args ...*Object) (*Object, *BaseException) {
-		fooObject := newTestClass("Foo", []*Type{ObjectType}, toDictUnsafe(args[0])).ToObject()
-		result, raised := builtinDelAttr(f, append(Args{fooObject}, args[1:]...), nil)
-		if raised != nil || result != None {
-			return result, raised
+		_, raised := delattr.Call(f, args, nil)
+		if raised != nil {
+			return nil, raised
 		}
-		result, raised = GetAttr(f, fooObject, toStrUnsafe(args[1]), nil)
-		if raised != nil || result != nil {
-			return None, raised
-		}
-		return nil, f.RaiseType(RuntimeErrorType, "delattr")
+		return GetAttr(f, args[0], toStrUnsafe(args[1]), nil)
 	})
 	cases := []invokeTestCase{
-		{args: wrapArgs(newTestDict(), "bar"), wantExc: mustCreateException(AttributeErrorType, "'type' object has no attribute 'bar'")},
-		{args: wrapArgs(newTestDict()), wantExc: mustCreateException(TypeErrorType, "'delattr' requires 2 arguments")},
-		{args: wrapArgs(newTestDict(), "foo", "bar"), wantExc: mustCreateException(TypeErrorType, "'delattr' requires 2 arguments")},
-		{args: wrapArgs(newTestDict("bar", True), "bar"), wantExc: mustCreateException(AttributeErrorType, "type object 'Foo' has no attribute 'bar'")},
-		{args: wrapArgs(newTestDict("baz", True), "bar"), wantExc: mustCreateException(AttributeErrorType, "'type' object has no attribute 'bar'")},
+		{args: wrapArgs(fooForDelAttr, "bar"), wantExc: mustCreateException(AttributeErrorType, "'Foo' object has no attribute 'bar'")},
+		{args: wrapArgs(fooForDelAttr, "baz"), wantExc: mustCreateException(AttributeErrorType, "'Foo' object has no attribute 'baz'")},
+		{args: wrapArgs(fooForDelAttr), wantExc: mustCreateException(TypeErrorType, "'delattr' requires 2 arguments")},
+		{args: wrapArgs(fooForDelAttr, "foo", "bar"), wantExc: mustCreateException(TypeErrorType, "'delattr' requires 2 arguments")},
 	}
 	for _, cas := range cases {
 		if err := runInvokeTestCase(fun, &cas); err != "" {
@@ -386,25 +385,27 @@ func TestBuiltinPrint(t *testing.T) {
 }
 
 func TestBuiltinSetAttr(t *testing.T) {
+	setattr := mustNotRaise(Builtins.GetItemString(NewRootFrame(), "setattr"))
+	fooType := newTestClass("Foo", []*Type{ObjectType}, newStringDict(map[string]*Object{}))
+	foo := newObject(fooType)
 	fun := wrapFuncForTest(func(f *Frame, args ...*Object) (*Object, *BaseException) {
-		fooObject := newTestClass("Foo", []*Type{ObjectType}, newStringDict(map[string]*Object{})).ToObject()
-		result, raised := builtinSetAttr(f, append(Args{fooObject}, args...), nil)
+		result, raised := setattr.Call(f, args, nil)
 		if raised != nil {
 			return nil, raised
 		}
-		val, raised := GetAttr(f, fooObject, toStrUnsafe(args[0]), nil)
+		val, raised := GetAttr(f, args[0], toStrUnsafe(args[1]), nil)
 		if raised != nil {
 			return nil, raised
 		}
 		return newTestTuple(result, val).ToObject(), nil
 	})
 	cases := []invokeTestCase{
-		{args: wrapArgs(), wantExc: mustCreateException(TypeErrorType, "'setattr' requires 3 arguments")},
-		{args: wrapArgs("foo", "bar"), want: newTestTuple(None, "bar").ToObject()},
-		{args: wrapArgs("foo", 123), want: newTestTuple(None, 123).ToObject()},
-		{args: wrapArgs("foo"), wantExc: mustCreateException(TypeErrorType, "'setattr' requires 3 arguments")},
-		{args: wrapArgs("foo", 123, None), wantExc: mustCreateException(TypeErrorType, "'setattr' requires 3 arguments")},
-		{args: wrapArgs(123, 123), wantExc: mustCreateException(TypeErrorType, "'setattr' requires a 'str' object but received a \"int\"")},
+		{args: wrapArgs(foo), wantExc: mustCreateException(TypeErrorType, "'setattr' requires 3 arguments")},
+		{args: wrapArgs(newObject(fooType), "foo", "bar"), want: newTestTuple(None, "bar").ToObject()},
+		{args: wrapArgs(newObject(fooType), "foo", 123), want: newTestTuple(None, 123).ToObject()},
+		{args: wrapArgs(foo, "foo"), wantExc: mustCreateException(TypeErrorType, "'setattr' requires 3 arguments")},
+		{args: wrapArgs(foo, "foo", 123, None), wantExc: mustCreateException(TypeErrorType, "'setattr' requires 3 arguments")},
+		{args: wrapArgs(foo, 123, 123), wantExc: mustCreateException(TypeErrorType, "'setattr' requires a 'str' object but received a \"int\"")},
 	}
 	for _, cas := range cases {
 		if err := runInvokeTestCase(fun, &cas); err != "" {

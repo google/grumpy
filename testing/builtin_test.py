@@ -256,11 +256,7 @@ setattr(Foo, "a", 1)
 assert Foo.a == 1  # pylint: disable=no-member
 
 delattr(Foo, "a")
-try:
-  getattr(Foo, "a")
-  assert AssertionError
-except AttributeError:
-  pass
+assert getattr(Foo, "a", None) is None
 
 try:
   delattr(Foo, 1, "a")
