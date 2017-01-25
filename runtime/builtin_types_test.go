@@ -28,21 +28,18 @@ func TestBuiltinDelAttr(t *testing.T) {
 	delattr := mustNotRaise(Builtins.GetItemString(f, "delattr"))
 	fooType := newTestClass("Foo", []*Type{ObjectType}, NewDict())
 	fooForDelAttr := newObject(fooType)
-	mustNotRaise(nil, SetAttr(f, fooForDelAttr, NewStr("bar"), None))
+	fooValue := newObject(ObjectType)
+	mustNotRaise(nil, SetAttr(f, fooForDelAttr, NewStr("bar"), fooValue))
 	fun := wrapFuncForTest(func(f *Frame, args ...*Object) (*Object, *BaseException) {
 		result, raised := delattr.Call(f, args, nil)
 		if raised != nil {
 			return nil, raised
 		}
-		val, raised := GetAttr(f, args[0], toStrUnsafe(args[1]), nil)
-		if raised != nil && raised.isInstance(AttributeErrorType) {
-			f.RestoreExc(nil, nil)
-			return newTestTuple(result, val == nil).ToObject(), nil
-		}
-		return nil, f.RaiseType(AttributeErrorType, fmt.Sprintf("'delattr' failed to remove '%s', got '%s' instead", args[1], val))
+		val, raised := GetAttr(f, args[0], toStrUnsafe(args[1]), None)
+		return newTestTuple(result, val == fooValue).ToObject(), nil
 	})
 	cases := []invokeTestCase{
-		{args: wrapArgs(fooForDelAttr, "bar"), want: newTestTuple(None, True.ToObject()).ToObject()},
+		{args: wrapArgs(fooForDelAttr, "bar"), want: newTestTuple(None, False.ToObject()).ToObject()},
 		{args: wrapArgs(fooForDelAttr, "baz"), wantExc: mustCreateException(AttributeErrorType, "'Foo' object has no attribute 'baz'")},
 		{args: wrapArgs(fooForDelAttr), wantExc: mustCreateException(TypeErrorType, "'delattr' requires 2 arguments")},
 		{args: wrapArgs(fooForDelAttr, "foo", "bar"), wantExc: mustCreateException(TypeErrorType, "'delattr' requires 2 arguments")},
