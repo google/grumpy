@@ -289,16 +289,6 @@ $(BENCHMARK_BINS): build/benchmarks/%_benchmark: build/benchmarks/%.go $(RUNTIME
 # ------------------------------------------------------------------------------
 
 install: $(RUNNER_BIN) $(COMPILER) $(RUNTIME) $(STDLIB)
-	# Binary executables
-	install -Dm755 build/bin/grumpc "$(DESTDIR)/usr/bin/grumpc"
-	install -Dm755 build/bin/grumprun "$(DESTDIR)/usr/bin/grumprun"
-	# Python module
-	install -d "$(DESTDIR)"{/usr/lib/go,"$(PY_INSTALL_DIR)"}
-	cp -rv --no-preserve=ownership "$(PY_DIR)/grumpy" "$(DESTDIR)$(PY_INSTALL_DIR)"
-	# Go package and sources
-	cp -rv --no-preserve=ownership build/pkg build/src "$(DESTDIR)/usr/lib/go/"
-
-install_osx: $(RUNNER_BIN) $(COMPILER) $(RUNTIME) $(STDLIB)
         mkdir -p "$(DESTDIR)/usr/bin"
         # Binary executables
         install -m755 build/bin/grumpc "$(DESTDIR)/usr/bin/grumpc"
