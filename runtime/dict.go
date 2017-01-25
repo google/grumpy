@@ -819,7 +819,7 @@ func dictItemIteratorNext(f *Frame, o *Object) (ret *Object, raised *BaseExcepti
 	if raised != nil {
 		return nil, raised
 	}
-	return NewTuple(entry.key, entry.value).ToObject(), nil
+	return NewTuple2(entry.key, entry.value).ToObject(), nil
 }
 
 func initDictItemIteratorType(map[string]*Object) {

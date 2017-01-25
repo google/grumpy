@@ -282,7 +282,7 @@ func frameExcInfo(f *Frame, args Args, kwargs KWArgs) (*Object, *BaseException) 
 	if tb != nil {
 		tbObj = tb.ToObject()
 	}
-	return NewTuple(excObj, tbObj).ToObject(), nil
+	return NewTuple2(excObj, tbObj).ToObject(), nil
 }
 
 func initFrameType(dict map[string]*Object) {
