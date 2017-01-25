@@ -190,6 +190,16 @@ func strContains(f *Frame, o *Object, value *Object) (*Object, *BaseException) {
 	return GetBool(strings.Contains(toStrUnsafe(o).Value(), toStrUnsafe(value).Value())).ToObject(), nil
 }
 
+func strCount(f *Frame, args Args, kwargs KWArgs) (*Object, *BaseException) {
+	if raised := checkMethodArgs(f, "count", args, StrType, ObjectType); raised != nil {
+		return nil, raised
+	}
+	s := toStrUnsafe(args[0]).Value()
+	sep := toStrUnsafe(args[1]).Value()
+	cnt := strings.Count(s, sep)
+	return NewInt(cnt).ToObject(), nil
+}
+
 func strDecode(f *Frame, args Args, kwargs KWArgs) (*Object, *BaseException) {
 	// TODO: Accept unicode for encoding and errors args.
 	expectedTypes := []*Type{StrType, StrType, StrType}
@@ -741,6 +751,7 @@ func strStr(_ *Frame, o *Object) (*Object, *BaseException) {
 func initStrType(dict map[string]*Object) {
 	dict["__getnewargs__"] = newBuiltinFunction("__getnewargs__", strGetNewArgs).ToObject()
 	dict["capitalize"] = newBuiltinFunction("capitalize", strCapitalize).ToObject()
+	dict["count"] = newBuiltinFunction("count", strCount).ToObject()
 	dict["decode"] = newBuiltinFunction("decode", strDecode).ToObject()
 	dict["endswith"] = newBuiltinFunction("endswith", strEndsWith).ToObject()
 	dict["find"] = newBuiltinFunction("find", strFind).ToObject()

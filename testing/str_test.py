@@ -27,6 +27,22 @@ assert "foo".capitalize() == "Foo"
 assert "Foo".capitalize() == "Foo"
 assert "FOO".capitalize() == "Foo"
 
+# Test count
+assert "".count("a") == 0
+assert "abcd".count("e") == 0
+assert "abccdef".count("c") == 2
+assert "abba".count("bb") == 1
+assert "abbba".count("bb") == 1
+assert "abbbba".count("bb") == 2
+assert "five".count("") == 5
+assert ("a" * 20).count("a") == 20
+
+try:
+  "".count()
+  assert AssertionError
+except TypeError:
+  pass
+
 # Test find
 assert "".find("") == 0
 assert "".find("", 1) == -1
