@@ -164,9 +164,8 @@ func listAppend(f *Frame, args Args, kwargs KWArgs) (*Object, *BaseException) {
 }
 
 func listCount(f *Frame, args Args, kwargs KWArgs) (*Object, *BaseException) {
-	argc := len(args)
-	if argc != 2 {
-		return nil, f.RaiseType(TypeErrorType, fmt.Sprintf("count() takes exactly one argument (%d given)", argc))
+	if raised := checkMethodArgs(f, "count", args, ListType, ObjectType); raised != nil {
+		return nil, raised
 	}
 	return seqCount(f, args[0], args[1])
 }
