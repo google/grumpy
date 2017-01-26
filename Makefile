@@ -289,8 +289,8 @@ $(BENCHMARK_BINS): build/benchmarks/%_benchmark: build/benchmarks/%.go $(RUNTIME
 # ------------------------------------------------------------------------------
 
 install: $(RUNNER_BIN) $(COMPILER) $(RUNTIME) $(STDLIB)
-	mkdir -p "$(DESTDIR)/usr/bin"
 	# Binary executables
+	install -d "$(DESTDIR)/usr/bin"
 	install -m755 build/bin/grumpc "$(DESTDIR)/usr/bin/grumpc"
 	install -m755 build/bin/grumprun "$(DESTDIR)/usr/bin/grumprun"
 	# Python module
