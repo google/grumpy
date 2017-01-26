@@ -14,7 +14,39 @@
 
 """Time access and conversions."""
 
-from __go__.time import Now, Second, Sleep  # pylint: disable=g-multiple-import
+from __go__.time import Now, Second, Sleep, Unix, Date, UTC # pylint: disable=g-multiple-import
+
+
+class struct_time(tuple):  #pylint: disable=invalid-name,missing-docstring
+
+  def __init__(self, args):
+    super(struct_time, self).__init__(tuple, args)
+    self.tm_year, self.tm_mon, self.tm_mday, self.tm_hour, self.tm_min, \
+        self.tm_sec, self.tm_wday, self.tm_yday, self.tm_isdst = self
+
+  def __repr__(self):
+    return ("time.struct_time(tm_year=%s, tm_mon=%s, tm_mday=%s, "
+            "tm_hour=%s, tm_min=%s, tm_sec=%s, tm_wday=%s, "
+            "tm_yday=%s, tm_isdst=%s)") % self
+
+  def __str__(self):
+    return self.__repr__()
+
+
+def gmtime(seconds=None):
+  t = (Unix(seconds, 0) if seconds else Now()).UTC()
+  return struct_time((t.Year(), t.Month(), t.Day(), t.Hour(), t.Minute(),
+                      t.Second(), (t.Weekday()+6)%7, t.YearDay(), 0))
+
+
+def localtime(seconds=None):
+  t = (Unix(seconds, 0) if seconds else Now()).Local()
+  return struct_time((t.Year(), t.Month(), t.Day(), t.Hour(), t.Minute(),
+                      t.Second(), (t.Weekday()+6)%7, t.YearDay(), 0))
+
+
+def mktime(t):
+  return float(Date(t[0], t[1], t[2], t[3], t[4], t[5], 0, UTC).Unix())
 
 
 def sleep(secs):
@@ -23,3 +55,37 @@ def sleep(secs):
 
 def time():
   return float(Now().UnixNano()) / Second
+
+
+_strftime_map = {
+    'Y': '2006', 'y': '06', 'b': 'Jan', 'B': 'January', 'm': '01', 'd': '02',
+    'a': 'Mon', 'A': 'Monday',
+    'H': '15', 'I': '03', 'M': '04', 'S': '05', 'L': '.000',
+    'p': 'PM',
+    'Z':  'MST', #'z': '-0700',
+    '%': '%',
+    # TODO: Implement c, x, X, j, U, w, W
+}
+
+def strftime(layout, tt=None): #pylint: disable=missing-docstring
+  ret = ''
+  t = (Unix(int(mktime(tt)), 0) if tt else Now()).Local()
+  prev, n = 0, layout.find('%')
+  while 0 <= n <= len(layout) - 2:
+    ret += layout[prev:n]
+    next_val = layout[n+1]
+    if next_val in _strftime_map:
+      ret += (t.Format(_strftime_map[next_val]))
+    else:
+      ret += layout[n:n+2] # TODO: Throw error for unsupported one?
+    n += 2
+    prev, n = n, layout.find('%', n)
+  ret += layout[prev:]
+  return ret
+
+
+# TODO: Use local DST instead of ''.
+tzname = (Now().Zone()[0], '')
+
+# TODO: Calculate real value for daylight saving.
+daylight = 0
