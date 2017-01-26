@@ -83,7 +83,7 @@ func TestListCount(t *testing.T) {
 	cases := []invokeTestCase{
 		{args: wrapArgs(NewList(), NewInt(1)), want: NewInt(0).ToObject()},
 		{args: wrapArgs(NewList(None, None, None), None), want: NewInt(3).ToObject()},
-		{args: wrapArgs(newTestList()), wantExc: mustCreateException(TypeErrorType, "count() takes exactly one argument (1 given)")},
+		{args: wrapArgs(newTestList()), wantExc: mustCreateException(TypeErrorType, "'count' of 'list' requires 2 arguments")},
 	}
 	for _, cas := range cases {
 		if err := runInvokeMethodTestCase(ListType, "count", &cas); err != "" {
