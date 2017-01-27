@@ -86,6 +86,7 @@ var builtinTypes = map[*Type]*builtinTypeInfo{
 	BoolType:                      {init: initBoolType, global: true},
 	BytesWarningType:              {global: true},
 	CodeType:                      {},
+	ComplexType:                   {init: initComplexType, global: true},
 	ClassMethodType:               {init: initClassMethodType, global: true},
 	DeprecationWarningType:        {global: true},
 	dictItemIteratorType:          {init: initDictItemIteratorType},
