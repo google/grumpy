@@ -30,7 +30,7 @@ class struct_time(tuple):  #pylint: disable=invalid-name,missing-docstring
             "tm_yday=%s, tm_isdst=%s)") % self
 
   def __str__(self):
-    return self.__repr__()
+    return repr(self)
 
 
 def gmtime(seconds=None):
@@ -57,31 +57,34 @@ def time():
   return float(Now().UnixNano()) / Second
 
 
-_strftime_map = {
+_strftime_directive_map = {
     'Y': '2006', 'y': '06', 'b': 'Jan', 'B': 'January', 'm': '01', 'd': '02',
     'a': 'Mon', 'A': 'Monday',
     'H': '15', 'I': '03', 'M': '04', 'S': '05', 'L': '.000',
     'p': 'PM',
-    'Z':  'MST', #'z': '-0700',
+    'Z':  'MST', 'z': '-0700',
     '%': '%',
-    # TODO: Implement c, x, X, j, U, w, W
 }
 
-def strftime(layout, tt=None): #pylint: disable=missing-docstring
-  ret = ''
+def strftime(format, tt=None): #pylint: disable=missing-docstring
   t = (Unix(int(mktime(tt)), 0) if tt else Now()).Local()
-  prev, n = 0, layout.find('%')
-  while 0 <= n <= len(layout) - 2:
-    ret += layout[prev:n]
-    next_val = layout[n+1]
-    if next_val in _strftime_map:
-      ret += (t.Format(_strftime_map[next_val]))
+  ret = []
+  prev, n = 0, format.find('%', 0, -1)
+  while n != -1:
+    ret.append(format[prev:n])
+    next_ch = format[n+1]
+    c = _strftime_directive_map.get(next_ch, next_ch)
+    if c in 'cjUwWxX':
+      raise NotImplementedError('Code: %' + c + ' not yet supported')
+    if c:
+      ret.append(t.Format(c))
+      n += 2
     else:
-      ret += layout[n:n+2] # TODO: Throw error for unsupported one?
-    n += 2
-    prev, n = n, layout.find('%', n)
-  ret += layout[prev:]
-  return ret
+      ret.append(c)
+      n += 1
+    prev, n = n, format.find('%', n, -1)
+  ret.append(format[prev:])
+  return ''.join(ret)
 
 
 # TODO: Use local DST instead of ''.
