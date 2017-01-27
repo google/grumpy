@@ -73,15 +73,14 @@ def strftime(format, tt=None): #pylint: disable=missing-docstring
   while n != -1:
     ret.append(format[prev:n])
     next_ch = format[n+1]
-    c = _strftime_directive_map.get(next_ch, next_ch)
-    if c in 'cjUwWxX':
+    c = _strftime_directive_map.get(next_ch, '')
+    if c and c in 'cjUwWxX':
       raise NotImplementedError('Code: %' + c + ' not yet supported')
     if c:
       ret.append(t.Format(c))
-      n += 2
     else:
-      ret.append(c)
-      n += 1
+      ret.append(format[n:n+2])
+    n += 2
     prev, n = n, format.find('%', n, -1)
   ret.append(format[prev:])
   return ''.join(ret)
