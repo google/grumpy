@@ -32,9 +32,18 @@ ifeq ($(PYTHON),)
 endif
 PYTHON_BIN := $(shell which $(PYTHON))
 PYTHON_VER := $(word 2,$(shell $(PYTHON) -V 2>&1))
+GO_REQ_MAJ := 1
+GO_REQ_MIN := 6
+GO_MAJ_MIN := $(subst go,, $(word 3,$(shell go version 2>&1)) )
+GO_MAJ := $(word 1,$(subst ., ,$(GO_MAJ_MIN) ))
+GO_MIN := $(word 2,$(subst ., ,$(GO_MAJ_MIN) ))
 
 ifeq ($(filter 2.7.%,$(PYTHON_VER)),)
   $(error unsupported Python version $(PYTHON_VER), Grumpy only supports 2.7.x. To use a different python binary such as python2, run: 'make PYTHON=python2 ...')
+endif
+
+ifneq ($(shell test $(GO_MAJ) -ge $(GO_REQ_MAJ) -a $(GO_MIN) -ge $(GO_REQ_MIN) && echo ok),ok)
+  $(error unsupported Go version $(GO_VER), Grumpy requires at least $(GO_REQ_MAJ).$(GO_REQ_MIN). Please update Go)
 endif
 
 PY_DIR := build/lib/python2.7/site-packages
