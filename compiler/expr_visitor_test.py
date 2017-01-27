@@ -187,6 +187,7 @@ class ExprVisitorTest(unittest.TestCase):
   testNumFloatSciCap = _MakeLiteralTest(1E6)
   testNumFloatSciCapPlus = _MakeLiteralTest(1E+6)
   testNumFloatSciMinus = _MakeLiteralTest(1e-6)
+  testNumComplex = _MakeLiteralTest(3j)
 
   testSubscriptDictStr = _MakeExprTest('{"foo": 42}["foo"]')
   testSubscriptListInt = _MakeExprTest('[1, 2, 3][2]')

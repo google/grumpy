@@ -276,6 +276,8 @@ class ExprVisitor(ast.NodeVisitor):
         expr_str = expr_str + '.Neg()'
     elif isinstance(node.n, float):
       expr_str = 'NewFloat({})'.format(node.n)
+    elif isinstance(node.n, complex):
+      expr_str = 'NewComplex(complex({}, {}))'.format(node.n.real, node.n.imag)
     else:
       msg = 'number type not yet implemented: ' + type(node.n).__name__
       raise util.ParseError(node, msg)

@@ -34,6 +34,8 @@ var (
 	// these kinds of values resolve directly to primitive Python types.
 	nativeTypes = map[reflect.Type]*Type{
 		reflect.TypeOf(bool(false)):     BoolType,
+		reflect.TypeOf(complex64(0)):    ComplexType,
+		reflect.TypeOf(complex128(0)):   ComplexType,
 		reflect.TypeOf(float32(0)):      FloatType,
 		reflect.TypeOf(float64(0)):      FloatType,
 		reflect.TypeOf(int(0)):          IntType,
@@ -312,6 +314,12 @@ func WrapNative(f *Frame, v reflect.Value) (*Object, *BaseException) {
 		// TODO: Make native bool subtypes singletons and add support
 		// for __new__ so we can use t.Call() here.
 		return (&Int{Object{typ: t}, i}).ToObject(), nil
+	case reflect.Complex64:
+	case reflect.Complex128:
+		c := v.Complex()
+		// TODO: Switch this over to calling the type when `complex.__new__`
+		// gets implemented.
+		return NewComplex(c).ToObject(), nil
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Uint8, reflect.Uint16:
 		return t.Call(f, Args{NewInt(int(v.Int())).ToObject()}, nil)
 	// Handle potentially large ints separately in case of overflow.
@@ -391,6 +399,8 @@ func getNativeType(rtype reflect.Type) *Type {
 		// object.
 		base := nativeType
 		switch rtype.Kind() {
+		case reflect.Complex64, reflect.Complex128:
+			base = ComplexType
 		case reflect.Float32, reflect.Float64:
 			base = FloatType
 		case reflect.Func:
