@@ -17,6 +17,7 @@
 """Visitor class for traversing Python expressions."""
 
 import ast
+import contextlib
 import textwrap
 
 from grumpy.compiler import block
@@ -188,14 +189,19 @@ class ExprVisitor(ast.NodeVisitor):
 
   def visit_ExtSlice(self, node):
     result = self.block.alloc_temp()
-    with self.block.alloc_temp('[]*πg.Object') as dims:
-      self.writer.write('{} = make([]*πg.Object, {})'.format(
-          dims.name, len(node.dims)))
-      for i, dim in enumerate(node.dims):
-        with self.visit(dim) as s:
-          self.writer.write('{}[{}] = {}'.format(dims.name, i, s.expr))
-      self.writer.write('{} = πg.NewTuple({}...).ToObject()'.format(
-          result.name, dims.expr))
+    if len(node.dims) <= util.MAX_DIRECT_TUPLE:
+      with contextlib.nested(*(self.visit(d) for d in node.dims)) as dims:
+        self.writer.write('{} = πg.NewTuple{}({}).ToObject()'.format(
+            result.name, len(dims), ', '.join(d.expr for d in dims)))
+    else:
+      with self.block.alloc_temp('[]*πg.Object') as dims:
+        self.writer.write('{} = make([]*πg.Object, {})'.format(
+            dims.name, len(node.dims)))
+        for i, dim in enumerate(node.dims):
+          with self.visit(dim) as s:
+            self.writer.write('{}[{}] = {}'.format(dims.name, i, s.expr))
+        self.writer.write('{} = πg.NewTuple({}...).ToObject()'.format(
+            result.name, dims.expr))
     return result
 
   def visit_GeneratorExp(self, node):
@@ -315,10 +321,15 @@ class ExprVisitor(ast.NodeVisitor):
     return expr.GeneratedLiteral(expr_str)
 
   def visit_Tuple(self, node):
-    with self._visit_seq_elts(node.elts) as elems:
-      result = self.block.alloc_temp()
-      self.writer.write('{} = πg.NewTuple({}...).ToObject()'.format(
-          result.expr, elems.expr))
+    result = self.block.alloc_temp()
+    if len(node.elts) <= util.MAX_DIRECT_TUPLE:
+      with contextlib.nested(*(self.visit(e) for e in node.elts)) as elts:
+        self.writer.write('{} = πg.NewTuple{}({}).ToObject()'.format(
+            result.name, len(elts), ', '.join(e.expr for e in elts)))
+    else:
+      with self._visit_seq_elts(node.elts) as elems:
+        self.writer.write('{} = πg.NewTuple({}...).ToObject()'.format(
+            result.expr, elems.expr))
     return result
 
   def visit_UnaryOp(self, node):

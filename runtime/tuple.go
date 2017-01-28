@@ -35,6 +35,105 @@ func NewTuple(elems ...*Object) *Tuple {
 	return &Tuple{Object: Object{typ: TupleType}, elems: elems}
 }
 
+// Below are direct allocation versions of small Tuples. Rather than performing
+// two allocations, one for the tuple object and one for the slice holding the
+// elements, we allocate both objects at the same time in one block of memory.
+// This both decreases the number of allocations overall as well as increases
+// memory locality for tuple data. Both of which *should* improve time to
+// allocate as well as read performance. The methods below are used by the
+// compiler to create fixed size tuples when the size is known ahead of time.
+//
+// The number of specializations below were chosen first to cover all the fixed
+// size tuple allocations in the runtime (currently 5), then filled out to
+// cover the whole memory size class (see golang/src/runtime/sizeclasses.go for
+// the table). On a 64bit system, a tuple of length 6 occupies 96 bytes - 48
+// bytes for the tuple object and 6*8 (48) bytes of pointers.
+//
+// If methods are added or removed, then the constant MAX_DIRECT_TUPLE in
+// compiler/util.py needs to be updated as well.
+
+// NewTuple0 returns the empty tuple. This is mostly provided for the
+// convenience of the compiler.
+func NewTuple0() *Tuple { return emptyTuple }
+
+// NewTuple1 returns a tuple of length 1 containing just elem0.
+func NewTuple1(elem0 *Object) *Tuple {
+	t := struct {
+		tuple Tuple
+		elems [1]*Object
+	}{
+		tuple: Tuple{Object: Object{typ: TupleType}},
+		elems: [1]*Object{elem0},
+	}
+	t.tuple.elems = t.elems[:]
+	return &t.tuple
+}
+
+// NewTuple2 returns a tuple of length 2 containing just elem0 and elem1.
+func NewTuple2(elem0, elem1 *Object) *Tuple {
+	t := struct {
+		tuple Tuple
+		elems [2]*Object
+	}{
+		tuple: Tuple{Object: Object{typ: TupleType}},
+		elems: [2]*Object{elem0, elem1},
+	}
+	t.tuple.elems = t.elems[:]
+	return &t.tuple
+}
+
+// NewTuple3 returns a tuple of length 3 containing elem0 to elem2.
+func NewTuple3(elem0, elem1, elem2 *Object) *Tuple {
+	t := struct {
+		tuple Tuple
+		elems [3]*Object
+	}{
+		tuple: Tuple{Object: Object{typ: TupleType}},
+		elems: [3]*Object{elem0, elem1, elem2},
+	}
+	t.tuple.elems = t.elems[:]
+	return &t.tuple
+}
+
+// NewTuple4 returns a tuple of length 4 containing elem0 to elem3.
+func NewTuple4(elem0, elem1, elem2, elem3 *Object) *Tuple {
+	t := struct {
+		tuple Tuple
+		elems [4]*Object
+	}{
+		tuple: Tuple{Object: Object{typ: TupleType}},
+		elems: [4]*Object{elem0, elem1, elem2, elem3},
+	}
+	t.tuple.elems = t.elems[:]
+	return &t.tuple
+}
+
+// NewTuple5 returns a tuple of length 5 containing elem0 to elem4.
+func NewTuple5(elem0, elem1, elem2, elem3, elem4 *Object) *Tuple {
+	t := struct {
+		tuple Tuple
+		elems [5]*Object
+	}{
+		tuple: Tuple{Object: Object{typ: TupleType}},
+		elems: [5]*Object{elem0, elem1, elem2, elem3, elem4},
+	}
+	t.tuple.elems = t.elems[:]
+	return &t.tuple
+}
+
+// NewTuple6 returns a tuple of length 6 containing elem0 to elem5.
+func NewTuple6(elem0, elem1, elem2, elem3, elem4, elem5 *Object) *Tuple {
+	t := struct {
+		tuple Tuple
+		elems [6]*Object
+	}{
+		tuple: Tuple{Object: Object{typ: TupleType}},
+		elems: [6]*Object{elem0, elem1, elem2, elem3, elem4, elem5},
+	}
+	t.tuple.elems = t.elems[:]
+	return &t.tuple
+}
+
 func toTupleUnsafe(o *Object) *Tuple {
 	return (*Tuple)(o.toPointer())
 }
@@ -106,7 +205,7 @@ func tupleGetNewArgs(f *Frame, args Args, _ KWArgs) (*Object, *BaseException) {
 	if raised := checkMethodArgs(f, "__getnewargs__", args, TupleType); raised != nil {
 		return nil, raised
 	}
-	return NewTuple(args[0]).ToObject(), nil
+	return NewTuple1(args[0]).ToObject(), nil
 }
 
 func tupleGT(f *Frame, v, w *Object) (*Object, *BaseException) {

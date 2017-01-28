@@ -283,11 +283,11 @@ func objectReduceCommon(f *Frame, args Args) (*Object, *BaseException) {
 				return nil, raised
 			}
 		}
-		newArgs := NewTuple(t.ToObject(), basisType.ToObject(), state).ToObject()
+		newArgs := NewTuple3(t.ToObject(), basisType.ToObject(), state).ToObject()
 		if d := o.Dict(); d != nil {
-			return NewTuple(objectReconstructorFunc, newArgs, d.ToObject()).ToObject(), nil
+			return NewTuple3(objectReconstructorFunc, newArgs, d.ToObject()).ToObject(), nil
 		}
-		return NewTuple(objectReconstructorFunc, newArgs).ToObject(), nil
+		return NewTuple2(objectReconstructorFunc, newArgs).ToObject(), nil
 	}
 	newArgs := []*Object{t.ToObject()}
 	getNewArgsMethod, raised := GetAttr(f, o, NewStr("__getnewargs__"), None)
@@ -332,5 +332,5 @@ func objectReduceCommon(f *Frame, args Args) (*Object, *BaseException) {
 	if raised != nil {
 		return nil, raised
 	}
-	return NewTuple(newFunc, NewTuple(newArgs...).ToObject(), dict, listItems, dictItems).ToObject(), nil
+	return NewTuple5(newFunc, NewTuple(newArgs...).ToObject(), dict, listItems, dictItems).ToObject(), nil
 }

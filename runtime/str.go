@@ -317,7 +317,7 @@ func strGetNewArgs(f *Frame, args Args, _ KWArgs) (*Object, *BaseException) {
 	if raised := checkMethodArgs(f, "__getnewargs__", args, StrType); raised != nil {
 		return nil, raised
 	}
-	return NewTuple(args[0]).ToObject(), nil
+	return NewTuple1(args[0]).ToObject(), nil
 }
 
 func strGT(f *Frame, v, w *Object) (*Object, *BaseException) {
@@ -426,7 +426,7 @@ func strMod(f *Frame, v, w *Object) (*Object, *BaseException) {
 	case w.isInstance(TupleType):
 		return strInterpolate(f, s, toTupleUnsafe(w))
 	default:
-		return strInterpolate(f, s, NewTuple(w))
+		return strInterpolate(f, s, NewTuple1(w))
 	}
 }
 
