@@ -66,7 +66,7 @@ _strftime_directive_map = {
     '%': '%',
 }
 
-def strftime(format, tt=None): #pylint: disable=missing-docstring
+def strftime(format, tt=None):  # pylint: disable=missing-docstring,redefined-builtin
   t = (Unix(int(mktime(tt)), 0) if tt else Now()).Local()
   ret = []
   prev, n = 0, format.find('%', 0, -1)
