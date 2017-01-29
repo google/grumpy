@@ -92,6 +92,30 @@ func TestListCount(t *testing.T) {
 	}
 }
 
+func TestListRemove(t *testing.T) {
+	fun := newBuiltinFunction("TestListRemove", func(f *Frame, args Args, _ KWArgs) (*Object, *BaseException) {
+		rem, raised := GetAttr(f, ListType.ToObject(), NewStr("remove"), nil)
+		if raised != nil {
+			return nil, raised
+		}
+		if _, raised := rem.Call(f, args, nil); raised != nil {
+			return nil, raised
+		}
+		return args[0], nil
+	}).ToObject()
+	cases := []invokeTestCase{
+		{args: wrapArgs(newTestList(1, 2, 3), 2), want: newTestList(1, 3).ToObject()},
+		{args: wrapArgs(newTestList(1, 2, 3, 2, 1), 2), want: newTestList(1, 3, 2, 1).ToObject()},
+		{args: wrapArgs(NewList()), wantExc: mustCreateException(TypeErrorType, "'remove' of 'list' requires 2 arguments")},
+		{args: wrapArgs(NewList(), 1), wantExc: mustCreateException(ValueErrorType, "list.remove(x): x not in list")},
+	}
+	for _, cas := range cases {
+		if err := runInvokeTestCase(fun, &cas); err != "" {
+			t.Error(err)
+		}
+	}
+}
+
 func BenchmarkListContains(b *testing.B) {
 	b.Run("false-3", func(b *testing.B) {
 		t := newTestList("foo", 42, "bar").ToObject()

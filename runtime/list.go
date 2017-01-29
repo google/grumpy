@@ -170,6 +170,38 @@ func listCount(f *Frame, args Args, kwargs KWArgs) (*Object, *BaseException) {
 	return seqCount(f, args[0], args[1])
 }
 
+func listRemove(f *Frame, args Args, kwargs KWArgs) (*Object, *BaseException) {
+	if raised := checkMethodArgs(f, "remove", args, ListType, ObjectType); raised != nil {
+		return nil, raised
+	}
+	l := toListUnsafe(args[0])
+	l.mutex.Lock()
+	value := args[1]
+	found := false
+	var raised *BaseException
+	for i, elem := range l.elems {
+		var eq *Object
+		if eq, raised = Eq(f, elem, value); raised != nil {
+			break
+		}
+		if found, raised = IsTrue(f, eq); raised != nil {
+			break
+		}
+		if found {
+			l.elems = append(l.elems[:i], l.elems[i+1:]...)
+			break
+		}
+	}
+	l.mutex.Unlock()
+	if raised != nil {
+		return nil, raised
+	}
+	if !found {
+		return nil, f.RaiseType(ValueErrorType, "list.remove(x): x not in list")
+	}
+	return None, nil
+}
+
 func listExtend(f *Frame, args Args, _ KWArgs) (*Object, *BaseException) {
 	argc := len(args)
 	if argc != 2 {
@@ -402,6 +434,7 @@ func initListType(dict map[string]*Object) {
 	dict["extend"] = newBuiltinFunction("extend", listExtend).ToObject()
 	dict["insert"] = newBuiltinFunction("insert", listInsert).ToObject()
 	dict["pop"] = newBuiltinFunction("pop", listPop).ToObject()
+	dict["remove"] = newBuiltinFunction("remove", listRemove).ToObject()
 	dict["reverse"] = newBuiltinFunction("reverse", listReverse).ToObject()
 	dict["sort"] = newBuiltinFunction("sort", listSort).ToObject()
 	ListType.slots.Add = &binaryOpSlot{listAdd}
