@@ -118,6 +118,11 @@ func intHash(f *Frame, o *Object) (*Object, *BaseException) {
 	return o, nil
 }
 
+func intHex(f *Frame, o *Object) (*Object, *BaseException) {
+	val := numberToBase("0x", 16, o)
+	return NewStr(val).ToObject(), nil
+}
+
 func intIndex(f *Frame, o *Object) (*Object, *BaseException) {
 	return o, nil
 }
@@ -244,6 +249,14 @@ func intNonZero(f *Frame, o *Object) (*Object, *BaseException) {
 	return GetBool(toIntUnsafe(o).Value() != 0).ToObject(), nil
 }
 
+func intOct(f *Frame, o *Object) (*Object, *BaseException) {
+	val := numberToBase("0", 8, o)
+	if val == "00" {
+		val = "0"
+	}
+	return NewStr(val).ToObject(), nil
+}
+
 func intOr(f *Frame, v, w *Object) (*Object, *BaseException) {
 	if !w.isInstance(IntType) {
 		return NotImplemented, nil
@@ -358,6 +371,7 @@ func initIntType(dict map[string]*Object) {
 	IntType.slots.GT = &binaryOpSlot{intGT}
 	IntType.slots.Float = &unaryOpSlot{intFloat}
 	IntType.slots.Hash = &unaryOpSlot{intHash}
+	IntType.slots.Hex = &unaryOpSlot{intHex}
 	IntType.slots.Index = &unaryOpSlot{intIndex}
 	IntType.slots.Int = &unaryOpSlot{intInt}
 	IntType.slots.Invert = &unaryOpSlot{intInvert}
@@ -372,6 +386,7 @@ func initIntType(dict map[string]*Object) {
 	IntType.slots.Neg = &unaryOpSlot{intNeg}
 	IntType.slots.New = &newSlot{intNew}
 	IntType.slots.NonZero = &unaryOpSlot{intNonZero}
+	IntType.slots.Oct = &unaryOpSlot{intOct}
 	IntType.slots.Or = &binaryOpSlot{intOr}
 	IntType.slots.Pow = &binaryOpSlot{intPow}
 	IntType.slots.RAdd = &binaryOpSlot{intRAdd}

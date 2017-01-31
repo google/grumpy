@@ -144,6 +144,11 @@ func hashBigInt(x *big.Int) int {
 	return hashString(x.Text(36))
 }
 
+func longHex(f *Frame, o *Object) (*Object, *BaseException) {
+	val := numberToBase("0x", 16, o) + "L"
+	return NewStr(val).ToObject(), nil
+}
+
 func longHash(f *Frame, o *Object) (*Object, *BaseException) {
 	l := toLongUnsafe(o)
 	l.hashOnce.Do(func() {
@@ -290,6 +295,14 @@ func longNonZero(x *big.Int) bool {
 	return x.Sign() != 0
 }
 
+func longOct(f *Frame, o *Object) (*Object, *BaseException) {
+	val := numberToBase("0", 8, o) + "L"
+	if val == "00L" {
+		val = "0L"
+	}
+	return NewStr(val).ToObject(), nil
+}
+
 func longOr(z, x, y *big.Int) {
 	z.Or(x, y)
 }
@@ -325,6 +338,7 @@ func initLongType(dict map[string]*Object) {
 	LongType.slots.GE = longBinaryBoolOpSlot(longGE)
 	LongType.slots.GT = longBinaryBoolOpSlot(longGT)
 	LongType.slots.Hash = &unaryOpSlot{longHash}
+	LongType.slots.Hex = &unaryOpSlot{longHex}
 	LongType.slots.Index = &unaryOpSlot{longIndex}
 	LongType.slots.Int = &unaryOpSlot{longInt}
 	LongType.slots.Invert = longUnaryOpSlot(longInvert)
@@ -339,6 +353,7 @@ func initLongType(dict map[string]*Object) {
 	LongType.slots.Neg = longUnaryOpSlot(longNeg)
 	LongType.slots.New = &newSlot{longNew}
 	LongType.slots.NonZero = longUnaryBoolOpSlot(longNonZero)
+	LongType.slots.Oct = &unaryOpSlot{longOct}
 	LongType.slots.Or = longBinaryOpSlot(longOr)
 	// This operation can return a float, it must use binaryOpSlot directly.
 	LongType.slots.Pow = &binaryOpSlot{longPow}

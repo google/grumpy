@@ -402,19 +402,7 @@ func builtinHex(f *Frame, args Args, _ KWArgs) (*Object, *BaseException) {
 	if raised := checkFunctionArgs(f, "hex", args, ObjectType); raised != nil {
 		return nil, raised
 	}
-	if method, raised := args[0].typ.mroLookup(f, NewStr("__hex__")); raised != nil {
-		return nil, raised
-	} else if method != nil {
-		return method.Call(f, args, nil)
-	}
-	if !args[0].isInstance(IntType) && !args[0].isInstance(LongType) {
-		return nil, f.RaiseType(TypeErrorType, "hex() argument can't be converted to hex")
-	}
-	s := numberToBase("0x", 16, args[0])
-	if args[0].isInstance(LongType) {
-		s += "L"
-	}
-	return NewStr(s).ToObject(), nil
+	return Hex(f, args[0])
 }
 
 func builtinID(f *Frame, args Args, kwargs KWArgs) (*Object, *BaseException) {
@@ -491,23 +479,7 @@ func builtinOct(f *Frame, args Args, _ KWArgs) (*Object, *BaseException) {
 	if raised := checkFunctionArgs(f, "oct", args, ObjectType); raised != nil {
 		return nil, raised
 	}
-	if method, raised := args[0].typ.mroLookup(f, NewStr("__oct__")); raised != nil {
-		return nil, raised
-	} else if method != nil {
-		return method.Call(f, args, nil)
-	}
-	if !args[0].isInstance(IntType) && !args[0].isInstance(LongType) {
-		return nil, f.RaiseType(TypeErrorType, "oct() argument can't be converted to oct")
-	}
-	s := numberToBase("0", 8, args[0])
-	if args[0].isInstance(LongType) {
-		s += "L"
-	}
-	// For oct(0), return "0", not "00".
-	if s == "00" {
-		s = "0"
-	}
-	return NewStr(s).ToObject(), nil
+	return Oct(f, args[0])
 }
 
 func builtinOpen(f *Frame, args Args, kwargs KWArgs) (*Object, *BaseException) {
