@@ -299,3 +299,7 @@ class A(object):
 assert '3'.zfill(A()) == '003'
 assert '3'.zfill(IntIntType()) == '03'
 assert '3'.zfill(LongIntType()) == '03'
+
+assert '%o' % 8 == '10'
+assert '%o' % -8 == '-10'
+assert '%o %o' % (8, -8) == '10 -10'

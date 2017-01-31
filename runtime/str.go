@@ -848,7 +848,7 @@ func strInterpolate(f *Frame, format string, values *Tuple) (*Object, *BaseExcep
 			} else {
 				return nil, f.RaiseType(TypeErrorType, fmt.Sprintf("float argument required, not %s", o.typ.Name()))
 			}
-		case "d", "x", "X":
+		case "d", "x", "X", "o":
 			var val string
 			o := values.elems[valueIndex]
 			i, raised := ToInt(f, values.elems[valueIndex])
@@ -861,6 +861,12 @@ func strInterpolate(f *Frame, format string, values *Tuple) (*Object, *BaseExcep
 					return nil, raised
 				}
 				val = s.Value()
+			} else if matches[7] == "o" {
+				if o.isInstance(LongType) {
+					val = toLongUnsafe(o).Value().Text(8)
+				} else {
+					val = strconv.FormatInt(int64(toIntUnsafe(i).Value()), 8)
+				}
 			} else {
 				if o.isInstance(LongType) {
 					val = toLongUnsafe(o).Value().Text(16)
