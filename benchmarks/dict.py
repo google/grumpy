@@ -19,6 +19,16 @@
 import weetest
 
 
+def BenchmarkDictCreate(b):  
+  for _ in xrange(b.N):
+    d = {'one': 1, 'two': 2, 'three': 3}
+
+
+def BenchmarkDictCreateFunc(b):  
+  for _ in xrange(b.N):
+    d = dict(one=1, two=2, three=3)
+
+    
 def BenchmarkDictGetItem(b):
   d = {42: 123}
   for _ in xrange(b.N):
