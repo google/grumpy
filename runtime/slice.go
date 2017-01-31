@@ -129,14 +129,14 @@ func sliceNew(f *Frame, t *Type, args Args, _ KWArgs) (*Object, *BaseException) 
 
 func sliceRepr(f *Frame, o *Object) (*Object, *BaseException) {
 	s := toSliceUnsafe(o)
-	elems := []*Object{None, s.stop, None}
+	elem0, elem1, elem2 := None, s.stop, None
 	if s.start != nil {
-		elems[0] = s.start
+		elem0 = s.start
 	}
 	if s.step != nil {
-		elems[2] = s.step
+		elem2 = s.step
 	}
-	r, raised := Repr(f, NewTuple(elems...).ToObject())
+	r, raised := Repr(f, NewTuple3(elem0, elem1, elem2).ToObject())
 	if raised != nil {
 		return nil, raised
 	}

@@ -439,7 +439,8 @@ class MappingView(Sized):
         return len(self._mapping)
 
     def __repr__(self):
-        return '{0.__class__.__name__}({0._mapping!r})'.format(self)
+        #return '{0.__class__.__name__}({0._mapping!r})'.format(self)
+        return '%s(%r)' % (self.__class__.__name__, self._mapping)
 
 
 #class KeysView(MappingView, Set):

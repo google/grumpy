@@ -163,6 +163,13 @@ func listAppend(f *Frame, args Args, kwargs KWArgs) (*Object, *BaseException) {
 	return None, nil
 }
 
+func listCount(f *Frame, args Args, kwargs KWArgs) (*Object, *BaseException) {
+	if raised := checkMethodArgs(f, "count", args, ListType, ObjectType); raised != nil {
+		return nil, raised
+	}
+	return seqCount(f, args[0], args[1])
+}
+
 func listExtend(f *Frame, args Args, _ KWArgs) (*Object, *BaseException) {
 	argc := len(args)
 	if argc != 2 {
@@ -391,6 +398,7 @@ func listSort(f *Frame, args Args, _ KWArgs) (*Object, *BaseException) {
 
 func initListType(dict map[string]*Object) {
 	dict["append"] = newBuiltinFunction("append", listAppend).ToObject()
+	dict["count"] = newBuiltinFunction("count", listCount).ToObject()
 	dict["extend"] = newBuiltinFunction("extend", listExtend).ToObject()
 	dict["insert"] = newBuiltinFunction("insert", listInsert).ToObject()
 	dict["pop"] = newBuiltinFunction("pop", listPop).ToObject()

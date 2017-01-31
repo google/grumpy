@@ -27,6 +27,7 @@ type Traceback struct {
 }
 
 func newTraceback(f *Frame, next *Traceback) *Traceback {
+	f.taken = true
 	return &Traceback{Object{typ: TracebackType}, f, next, f.lineno}
 }
 

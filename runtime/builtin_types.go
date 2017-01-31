@@ -86,10 +86,12 @@ var builtinTypes = map[*Type]*builtinTypeInfo{
 	BoolType:                      {init: initBoolType, global: true},
 	BytesWarningType:              {global: true},
 	CodeType:                      {},
+	ComplexType:                   {init: initComplexType, global: true},
 	ClassMethodType:               {init: initClassMethodType, global: true},
 	DeprecationWarningType:        {global: true},
 	dictItemIteratorType:          {init: initDictItemIteratorType},
 	dictKeyIteratorType:           {init: initDictKeyIteratorType},
+	dictValueIteratorType:         {init: initDictValueIteratorType},
 	DictType:                      {init: initDictType, global: true},
 	enumerateType:                 {init: initEnumerateType, global: true},
 	EnvironmentErrorType:          {global: true},
@@ -302,6 +304,13 @@ func builtinCmp(f *Frame, args Args, _ KWArgs) (*Object, *BaseException) {
 	return Compare(f, args[0], args[1])
 }
 
+func builtinDelAttr(f *Frame, args Args, _ KWArgs) (*Object, *BaseException) {
+	if raised := checkFunctionArgs(f, "delattr", args, ObjectType, StrType); raised != nil {
+		return nil, raised
+	}
+	return None, DelAttr(f, args[0], toStrUnsafe(args[1]))
+}
+
 func builtinDir(f *Frame, args Args, kwargs KWArgs) (*Object, *BaseException) {
 	// TODO: Support __dir__.
 	if raised := checkFunctionArgs(f, "dir", args, ObjectType); raised != nil {
@@ -336,6 +345,7 @@ func builtinFrame(f *Frame, args Args, _ KWArgs) (*Object, *BaseException) {
 	if raised := checkFunctionArgs(f, "__frame__", args); raised != nil {
 		return nil, raised
 	}
+	f.taken = true
 	return f.ToObject(), nil
 }
 
@@ -573,6 +583,13 @@ func builtinRepr(f *Frame, args Args, kwargs KWArgs) (*Object, *BaseException) {
 	return s.ToObject(), nil
 }
 
+func builtinSetAttr(f *Frame, args Args, _ KWArgs) (*Object, *BaseException) {
+	if raised := checkFunctionArgs(f, "setattr", args, ObjectType, StrType, ObjectType); raised != nil {
+		return nil, raised
+	}
+	return None, SetAttr(f, args[0], toStrUnsafe(args[1]), args[2])
+}
+
 func builtinSorted(f *Frame, args Args, _ KWArgs) (*Object, *BaseException) {
 	// TODO: Support (cmp=None, key=None, reverse=False)
 	if raised := checkFunctionArgs(f, "sorted", args, ObjectType); raised != nil {
@@ -637,6 +654,7 @@ func init() {
 		"callable":       newBuiltinFunction("callable", builtinCallable).ToObject(),
 		"chr":            newBuiltinFunction("chr", builtinChr).ToObject(),
 		"cmp":            newBuiltinFunction("cmp", builtinCmp).ToObject(),
+		"delattr":        newBuiltinFunction("delattr", builtinDelAttr).ToObject(),
 		"dir":            newBuiltinFunction("dir", builtinDir).ToObject(),
 		"False":          False.ToObject(),
 		"getattr":        newBuiltinFunction("getattr", builtinGetAttr).ToObject(),
@@ -661,6 +679,7 @@ func init() {
 		"print":          newBuiltinFunction("print", builtinPrint).ToObject(),
 		"range":          newBuiltinFunction("range", builtinRange).ToObject(),
 		"repr":           newBuiltinFunction("repr", builtinRepr).ToObject(),
+		"setattr":        newBuiltinFunction("setattr", builtinSetAttr).ToObject(),
 		"sorted":         newBuiltinFunction("sorted", builtinSorted).ToObject(),
 		"True":           True.ToObject(),
 		"unichr":         newBuiltinFunction("unichr", builtinUniChr).ToObject(),

@@ -174,12 +174,12 @@ func TestFrameRaiseType(t *testing.T) {
 func TestReprEnterLeave(t *testing.T) {
 	o := newObject(ObjectType)
 	parent := NewRootFrame()
-	child := newFrame(parent)
+	child := newChildFrame(parent)
 	wantParent := NewRootFrame()
 	wantParent.reprState = map[*Object]bool{o: true}
 	child.reprEnter(o)
 	// After child.reprEnter(), expect the parent's reprState to contain o.
-	if wantChild := newFrame(parent); !reflect.DeepEqual(child, wantChild) {
+	if wantChild := newChildFrame(parent); !reflect.DeepEqual(child, wantChild) {
 		t.Errorf("reprEnter: child frame was %#v, want %#v", child, wantChild)
 	} else if !reflect.DeepEqual(parent, wantParent) {
 		t.Errorf("reprEnter: parent frame was %#v, want %#v", parent, wantParent)
@@ -187,7 +187,7 @@ func TestReprEnterLeave(t *testing.T) {
 		wantParent.reprState = map[*Object]bool{}
 		child.reprLeave(o)
 		// Expect the parent's reprState to be empty after reprLeave().
-		if wantChild := newFrame(parent); !reflect.DeepEqual(child, wantChild) {
+		if wantChild := newChildFrame(parent); !reflect.DeepEqual(child, wantChild) {
 			t.Errorf("reprLeave: child frame was %#v, want %#v", child, wantChild)
 		} else if !reflect.DeepEqual(parent, wantParent) {
 			t.Errorf("reprLeave: parent frame was %#v, want %#v", parent, wantParent)
@@ -197,8 +197,8 @@ func TestReprEnterLeave(t *testing.T) {
 
 func TestFrameRoot(t *testing.T) {
 	f1 := NewRootFrame()
-	f2 := newFrame(f1)
-	frames := []*Frame{f1, f2, newFrame(f2)}
+	f2 := newChildFrame(f1)
+	frames := []*Frame{f1, f2, newChildFrame(f2)}
 	for _, f := range frames {
 		if f.threadState != f1.threadState {
 			t.Errorf("frame threadState was %v, want %v", f.threadState, f1.threadState)

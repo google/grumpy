@@ -43,6 +43,38 @@ func TestSeqApply(t *testing.T) {
 	}
 }
 
+func TestSeqCount(t *testing.T) {
+	badEqType := newTestClass("Eq", []*Type{IntType}, newStringDict(map[string]*Object{
+		"__eq__": newBuiltinFunction("__eq__", func(f *Frame, args Args, kwargs KWArgs) (*Object, *BaseException) {
+			return nil, f.RaiseType(TypeErrorType, "uh oh")
+		}).ToObject(),
+	}))
+	badNonZeroType := newTestClass("BadNonZeroType", []*Type{ObjectType}, newStringDict(map[string]*Object{
+		"__nonzero__": newBuiltinFunction("__nonzero__", func(f *Frame, args Args, kwargs KWArgs) (*Object, *BaseException) {
+			return nil, f.RaiseType(TypeErrorType, "uh oh")
+		}).ToObject(),
+	}))
+	worseEqType := newTestClass("WorseEqCmp", []*Type{IntType}, newStringDict(map[string]*Object{
+		"__eq__": newBuiltinFunction("__eq__", func(f *Frame, args Args, kwargs KWArgs) (*Object, *BaseException) {
+			return newObject(badNonZeroType), nil
+		}).ToObject(),
+	}))
+	cases := []invokeTestCase{
+		{args: wrapArgs(newTestList(), NewInt(1)), want: NewInt(0).ToObject()},
+		{args: wrapArgs(newTestList(1, 2, 3, 4, 5, 6), NewInt(7)), want: NewInt(0).ToObject()},
+		{args: wrapArgs(newTestList(1, 2, 3, 2, 2, 4), NewInt(2)), want: NewInt(3).ToObject()},
+		{args: wrapArgs(newTestList(1, None, None, 3), None), want: NewInt(2).ToObject()},
+		{args: wrapArgs(newTestList("a", "b", "c", "d", "e"), NewStr("c")), want: NewInt(1).ToObject()},
+		{args: wrapArgs(newTestList(newObject(badEqType)), newObject(badEqType)), wantExc: mustCreateException(TypeErrorType, "uh oh")},
+		{args: wrapArgs(newTestList(newObject(worseEqType)), newObject(worseEqType)), wantExc: mustCreateException(TypeErrorType, "uh oh")},
+	}
+	for _, cas := range cases {
+		if err := runInvokeTestCase(wrapFuncForTest(seqCount), &cas); err != "" {
+			t.Error(err)
+		}
+	}
+}
+
 func TestSeqForEach(t *testing.T) {
 	fun := wrapFuncForTest(func(f *Frame, seq *Object) (*Object, *BaseException) {
 		elems := []*Object{}

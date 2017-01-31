@@ -103,7 +103,7 @@ func enumerateNext(f *Frame, o *Object) (ret *Object, raised *BaseException) {
 			raised = f.Raise(StopIterationType.ToObject(), nil, nil)
 			e.index = -1
 		} else {
-			ret = NewTuple(NewInt(e.index).ToObject(), item).ToObject()
+			ret = NewTuple2(NewInt(e.index).ToObject(), item).ToObject()
 			e.index++
 		}
 	}

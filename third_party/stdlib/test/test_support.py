@@ -3,19 +3,19 @@
 # if __name__ != 'test.test_support':
 #     raise ImportError('test_support must be imported from the test package')
 
-# import contextlib
+import contextlib
 # import errno
 # import functools
 # import gc
 # import socket
 import sys
-# import os
+import os
 # import platform
 # import shutil
-# import warnings
+import warnings
 import unittest
 # import importlib
-# import UserDict
+import UserDict
 # import re
 # import time
 # import struct
@@ -25,7 +25,11 @@ import unittest
 # except ImportError:
 #     thread = None
 
-__all__ = ["Error", "TestFailed", "have_unicode", "BasicTestRunner", "run_unittest"]
+__all__ = [
+    "Error", "TestFailed", "have_unicode", "BasicTestRunner", "run_unittest",
+    "check_warnings", "check_py3k_warnings", "CleanImport",
+    "EnvironmentVarGuard"
+]
 
 # __all__ = ["Error", "TestFailed", "ResourceDenied", "import_module",
 #            "verbose", "use_resources", "max_memuse", "record_original_stdout",
@@ -815,192 +819,192 @@ except NameError:
 #     raise TestFailed('invalid resource "%s"' % fn)
 
 
-# class WarningsRecorder(object):
-#     """Convenience wrapper for the warnings list returned on
-#        entry to the warnings.catch_warnings() context manager.
-#     """
-#     def __init__(self, warnings_list):
-#         self._warnings = warnings_list
-#         self._last = 0
+class WarningsRecorder(object):
+    """Convenience wrapper for the warnings list returned on
+       entry to the warnings.catch_warnings() context manager.
+    """
+    def __init__(self, warnings_list):
+        self._warnings = warnings_list
+        self._last = 0
 
-#     def __getattr__(self, attr):
-#         if len(self._warnings) > self._last:
-#             return getattr(self._warnings[-1], attr)
-#         elif attr in warnings.WarningMessage._WARNING_DETAILS:
-#             return None
-#         raise AttributeError("%r has no attribute %r" % (self, attr))
+    def __getattr__(self, attr):
+        if len(self._warnings) > self._last:
+            return getattr(self._warnings[-1], attr)
+        elif attr in warnings.WarningMessage._WARNING_DETAILS:
+            return None
+        raise AttributeError("%r has no attribute %r" % (self, attr))
 
-#     @property
-#     def warnings(self):
-#         return self._warnings[self._last:]
+    @property
+    def warnings(self):
+        return self._warnings[self._last:]
 
-#     def reset(self):
-#         self._last = len(self._warnings)
-
-
-# def _filterwarnings(filters, quiet=False):
-#     """Catch the warnings, then check if all the expected
-#     warnings have been raised and re-raise unexpected warnings.
-#     If 'quiet' is True, only re-raise the unexpected warnings.
-#     """
-#     # Clear the warning registry of the calling module
-#     # in order to re-raise the warnings.
-#     frame = sys._getframe(2)
-#     registry = frame.f_globals.get('__warningregistry__')
-#     if registry:
-#         registry.clear()
-#     with warnings.catch_warnings(record=True) as w:
-#         # Set filter "always" to record all warnings.  Because
-#         # test_warnings swap the module, we need to look up in
-#         # the sys.modules dictionary.
-#         sys.modules['warnings'].simplefilter("always")
-#         yield WarningsRecorder(w)
-#     # Filter the recorded warnings
-#     reraise = [warning.message for warning in w]
-#     missing = []
-#     for msg, cat in filters:
-#         seen = False
-#         for exc in reraise[:]:
-#             message = str(exc)
-#             # Filter out the matching messages
-#             if (re.match(msg, message, re.I) and
-#                 issubclass(exc.__class__, cat)):
-#                 seen = True
-#                 reraise.remove(exc)
-#         if not seen and not quiet:
-#             # This filter caught nothing
-#             missing.append((msg, cat.__name__))
-#     if reraise:
-#         raise AssertionError("unhandled warning %r" % reraise[0])
-#     if missing:
-#         raise AssertionError("filter (%r, %s) did not catch any warning" %
-#                              missing[0])
+    def reset(self):
+        self._last = len(self._warnings)
 
 
-# @contextlib.contextmanager
-# def check_warnings(*filters, **kwargs):
-#     """Context manager to silence warnings.
-
-#     Accept 2-tuples as positional arguments:
-#         ("message regexp", WarningCategory)
-
-#     Optional argument:
-#      - if 'quiet' is True, it does not fail if a filter catches nothing
-#         (default True without argument,
-#          default False if some filters are defined)
-
-#     Without argument, it defaults to:
-#         check_warnings(("", Warning), quiet=True)
-#     """
-#     quiet = kwargs.get('quiet')
-#     if not filters:
-#         filters = (("", Warning),)
-#         # Preserve backward compatibility
-#         if quiet is None:
-#             quiet = True
-#     return _filterwarnings(filters, quiet)
-
-
-# @contextlib.contextmanager
-# def check_py3k_warnings(*filters, **kwargs):
-#     """Context manager to silence py3k warnings.
-
-#     Accept 2-tuples as positional arguments:
-#         ("message regexp", WarningCategory)
-
-#     Optional argument:
-#      - if 'quiet' is True, it does not fail if a filter catches nothing
-#         (default False)
-
-#     Without argument, it defaults to:
-#         check_py3k_warnings(("", DeprecationWarning), quiet=False)
-#     """
-#     if sys.py3kwarning:
-#         if not filters:
-#             filters = (("", DeprecationWarning),)
-#     else:
-#         # It should not raise any py3k warning
-#         filters = ()
-#     return _filterwarnings(filters, kwargs.get('quiet'))
+def _filterwarnings(filters, quiet=False):
+    """Catch the warnings, then check if all the expected
+    warnings have been raised and re-raise unexpected warnings.
+    If 'quiet' is True, only re-raise the unexpected warnings.
+    """
+    # Clear the warning registry of the calling module
+    # in order to re-raise the warnings.
+    # frame = sys._getframe(2)
+    # registry = frame.f_globals.get('__warningregistry__')
+    # if registry:
+    #     registry.clear()
+    with warnings.catch_warnings(record=True) as w:
+        # Set filter "always" to record all warnings.  Because
+        # test_warnings swap the module, we need to look up in
+        # the sys.modules dictionary.
+        sys.modules['warnings'].simplefilter("always")
+        yield WarningsRecorder(w)
+    # Filter the recorded warnings
+    reraise = [warning.message for warning in w]
+    missing = []
+    for msg, cat in filters:
+        seen = False
+        for exc in reraise[:]:
+            message = str(exc)
+            # Filter out the matching messages
+            if (re.match(msg, message, re.I) and
+                issubclass(exc.__class__, cat)):
+                seen = True
+                reraise.remove(exc)
+        if not seen and not quiet:
+            # This filter caught nothing
+            missing.append((msg, cat.__name__))
+    if reraise:
+        raise AssertionError("unhandled warning %r" % reraise[0])
+    if missing:
+        raise AssertionError("filter (%r, %s) did not catch any warning" %
+                             missing[0])
 
 
-# class CleanImport(object):
-#     """Context manager to force import to return a new module reference.
+@contextlib.contextmanager
+def check_warnings(*filters, **kwargs):
+    """Context manager to silence warnings.
 
-#     This is useful for testing module-level behaviours, such as
-#     the emission of a DeprecationWarning on import.
+    Accept 2-tuples as positional arguments:
+        ("message regexp", WarningCategory)
 
-#     Use like this:
+    Optional argument:
+     - if 'quiet' is True, it does not fail if a filter catches nothing
+        (default True without argument,
+         default False if some filters are defined)
 
-#         with CleanImport("foo"):
-#             importlib.import_module("foo") # new reference
-#     """
-
-#     def __init__(self, *module_names):
-#         self.original_modules = sys.modules.copy()
-#         for module_name in module_names:
-#             if module_name in sys.modules:
-#                 module = sys.modules[module_name]
-#                 # It is possible that module_name is just an alias for
-#                 # another module (e.g. stub for modules renamed in 3.x).
-#                 # In that case, we also need delete the real module to clear
-#                 # the import cache.
-#                 if module.__name__ != module_name:
-#                     del sys.modules[module.__name__]
-#                 del sys.modules[module_name]
-
-#     def __enter__(self):
-#         return self
-
-#     def __exit__(self, *ignore_exc):
-#         sys.modules.update(self.original_modules)
+    Without argument, it defaults to:
+        check_warnings(("", Warning), quiet=True)
+    """
+    quiet = kwargs.get('quiet')
+    if not filters:
+        filters = (("", Warning),)
+        # Preserve backward compatibility
+        if quiet is None:
+            quiet = True
+    return _filterwarnings(filters, quiet)
 
 
-# class EnvironmentVarGuard(UserDict.DictMixin):
+@contextlib.contextmanager
+def check_py3k_warnings(*filters, **kwargs):
+    """Context manager to silence py3k warnings.
 
-#     """Class to help protect the environment variable properly.  Can be used as
-#     a context manager."""
+    Accept 2-tuples as positional arguments:
+        ("message regexp", WarningCategory)
 
-#     def __init__(self):
-#         self._environ = os.environ
-#         self._changed = {}
+    Optional argument:
+     - if 'quiet' is True, it does not fail if a filter catches nothing
+        (default False)
 
-#     def __getitem__(self, envvar):
-#         return self._environ[envvar]
+    Without argument, it defaults to:
+        check_py3k_warnings(("", DeprecationWarning), quiet=False)
+    """
+    if sys.py3kwarning:
+        if not filters:
+            filters = (("", DeprecationWarning),)
+    else:
+        # It should not raise any py3k warning
+        filters = ()
+    return _filterwarnings(filters, kwargs.get('quiet'))
 
-#     def __setitem__(self, envvar, value):
-#         # Remember the initial value on the first access
-#         if envvar not in self._changed:
-#             self._changed[envvar] = self._environ.get(envvar)
-#         self._environ[envvar] = value
 
-#     def __delitem__(self, envvar):
-#         # Remember the initial value on the first access
-#         if envvar not in self._changed:
-#             self._changed[envvar] = self._environ.get(envvar)
-#         if envvar in self._environ:
-#             del self._environ[envvar]
+class CleanImport(object):
+    """Context manager to force import to return a new module reference.
 
-#     def keys(self):
-#         return self._environ.keys()
+    This is useful for testing module-level behaviours, such as
+    the emission of a DeprecationWarning on import.
 
-#     def set(self, envvar, value):
-#         self[envvar] = value
+    Use like this:
 
-#     def unset(self, envvar):
-#         del self[envvar]
+        with CleanImport("foo"):
+            importlib.import_module("foo") # new reference
+    """
 
-#     def __enter__(self):
-#         return self
+    def __init__(self, *module_names):
+        self.original_modules = sys.modules.copy()
+        for module_name in module_names:
+            if module_name in sys.modules:
+                module = sys.modules[module_name]
+                # It is possible that module_name is just an alias for
+                # another module (e.g. stub for modules renamed in 3.x).
+                # In that case, we also need delete the real module to clear
+                # the import cache.
+                if module.__name__ != module_name:
+                    del sys.modules[module.__name__]
+                del sys.modules[module_name]
 
-#     def __exit__(self, *ignore_exc):
-#         for (k, v) in self._changed.items():
-#             if v is None:
-#                 if k in self._environ:
-#                     del self._environ[k]
-#             else:
-#                 self._environ[k] = v
-#         os.environ = self._environ
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *ignore_exc):
+        sys.modules.update(self.original_modules)
+
+
+class EnvironmentVarGuard(UserDict.DictMixin):
+
+    """Class to help protect the environment variable properly.  Can be used as
+    a context manager."""
+
+    def __init__(self):
+        self._environ = os.environ
+        self._changed = {}
+
+    def __getitem__(self, envvar):
+        return self._environ[envvar]
+
+    def __setitem__(self, envvar, value):
+        # Remember the initial value on the first access
+        if envvar not in self._changed:
+            self._changed[envvar] = self._environ.get(envvar)
+        self._environ[envvar] = value
+
+    def __delitem__(self, envvar):
+        # Remember the initial value on the first access
+        if envvar not in self._changed:
+            self._changed[envvar] = self._environ.get(envvar)
+        if envvar in self._environ:
+            del self._environ[envvar]
+
+    def keys(self):
+        return self._environ.keys()
+
+    def set(self, envvar, value):
+        self[envvar] = value
+
+    def unset(self, envvar):
+        del self[envvar]
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *ignore_exc):
+        for (k, v) in self._changed.items():
+            if v is None:
+                if k in self._environ:
+                    del self._environ[k]
+            else:
+                self._environ[k] = v
+        os.environ = self._environ
 
 
 # class DirsOnSysPath(object):
@@ -1270,7 +1274,7 @@ except NameError:
 # _2G = 2 * _1G
 # _4G = 4 * _1G
 
-# MAX_Py_ssize_t = sys.maxsize
+MAX_Py_ssize_t = sys.maxsize
 
 # def set_memlimit(limit):
 #     global max_memuse
@@ -1386,7 +1390,7 @@ def _id(obj):
 #         return unittest.skip("resource {0!r} is not enabled".format(resource))
 
 def cpython_only(test):
-    return lambda: None
+    return lambda *arg, **kw: None
 
 # def cpython_only(test):
 #     """
