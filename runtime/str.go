@@ -748,6 +748,28 @@ func strStr(_ *Frame, o *Object) (*Object, *BaseException) {
 	return NewStr(toStrUnsafe(o).Value()).ToObject(), nil
 }
 
+func strSwapCase(f *Frame, args Args, kwargs KWArgs) (*Object, *BaseException) {
+	if raised := checkMethodArgs(f, "swapcase", args, StrType); raised != nil {
+		return nil, raised
+	}
+	s := toStrUnsafe(args[0]).Value()
+	numBytes := len(s)
+	if numBytes == 0 {
+		return args[0], nil
+	}
+	b := make([]byte, numBytes)
+	for i := 0; i < numBytes; i++ {
+		if s[i] >= 'a' && s[i] <= 'z' {
+			b[i] = toUpper(s[i])
+		} else if s[i] >= 'A' && s[i] <= 'Z' {
+			b[i] = toLower(s[i])
+		} else {
+			b[i] = s[i]
+		}
+	}
+	return NewStr(string(b)).ToObject(), nil
+}
+
 func initStrType(dict map[string]*Object) {
 	dict["__getnewargs__"] = newBuiltinFunction("__getnewargs__", strGetNewArgs).ToObject()
 	dict["capitalize"] = newBuiltinFunction("capitalize", strCapitalize).ToObject()
@@ -762,6 +784,7 @@ func initStrType(dict map[string]*Object) {
 	dict["splitlines"] = newBuiltinFunction("splitlines", strSplitLines).ToObject()
 	dict["startswith"] = newBuiltinFunction("startswith", strStartsWith).ToObject()
 	dict["strip"] = newBuiltinFunction("strip", strStrip).ToObject()
+	dict["swapcase"] = newBuiltinFunction("swapcase", strSwapCase).ToObject()
 	dict["replace"] = newBuiltinFunction("replace", strReplace).ToObject()
 	dict["rstrip"] = newBuiltinFunction("rstrip", strRStrip).ToObject()
 	dict["title"] = newBuiltinFunction("title", strTitle).ToObject()
