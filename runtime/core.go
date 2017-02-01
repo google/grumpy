@@ -257,14 +257,8 @@ func Hash(f *Frame, o *Object) (*Int, *BaseException) {
 func Hex(f *Frame, o *Object) (*Object, *BaseException) {
 	hex := o.typ.slots.Hex
 	if hex == nil {
-		if method, raised := o.typ.mroLookup(f, NewStr("__hex__")); raised != nil {
-			return nil, raised
-		} else if method != nil {
-			return method.Call(f, nil, nil)
-		} else {
-			_, raised := hexNotImplemented(f, o)
-			return nil, raised
-		}
+		raised := f.RaiseType(TypeErrorType, "hex() argument can't be converted to hex")
+		return nil, raised
 	}
 	h, raised := hex.Fn(f, o)
 	if raised != nil {
@@ -623,14 +617,8 @@ func Next(f *Frame, iter *Object) (*Object, *BaseException) {
 func Oct(f *Frame, o *Object) (*Object, *BaseException) {
 	oct := o.typ.slots.Oct
 	if oct == nil {
-		if method, raised := o.typ.mroLookup(f, NewStr("__oct__")); raised != nil {
-			return nil, raised
-		} else if method != nil {
-			return method.Call(f, nil, nil)
-		} else {
-			_, raised := octNotImplemented(f, o)
-			return nil, raised
-		}
+		raised := f.RaiseType(TypeErrorType, "oct() argument can't be converted to oct")
+		return nil, raised
 	}
 	o, raised := oct.Fn(f, o)
 	if raised != nil {
@@ -1225,14 +1213,6 @@ func checkMethodVarArgs(f *Frame, method string, args Args, types ...*Type) *Bas
 
 func hashNotImplemented(f *Frame, o *Object) (*Object, *BaseException) {
 	return nil, f.RaiseType(TypeErrorType, fmt.Sprintf("unhashable type: '%s'", o.typ.Name()))
-}
-
-func hexNotImplemented(f *Frame, o *Object) (*Object, *BaseException) {
-	return nil, f.RaiseType(TypeErrorType, "hex() argument can't be converted to hex")
-}
-
-func octNotImplemented(f *Frame, o *Object) (*Object, *BaseException) {
-	return nil, f.RaiseType(TypeErrorType, "oct() argument can't be converted to oct")
 }
 
 // pyPrint encapsulates the logic of the Python print function.
