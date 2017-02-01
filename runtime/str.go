@@ -749,8 +749,7 @@ func strStr(_ *Frame, o *Object) (*Object, *BaseException) {
 }
 
 func strSwapCase(f *Frame, args Args, kwargs KWArgs) (*Object, *BaseException) {
-	expectedTypes := []*Type{StrType}
-	if raised := checkMethodArgs(f, "swapcase", args, expectedTypes...); raised != nil {
+	if raised := checkMethodArgs(f, "swapcase", args, StrType); raised != nil {
 		return nil, raised
 	}
 	s := toStrUnsafe(args[0]).Value()
