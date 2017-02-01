@@ -64,6 +64,15 @@ _strftime_directive_map = {
     'p': 'PM',
     'Z':  'MST', 'z': '-0700',
     '%': '%',
+    'c': NotImplementedError, 'j': NotImplementedError,
+    'U': NotImplementedError, 'w': NotImplementedError,
+    'W': NotImplementedError, 'x': NotImplementedError,
+    'X': NotImplementedError, '0': NotImplementedError,
+    '1': NotImplementedError, '2': NotImplementedError,
+    '3': NotImplementedError, '4': NotImplementedError,
+    '5': NotImplementedError, '6': NotImplementedError,
+    '7': NotImplementedError, '8': NotImplementedError,
+    '9': NotImplementedError,
 }
 
 def strftime(format, tt=None):  # pylint: disable=missing-docstring,redefined-builtin
@@ -73,10 +82,10 @@ def strftime(format, tt=None):  # pylint: disable=missing-docstring,redefined-bu
   while n != -1:
     ret.append(format[prev:n])
     next_ch = format[n+1]
-    if next_ch in 'cjUwWxX0123456789':
-      raise NotImplementedError('Code: %' + next_ch + ' not yet supported')
     c = _strftime_directive_map.get(next_ch)
-    if c:
+    if c is NotImplementedError:
+      raise NotImplementedError('Code: %' + next_ch + ' not yet supported')
+    elif c:
       ret.append(t.Format(c))
     else:
       ret.append(format[n:n+2])
