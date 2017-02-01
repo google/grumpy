@@ -512,6 +512,17 @@ func TestStrMethods(t *testing.T) {
 		{"zfill", wrapArgs("", False), NewStr("").ToObject(), nil},
 		{"zfill", wrapArgs("34", NewStr("test")), nil, mustCreateException(TypeErrorType, "an integer is required")},
 		{"zfill", wrapArgs("34"), nil, mustCreateException(TypeErrorType, "'zfill' of 'str' requires 2 arguments")},
+		{"swapcase", wrapArgs(""), NewStr("").ToObject(), nil},
+		{"swapcase", wrapArgs("a"), NewStr("A").ToObject(), nil},
+		{"swapcase", wrapArgs("A"), NewStr("a").ToObject(), nil},
+		{"swapcase", wrapArgs(" A"), NewStr(" a").ToObject(), nil},
+		{"swapcase", wrapArgs("abc"), NewStr("ABC").ToObject(), nil},
+		{"swapcase", wrapArgs("ABC"), NewStr("abc").ToObject(), nil},
+		{"swapcase", wrapArgs("aBC"), NewStr("Abc").ToObject(), nil},
+		{"swapcase", wrapArgs("abc def", 123), nil, mustCreateException(TypeErrorType, "'swapcase' of 'str' requires 1 arguments")},
+		{"swapcase", wrapArgs(123), nil, mustCreateException(TypeErrorType, "unbound method swapcase() must be called with str instance as first argument (got int instance instead)")},
+		{"swapcase", wrapArgs("вол"), NewStr("вол").ToObject(), nil},
+		{"swapcase", wrapArgs("ВОЛ"), NewStr("ВОЛ").ToObject(), nil},
 	}
 	for _, cas := range cases {
 		testCase := invokeTestCase{args: cas.args, want: cas.want, wantExc: cas.wantExc}
