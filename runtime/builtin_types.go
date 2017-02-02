@@ -29,7 +29,7 @@ var (
 	ExceptionTypes []*Type
 	// EllipsisType is the object representing the Python 'ellipsis' type
 	EllipsisType = newSimpleType("ellipsis", ObjectType)
-	// Ellipsis is the singleton ellipsis object representing the Python 
+	// Ellipsis is the singleton ellipsis object representing the Python
 	// 'Ellipsis' object.
 	Ellipsis = &Object{typ: EllipsisType}
 	// NoneType is the object representing the Python 'NoneType' type.
