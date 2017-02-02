@@ -21,8 +21,15 @@ class struct_time(tuple):  #pylint: disable=invalid-name,missing-docstring
 
   def __init__(self, args):
     super(struct_time, self).__init__(tuple, args)
-    self.tm_year, self.tm_mon, self.tm_mday, self.tm_hour, self.tm_min, \
-        self.tm_sec, self.tm_wday, self.tm_yday, self.tm_isdst = self
+    self.tm_year = self[0]
+    self.tm_mon = self[1]
+    self.tm_mday = self[2]
+    self.tm_hour = self[3]
+    self.tm_min = self[4]
+    self.tm_sec = self[5]
+    self.tm_wday = self[6]
+    self.tm_yday = self[7]
+    self.tm_isdst = self[8]
 
   def __repr__(self):
     return ("time.struct_time(tm_year=%s, tm_mon=%s, tm_mday=%s, "
@@ -36,13 +43,13 @@ class struct_time(tuple):  #pylint: disable=invalid-name,missing-docstring
 def gmtime(seconds=None):
   t = (Unix(seconds, 0) if seconds else Now()).UTC()
   return struct_time((t.Year(), t.Month(), t.Day(), t.Hour(), t.Minute(),
-                      t.Second(), (t.Weekday()+6)%7, t.YearDay(), 0))
+                      t.Second(), (t.Weekday() + 6) % 7, t.YearDay(), 0))
 
 
 def localtime(seconds=None):
   t = (Unix(seconds, 0) if seconds else Now()).Local()
   return struct_time((t.Year(), t.Month(), t.Day(), t.Hour(), t.Minute(),
-                      t.Second(), (t.Weekday()+6)%7, t.YearDay(), 0))
+                      t.Second(), (t.Weekday() + 6) % 7, t.YearDay(), 0))
 
 
 def mktime(t):
@@ -58,21 +65,40 @@ def time():
 
 
 _strftime_directive_map = {
-    'Y': '2006', 'y': '06', 'b': 'Jan', 'B': 'January', 'm': '01', 'd': '02',
-    'a': 'Mon', 'A': 'Monday',
-    'H': '15', 'I': '03', 'M': '04', 'S': '05', 'L': '.000',
-    'p': 'PM',
-    'Z':  'MST', 'z': '-0700',
     '%': '%',
-    'c': NotImplementedError, 'j': NotImplementedError,
-    'U': NotImplementedError, 'w': NotImplementedError,
-    'W': NotImplementedError, 'x': NotImplementedError,
-    'X': NotImplementedError, '0': NotImplementedError,
-    '1': NotImplementedError, '2': NotImplementedError,
-    '3': NotImplementedError, '4': NotImplementedError,
-    '5': NotImplementedError, '6': NotImplementedError,
-    '7': NotImplementedError, '8': NotImplementedError,
+    '0': NotImplementedError,
+    '1': NotImplementedError,
+    '2': NotImplementedError,
+    '3': NotImplementedError,
+    '4': NotImplementedError,
+    '5': NotImplementedError,
+    '6': NotImplementedError,
+    '7': NotImplementedError,
+    '8': NotImplementedError,
     '9': NotImplementedError,
+    'a': 'Mon',
+    'A': 'Monday',
+    'b': 'Jan',
+    'B': 'January',
+    'c': NotImplementedError,
+    'd': '02',
+    'H': '15',
+    'I': '03',
+    'j': NotImplementedError,
+    'L': '.000',
+    'm': '01',
+    'M': '04',
+    'p': 'PM',
+    'S': '05',
+    'U': NotImplementedError,
+    'W': NotImplementedError,
+    'w': NotImplementedError,
+    'X': NotImplementedError,
+    'x': NotImplementedError,
+    'y': '06',
+    'Y': '2006',
+    'Z': 'MST',
+    'z': '-0700',
 }
 
 def strftime(format, tt=None):  # pylint: disable=missing-docstring,redefined-builtin
@@ -81,11 +107,11 @@ def strftime(format, tt=None):  # pylint: disable=missing-docstring,redefined-bu
   prev, n = 0, format.find('%', 0, -1)
   while n != -1:
     ret.append(format[prev:n])
-    next_ch = format[n+1]
+    next_ch = format[n + 1]
     c = _strftime_directive_map.get(next_ch)
     if c is NotImplementedError:
       raise NotImplementedError('Code: %' + next_ch + ' not yet supported')
-    elif c:
+    if c:
       ret.append(t.Format(c))
     else:
       ret.append(format[n:n+2])
