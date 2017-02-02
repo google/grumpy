@@ -327,6 +327,13 @@ func TestBuiltinGlobals(t *testing.T) {
 	}
 }
 
+func TestEllipsisRepr(t *testing.T) {
+	cas := invokeTestCase{args: wrapArgs(Ellipsis), want: NewStr("Ellipsis").ToObject()}
+	if err := runInvokeMethodTestCase(EllipsisType, "__repr__", &cas); err != "" {
+		t.Error(err)
+	}
+}
+
 func TestNoneRepr(t *testing.T) {
 	cas := invokeTestCase{args: wrapArgs(None), want: NewStr("None").ToObject()}
 	if err := runInvokeMethodTestCase(NoneType, "__repr__", &cas); err != "" {

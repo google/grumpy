@@ -27,6 +27,11 @@ var (
 	builtinStr = NewStr("__builtin__")
 	// ExceptionTypes contains all builtin exception types.
 	ExceptionTypes []*Type
+	// EllipsisType is the object representing the Python 'ellipsis' type
+	EllipsisType = newSimpleType("ellipsis", ObjectType)
+	// Ellipsis is the singleton ellipsis object representing the Python
+	// 'Ellipsis' object.
+	Ellipsis = &Object{typ: EllipsisType}
 	// NoneType is the object representing the Python 'NoneType' type.
 	NoneType = newSimpleType("NoneType", ObjectType)
 	// None is the singleton NoneType object representing the Python 'None'
@@ -44,8 +49,17 @@ var (
 	UnboundLocal = newObject(unboundLocalType)
 )
 
+func ellipsisRepr(*Frame, *Object) (*Object, *BaseException) {
+	return NewStr("Ellipsis").ToObject(), nil
+}
+
 func noneRepr(*Frame, *Object) (*Object, *BaseException) {
 	return NewStr("None").ToObject(), nil
+}
+
+func initEllipsisType(map[string]*Object) {
+	EllipsisType.flags &= ^(typeFlagInstantiable | typeFlagBasetype)
+	EllipsisType.slots.Repr = &unaryOpSlot{ellipsisRepr}
 }
 
 func initNoneType(map[string]*Object) {
@@ -93,6 +107,7 @@ var builtinTypes = map[*Type]*builtinTypeInfo{
 	dictKeyIteratorType:           {init: initDictKeyIteratorType},
 	dictValueIteratorType:         {init: initDictValueIteratorType},
 	DictType:                      {init: initDictType, global: true},
+	EllipsisType:                  {init: initEllipsisType, global: true},
 	enumerateType:                 {init: initEnumerateType, global: true},
 	EnvironmentErrorType:          {global: true},
 	ExceptionType:                 {global: true},
@@ -628,6 +643,7 @@ func init() {
 		"cmp":            newBuiltinFunction("cmp", builtinCmp).ToObject(),
 		"delattr":        newBuiltinFunction("delattr", builtinDelAttr).ToObject(),
 		"dir":            newBuiltinFunction("dir", builtinDir).ToObject(),
+		"Ellipsis":       Ellipsis,
 		"False":          False.ToObject(),
 		"getattr":        newBuiltinFunction("getattr", builtinGetAttr).ToObject(),
 		"globals":        newBuiltinFunction("globals", builtinGlobals).ToObject(),
