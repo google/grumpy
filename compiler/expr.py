@@ -77,11 +77,17 @@ class GeneratedLiteral(GeneratedExpr):
   def expr(self):
     return self._expr
 
+
 nil_expr = GeneratedLiteral('nil')
 
-class BlankVar(object):
+
+class BlankVar(GeneratedExpr):
   def __init__(self):
     self.name = '_'
-    self.expr = '_'
+
+  @property
+  def expr(self):
+    return '_'
+
 
 blank_var = BlankVar()
