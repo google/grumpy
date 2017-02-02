@@ -184,8 +184,8 @@ class ExprVisitorTest(unittest.TestCase):
   testNumIntLarge = _MakeLiteralTest('12345678901234567890')
   testNumFloat = _MakeLiteralTest('102.1')
   testNumFloatOnlyDecimal = _MakeLiteralTest('.5')
-  # TODO: current grumpy's repr on float have different behavior with cpython,
-  # so skit these temporarily
+  # TODO: Current Grumpy's repr on float has different behavior than CPython.
+  # so skip these for now.
   testNumFloatNoDecimal = unittest.expectedFailure(_MakeLiteralTest('5.'))
   testNumFloatSci = unittest.expectedFailure(_MakeLiteralTest('1e6'))
   testNumFloatSciCap = unittest.expectedFailure(_MakeLiteralTest('1E6'))
