@@ -409,6 +409,19 @@ func TestDictGetItemString(t *testing.T) {
 	}
 }
 
+func TestDictHasKey(t *testing.T) {
+	cases := []invokeTestCase{
+		{args: wrapArgs(NewDict(), "foo"), want: False.ToObject()},
+		{args: wrapArgs(newTestDict("foo", 1, "bar", 2), "foo"), want: True.ToObject()},
+		{args: wrapArgs(newTestDict(3, "foo", "bar", 42), 42), want: False.ToObject()},
+	}
+	for _, cas := range cases {
+		if err := runInvokeMethodTestCase(DictType, "has_key", &cas); err != "" {
+			t.Error(err)
+		}
+	}
+}
+
 func TestDictItemIteratorIter(t *testing.T) {
 	iter := &newDictItemIterator(NewDict()).Object
 	cas := &invokeTestCase{args: wrapArgs(iter), want: iter}
