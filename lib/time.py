@@ -17,6 +17,44 @@
 from __go__.time import Now, Second, Sleep, Unix, Date, UTC # pylint: disable=g-multiple-import
 
 
+_strftime_directive_map = {
+    '%': '%',
+    '0': NotImplementedError,
+    '1': NotImplementedError,
+    '2': NotImplementedError,
+    '3': NotImplementedError,
+    '4': NotImplementedError,
+    '5': NotImplementedError,
+    '6': NotImplementedError,
+    '7': NotImplementedError,
+    '8': NotImplementedError,
+    '9': NotImplementedError,
+    'a': 'Mon',
+    'A': 'Monday',
+    'b': 'Jan',
+    'B': 'January',
+    'c': NotImplementedError,
+    'd': '02',
+    'H': '15',
+    'I': '03',
+    'j': NotImplementedError,
+    'L': '.000',
+    'm': '01',
+    'M': '04',
+    'p': 'PM',
+    'S': '05',
+    'U': NotImplementedError,
+    'W': NotImplementedError,
+    'w': NotImplementedError,
+    'X': NotImplementedError,
+    'x': NotImplementedError,
+    'y': '06',
+    'Y': '2006',
+    'Z': 'MST',
+    'z': '-0700',
+}
+
+
 class struct_time(tuple):  #pylint: disable=invalid-name,missing-docstring
 
   def __init__(self, args):
@@ -64,43 +102,6 @@ def time():
   return float(Now().UnixNano()) / Second
 
 
-_strftime_directive_map = {
-    '%': '%',
-    '0': NotImplementedError,
-    '1': NotImplementedError,
-    '2': NotImplementedError,
-    '3': NotImplementedError,
-    '4': NotImplementedError,
-    '5': NotImplementedError,
-    '6': NotImplementedError,
-    '7': NotImplementedError,
-    '8': NotImplementedError,
-    '9': NotImplementedError,
-    'a': 'Mon',
-    'A': 'Monday',
-    'b': 'Jan',
-    'B': 'January',
-    'c': NotImplementedError,
-    'd': '02',
-    'H': '15',
-    'I': '03',
-    'j': NotImplementedError,
-    'L': '.000',
-    'm': '01',
-    'M': '04',
-    'p': 'PM',
-    'S': '05',
-    'U': NotImplementedError,
-    'W': NotImplementedError,
-    'w': NotImplementedError,
-    'X': NotImplementedError,
-    'x': NotImplementedError,
-    'y': '06',
-    'Y': '2006',
-    'Z': 'MST',
-    'z': '-0700',
-}
-
 def strftime(format, tt=None):  # pylint: disable=missing-docstring,redefined-builtin
   t = (Unix(int(mktime(tt)), 0) if tt else Now()).Local()
   ret = []
@@ -121,8 +122,9 @@ def strftime(format, tt=None):  # pylint: disable=missing-docstring,redefined-bu
   return ''.join(ret)
 
 
+# TODO: Calculate real value for daylight saving.
+daylight = 0
+
 # TODO: Use local DST instead of ''.
 tzname = (Now().Zone()[0], '')
 
-# TODO: Calculate real value for daylight saving.
-daylight = 0
