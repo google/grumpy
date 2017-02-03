@@ -579,25 +579,21 @@ func builtinRawInput(f *Frame, args Args, kwargs KWArgs) (*Object, *BaseExceptio
 	}
 
 	in := bufio.NewReader(fin)
-	out := bufio.NewWriter(fout)
-	defer out.Flush()
-
 	if len(args) == 1 {
-		prompt := []byte(toStrUnsafe(args[0]).Value())
-		out.Write(prompt)
-		out.Flush()
+		prompt, _ := ToStr(f, args[0])
+		fmt.Fprint(fout, prompt.Value())
 	}
-
 	s, _, _ := in.ReadLine()
 
 	// Todo: Should implement more cases of error.
 	pySsizeTmax := ((^uint(0)) - 1) >> 1
-	if uint(len(s)) > pySsizeTmax {
+	size := len(s)
+	if uint(size) > pySsizeTmax {
 		msg := fmt.Sprintf("[raw_]input: input too long")
 		return nil, f.RaiseType(OverflowErrorType, msg)
 	}
 
-	return NewStr(string(s[:])).ToObject(), nil
+	return NewStr(string(s[0:size])).ToObject(), nil
 }
 
 func builtinRepr(f *Frame, args Args, kwargs KWArgs) (*Object, *BaseException) {
