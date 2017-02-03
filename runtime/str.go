@@ -806,8 +806,6 @@ func strCompare(v, w *Object, ltResult, eqResult, gtResult *Int) *Object {
 }
 
 func strInterpolate(f *Frame, format string, values *Tuple) (*Object, *BaseException) {
-	var val string
-	var err error
 	var buf bytes.Buffer
 	valueIndex := 0
 	index := strings.Index(format, "%")
@@ -827,6 +825,7 @@ func strInterpolate(f *Frame, format string, values *Tuple) (*Object, *BaseExcep
 			return nil, f.RaiseType(NotImplementedErrorType, "field width not yet supported")
 		}
 		if matches[2] != "" {
+			var err error
 			fieldWidth, err = strconv.Atoi(matches[2])
 			if err != nil {
 				return nil, f.RaiseType(TypeErrorType, fmt.Sprint(err))
@@ -835,6 +834,7 @@ func strInterpolate(f *Frame, format string, values *Tuple) (*Object, *BaseExcep
 		if flags != "" && flags != "0" {
 			return nil, f.RaiseType(NotImplementedErrorType, "conversion flags not yet supported")
 		}
+		var val string
 		switch fieldType {
 		case "r", "s":
 			o := values.elems[valueIndex]
@@ -850,7 +850,7 @@ func strInterpolate(f *Frame, format string, values *Tuple) (*Object, *BaseExcep
 			}
 			val = s.Value()
 			if fieldWidth > 0 {
-				val = xfill(val, fieldWidth, " ")
+				val = strPad(val, fieldWidth, " ")
 			}
 			buf.WriteString(val)
 			valueIndex++
@@ -863,7 +863,7 @@ func strInterpolate(f *Frame, format string, values *Tuple) (*Object, *BaseExcep
 					if flags != "" {
 						fillchar = flags
 					}
-					val = xfill(val, fieldWidth, fillchar)
+					val = strPad(val, fieldWidth, fillchar)
 				}
 				buf.WriteString(val)
 				valueIndex++
@@ -903,14 +903,14 @@ func strInterpolate(f *Frame, format string, values *Tuple) (*Object, *BaseExcep
 				if flags != "" {
 					fillchar = flags
 				}
-				val = xfill(val, fieldWidth, fillchar)
+				val = strPad(val, fieldWidth, fillchar)
 			}
 			buf.WriteString(val)
 			valueIndex++
 		case "%":
 			val = "%"
 			if fieldWidth > 0 {
-				val = xfill(val, fieldWidth, " ")
+				val = strPad(val, fieldWidth, " ")
 			}
 			buf.WriteString(val)
 		default:
@@ -1089,7 +1089,7 @@ func strZFill(f *Frame, args Args, _ KWArgs) (*Object, *BaseException) {
 	if raised != nil {
 		return nil, raised
 	}
-	return NewStr(xfill(s, width, "0")).ToObject(), nil
+	return NewStr(strPad(s, width, "0")).ToObject(), nil
 }
 
 func init() {
@@ -1113,7 +1113,10 @@ func toUpper(b byte) byte {
 	return b
 }
 
-func xfill(s string, width int, fillchar string) string {
+// strPad returns s padded with fillchar so that its length is at least width.
+// Fillchar must be a single character. When fillchar is "0", s starting with a
+// sign are handled correctly.
+func strPad(s string, width int, fillchar string) string {
 	l := len(s)
 	if width <= l {
 		return s
@@ -1123,10 +1126,11 @@ func xfill(s string, width int, fillchar string) string {
 	if l > 0 && fillchar == "0" && (s[0] == '-' || s[0] == '+') {
 		buf.WriteByte(s[0])
 		s = s[1:]
+		l = len(s)
 		width--
 	}
 	// TODO: Support or throw fillchar len more than one.
-	buf.WriteString(strings.Repeat(fillchar, width-len(s)))
+	buf.WriteString(strings.Repeat(fillchar, width-l))
 	buf.WriteString(s)
 	return buf.String()
 }
