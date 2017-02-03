@@ -15,6 +15,7 @@
 package grumpy
 
 import (
+	"bufio"
 	"fmt"
 	"math/big"
 	"os"
@@ -559,6 +560,46 @@ func builtinRange(f *Frame, args Args, kwargs KWArgs) (*Object, *BaseException) 
 	return ListType.Call(f, []*Object{r}, nil)
 }
 
+func builtinRawInput(f *Frame, args Args, kwargs KWArgs) (*Object, *BaseException) {
+	if len(args) > 1 {
+		msg := fmt.Sprintf("[raw_]input expcted at most 1 arguments, got %d", len(args))
+		return nil, f.RaiseType(TypeErrorType, msg)
+	}
+
+	fin := os.Stdin
+	fout := os.Stdout
+	if fin == nil {
+		msg := fmt.Sprintf("[raw_]input: lost sys.stdin")
+		return nil, f.RaiseType(RuntimeErrorType, msg)
+	}
+
+	if fout == nil {
+		msg := fmt.Sprintf("[raw_]input: lost sys.stdout")
+		return nil, f.RaiseType(RuntimeErrorType, msg)
+	}
+
+	in := bufio.NewReader(fin)
+	out := bufio.NewWriter(fout)
+	defer out.Flush()
+
+	if len(args) == 1 {
+		prompt := []byte(toStrUnsafe(args[0]).Value())
+		out.Write(prompt)
+		out.Flush()
+	}
+
+	s, _, _ := in.ReadLine()
+
+	// Todo: Should implement more cases of error.
+	pySsizeTmax := ((^uint(0)) - 1) >> 1
+	if uint(len(s)) > pySsizeTmax {
+		msg := fmt.Sprintf("[raw_]input: input too long")
+		return nil, f.RaiseType(OverflowErrorType, msg)
+	}
+
+	return NewStr(string(s[:])).ToObject(), nil
+}
+
 func builtinRepr(f *Frame, args Args, kwargs KWArgs) (*Object, *BaseException) {
 	if raised := checkFunctionArgs(f, "repr", args, ObjectType); raised != nil {
 		return nil, raised
@@ -666,6 +707,7 @@ func init() {
 		"ord":            newBuiltinFunction("ord", builtinOrd).ToObject(),
 		"print":          newBuiltinFunction("print", builtinPrint).ToObject(),
 		"range":          newBuiltinFunction("range", builtinRange).ToObject(),
+		"raw_input":      newBuiltinFunction("raw_input", builtinRawInput).ToObject(),
 		"repr":           newBuiltinFunction("repr", builtinRepr).ToObject(),
 		"setattr":        newBuiltinFunction("setattr", builtinSetAttr).ToObject(),
 		"sorted":         newBuiltinFunction("sorted", builtinSorted).ToObject(),
