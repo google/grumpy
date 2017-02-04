@@ -19,35 +19,25 @@ from __go__.time import Now, Second, Sleep, Unix, Date, UTC # pylint: disable=g-
 
 _strftime_directive_map = {
     '%': '%',
-    '0': NotImplementedError,
-    '1': NotImplementedError,
-    '2': NotImplementedError,
-    '3': NotImplementedError,
-    '4': NotImplementedError,
-    '5': NotImplementedError,
-    '6': NotImplementedError,
-    '7': NotImplementedError,
-    '8': NotImplementedError,
-    '9': NotImplementedError,
     'a': 'Mon',
     'A': 'Monday',
     'b': 'Jan',
     'B': 'January',
-    'c': NotImplementedError,
+    'c': NotImplemented,
     'd': '02',
     'H': '15',
     'I': '03',
-    'j': NotImplementedError,
+    'j': NotImplemented,
     'L': '.000',
     'm': '01',
     'M': '04',
     'p': 'PM',
     'S': '05',
-    'U': NotImplementedError,
-    'W': NotImplementedError,
-    'w': NotImplementedError,
-    'X': NotImplementedError,
-    'x': NotImplementedError,
+    'U': NotImplemented,
+    'W': NotImplemented,
+    'w': NotImplemented,
+    'X': NotImplemented,
+    'x': NotImplemented,
     'y': '06',
     'Y': '2006',
     'Z': 'MST',
@@ -110,7 +100,7 @@ def strftime(format, tt=None):  # pylint: disable=missing-docstring,redefined-bu
     ret.append(format[prev:n])
     next_ch = format[n + 1]
     c = _strftime_directive_map.get(next_ch)
-    if c is NotImplementedError:
+    if c is NotImplemented:
       raise NotImplementedError('Code: %' + next_ch + ' not yet supported')
     if c:
       ret.append(t.Format(c))
