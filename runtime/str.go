@@ -850,7 +850,7 @@ func strInterpolate(f *Frame, format string, values *Tuple) (*Object, *BaseExcep
 			}
 			val = s.Value()
 			if fieldWidth > 0 {
-				val = strPad(val, fieldWidth, " ")
+				val = strLeftPad(val, fieldWidth, " ")
 			}
 			buf.WriteString(val)
 			valueIndex++
@@ -863,7 +863,7 @@ func strInterpolate(f *Frame, format string, values *Tuple) (*Object, *BaseExcep
 					if flags != "" {
 						fillchar = flags
 					}
-					val = strPad(val, fieldWidth, fillchar)
+					val = strLeftPad(val, fieldWidth, fillchar)
 				}
 				buf.WriteString(val)
 				valueIndex++
@@ -903,14 +903,14 @@ func strInterpolate(f *Frame, format string, values *Tuple) (*Object, *BaseExcep
 				if flags != "" {
 					fillchar = flags
 				}
-				val = strPad(val, fieldWidth, fillchar)
+				val = strLeftPad(val, fieldWidth, fillchar)
 			}
 			buf.WriteString(val)
 			valueIndex++
 		case "%":
 			val = "%"
 			if fieldWidth > 0 {
-				val = strPad(val, fieldWidth, " ")
+				val = strLeftPad(val, fieldWidth, " ")
 			}
 			buf.WriteString(val)
 		default:
@@ -1089,7 +1089,7 @@ func strZFill(f *Frame, args Args, _ KWArgs) (*Object, *BaseException) {
 	if raised != nil {
 		return nil, raised
 	}
-	return NewStr(strPad(s, width, "0")).ToObject(), nil
+	return NewStr(strLeftPad(s, width, "0")).ToObject(), nil
 }
 
 func init() {
@@ -1113,10 +1113,10 @@ func toUpper(b byte) byte {
 	return b
 }
 
-// strPad returns s padded with fillchar so that its length is at least width.
+// strLeftPad returns s padded with fillchar so that its length is at least width.
 // Fillchar must be a single character. When fillchar is "0", s starting with a
 // sign are handled correctly.
-func strPad(s string, width int, fillchar string) string {
+func strLeftPad(s string, width int, fillchar string) string {
 	l := len(s)
 	if width <= l {
 		return s
