@@ -839,21 +839,31 @@ func strInterpolate(f *Frame, format string, values *Tuple) (*Object, *BaseExcep
 		if matches == nil {
 			return nil, f.RaiseType(ValueErrorType, "invalid format spec")
 		}
-		if matches[7] != "%" && valueIndex >= len(values.elems) {
+		flags, fieldType := matches[1], matches[7]
+		if fieldType != "%" && valueIndex >= len(values.elems) {
 			return nil, f.RaiseType(TypeErrorType, "not enough arguments for format string")
 		}
-		if matches[1] != "" {
-			return nil, f.RaiseType(NotImplementedErrorType, "conversion flags not yet supported")
-		}
-		if matches[2] != "" || matches[4] != "" {
+		fieldWidth := -1
+		if matches[2] == "*" || matches[4] != "" {
 			return nil, f.RaiseType(NotImplementedErrorType, "field width not yet supported")
 		}
-		switch matches[7] {
+		if matches[2] != "" {
+			var err error
+			fieldWidth, err = strconv.Atoi(matches[2])
+			if err != nil {
+				return nil, f.RaiseType(TypeErrorType, fmt.Sprint(err))
+			}
+		}
+		if flags != "" && flags != "0" {
+			return nil, f.RaiseType(NotImplementedErrorType, "conversion flags not yet supported")
+		}
+		var val string
+		switch fieldType {
 		case "r", "s":
 			o := values.elems[valueIndex]
 			var s *Str
 			var raised *BaseException
-			if matches[7] == "r" {
+			if fieldType == "r" {
 				s, raised = Repr(f, o)
 			} else {
 				s, raised = ToStr(f, o)
@@ -861,24 +871,35 @@ func strInterpolate(f *Frame, format string, values *Tuple) (*Object, *BaseExcep
 			if raised != nil {
 				return nil, raised
 			}
-			buf.WriteString(s.Value())
+			val = s.Value()
+			if fieldWidth > 0 {
+				val = strLeftPad(val, fieldWidth, " ")
+			}
+			buf.WriteString(val)
 			valueIndex++
 		case "f":
 			o := values.elems[valueIndex]
-			if val, ok := floatCoerce(o); ok {
-				buf.WriteString(strconv.FormatFloat(val, 'f', 6, 64))
+			if v, ok := floatCoerce(o); ok {
+				val := strconv.FormatFloat(v, 'f', 6, 64)
+				if fieldWidth > 0 {
+					fillchar := " "
+					if flags != "" {
+						fillchar = flags
+					}
+					val = strLeftPad(val, fieldWidth, fillchar)
+				}
+				buf.WriteString(val)
 				valueIndex++
 			} else {
 				return nil, f.RaiseType(TypeErrorType, fmt.Sprintf("float argument required, not %s", o.typ.Name()))
 			}
 		case "d", "x", "X", "o":
-			var val string
 			o := values.elems[valueIndex]
 			i, raised := ToInt(f, values.elems[valueIndex])
 			if raised != nil {
 				return nil, raised
 			}
-			if matches[7] == "d" {
+			if fieldType == "d" {
 				s, raised := ToStr(f, i)
 				if raised != nil {
 					return nil, raised
@@ -896,17 +917,28 @@ func strInterpolate(f *Frame, format string, values *Tuple) (*Object, *BaseExcep
 				} else {
 					val = strconv.FormatInt(int64(toIntUnsafe(i).Value()), 16)
 				}
-				if matches[7] == "X" {
+				if fieldType == "X" {
 					val = strings.ToUpper(val)
 				}
+			}
+			if fieldWidth > 0 {
+				fillchar := " "
+				if flags != "" {
+					fillchar = flags
+				}
+				val = strLeftPad(val, fieldWidth, fillchar)
 			}
 			buf.WriteString(val)
 			valueIndex++
 		case "%":
-			buf.WriteString("%")
+			val = "%"
+			if fieldWidth > 0 {
+				val = strLeftPad(val, fieldWidth, " ")
+			}
+			buf.WriteString(val)
 		default:
 			format := "conversion type not yet supported: %s"
-			return nil, f.RaiseType(NotImplementedErrorType, fmt.Sprintf(format, matches[7]))
+			return nil, f.RaiseType(NotImplementedErrorType, fmt.Sprintf(format, fieldType))
 		}
 		format = format[len(matches[0]):]
 		index = strings.Index(format, "%")
@@ -1076,24 +1108,11 @@ func strZFill(f *Frame, args Args, _ KWArgs) (*Object, *BaseException) {
 		return nil, raised
 	}
 	s := toStrUnsafe(args[0]).Value()
-	l := len(s)
 	width, raised := ToIntValue(f, args[1])
 	if raised != nil {
 		return nil, raised
 	}
-	if width <= l {
-		return args[0], nil
-	}
-	buf := bytes.Buffer{}
-	buf.Grow(width)
-	if l > 0 && (s[0] == '-' || s[0] == '+') {
-		buf.WriteByte(s[0])
-		s = s[1:]
-		width--
-	}
-	buf.WriteString(strings.Repeat("0", width-len(s)))
-	buf.WriteString(s)
-	return NewStr(buf.String()).ToObject(), nil
+	return NewStr(strLeftPad(s, width, "0")).ToObject(), nil
 }
 
 func init() {
@@ -1115,4 +1134,26 @@ func toUpper(b byte) byte {
 		return b - caseOffset
 	}
 	return b
+}
+
+// strLeftPad returns s padded with fillchar so that its length is at least width.
+// Fillchar must be a single character. When fillchar is "0", s starting with a
+// sign are handled correctly.
+func strLeftPad(s string, width int, fillchar string) string {
+	l := len(s)
+	if width <= l {
+		return s
+	}
+	buf := bytes.Buffer{}
+	buf.Grow(width)
+	if l > 0 && fillchar == "0" && (s[0] == '-' || s[0] == '+') {
+		buf.WriteByte(s[0])
+		s = s[1:]
+		l = len(s)
+		width--
+	}
+	// TODO: Support or throw fillchar len more than one.
+	buf.WriteString(strings.Repeat(fillchar, width-l))
+	buf.WriteString(s)
+	return buf.String()
 }
