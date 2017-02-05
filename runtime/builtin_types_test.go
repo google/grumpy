@@ -422,3 +422,24 @@ func TestBuiltinSetAttr(t *testing.T) {
 		}
 	}
 }
+
+// TODO: Improvment unit tests codes into catch user's input and output.
+func TestRawInput(t *testing.T) {
+	fun := newBuiltinFunction("TestRawInput", func(f *Frame, args Args, _ KWArgs) (*Object, *BaseException) {
+		input, raised := builtinRawInput(f, args, nil)
+		if raised != nil {
+			return nil, raised
+		}
+		return input, nil
+	}).ToObject()
+	cases := []invokeTestCase{
+		{args: wrapArgs(""), want: NewStr("").ToObject()},
+		{args: wrapArgs("abc"), want: NewStr("").ToObject()},
+		{args: wrapArgs(5, 4), wantExc: mustCreateException(TypeErrorType, "[raw_]input expcted at most 1 arguments, got 2")},
+	}
+	for _, cas := range cases {
+		if err := runInvokeTestCase(fun, &cas); err != "" {
+			t.Error(err)
+		}
+	}
+}
