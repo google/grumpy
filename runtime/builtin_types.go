@@ -15,10 +15,10 @@
 package grumpy
 
 import (
-	"bufio"
 	"fmt"
 	"math/big"
 	"os"
+	"strings"
 	"unicode"
 )
 
@@ -566,34 +566,25 @@ func builtinRawInput(f *Frame, args Args, kwargs KWArgs) (*Object, *BaseExceptio
 		return nil, f.RaiseType(TypeErrorType, msg)
 	}
 
-	fin := os.Stdin
-	fout := os.Stdout
-	if fin == nil {
+	stdout := os.Stdout
+	stdin := NewFileFromFD(os.Stdin.Fd())
+	if stdin == nil {
 		msg := fmt.Sprintf("[raw_]input: lost sys.stdin")
 		return nil, f.RaiseType(RuntimeErrorType, msg)
 	}
 
-	if fout == nil {
+	if stdout == nil {
 		msg := fmt.Sprintf("[raw_]input: lost sys.stdout")
 		return nil, f.RaiseType(RuntimeErrorType, msg)
 	}
 
-	in := bufio.NewReader(fin)
 	if len(args) == 1 {
-		prompt, _ := ToStr(f, args[0])
-		fmt.Fprint(fout, prompt.Value())
-	}
-	s, _, _ := in.ReadLine()
-
-	// Todo: Should implement more cases of error.
-	pySsizeTmax := ((^uint(0)) - 1) >> 1
-	size := len(s)
-	if uint(size) > pySsizeTmax {
-		msg := fmt.Sprintf("[raw_]input: input too long")
-		return nil, f.RaiseType(OverflowErrorType, msg)
+		pyPrint(f, args, "", "", stdout)
 	}
 
-	return NewStr(string(s[0:size])).ToObject(), nil
+	line, _ := stdin.readLine(MaxInt)
+	line = strings.TrimRight(line, "\n")
+	return NewStr(line).ToObject(), nil
 }
 
 func builtinRepr(f *Frame, args Args, kwargs KWArgs) (*Object, *BaseException) {
