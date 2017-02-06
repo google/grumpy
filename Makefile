@@ -93,7 +93,7 @@ STDLIB_TESTS := \
   test/test_slice \
   test/test_string \
   test/test_md5 \
-	test/test_bisect \
+  test/test_bisect \
   threading_test \
   time_test \
   types_test \
@@ -123,7 +123,6 @@ clean:
 run: $(RUNNER)
 	@$(RUNNER_BIN)
 
-stdtest: $(STDLIB_PASS_FILES)
 test: $(ACCEPT_PASS_FILES) $(ACCEPT_PY_PASS_FILES) $(COMPILER_PASS_FILES) $(COMPILER_EXPR_VISITOR_PASS_FILES) $(COMPILER_STMT_PASS_FILES) $(RUNTIME_PASS_FILE) $(STDLIB_PASS_FILES)
 
 precommit: cover gofmt lint test
