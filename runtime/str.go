@@ -939,15 +939,15 @@ func strIsAlNum(f *Frame, args Args, kwargs KWArgs) (*Object, *BaseException) {
 	}
 	s := toStrUnsafe(args[0]).Value()
 	if len(s) == 0 {
-		return GetBool(false).ToObject(), nil
+		return False.ToObject(), nil
 	}
 	for i := range s {
 		if !isAlNum(s[i]) {
-			return GetBool(false).ToObject(), nil
+			return False.ToObject(), nil
 		}
 	}
 
-	return GetBool(true).ToObject(), nil
+	return True.ToObject(), nil
 }
 
 func strIsAlpha(f *Frame, args Args, kwargs KWArgs) (*Object, *BaseException) {
@@ -956,15 +956,15 @@ func strIsAlpha(f *Frame, args Args, kwargs KWArgs) (*Object, *BaseException) {
 	}
 	s := toStrUnsafe(args[0]).Value()
 	if len(s) == 0 {
-		return GetBool(false).ToObject(), nil
+		return False.ToObject(), nil
 	}
 	for i := range s {
 		if !isAlpha(s[i]) {
-			return GetBool(false).ToObject(), nil
+			return False.ToObject(), nil
 		}
 	}
 
-	return GetBool(true).ToObject(), nil
+	return True.ToObject(), nil
 }
 
 func strIsDigit(f *Frame, args Args, kwargs KWArgs) (*Object, *BaseException) {
@@ -973,15 +973,15 @@ func strIsDigit(f *Frame, args Args, kwargs KWArgs) (*Object, *BaseException) {
 	}
 	s := toStrUnsafe(args[0]).Value()
 	if len(s) == 0 {
-		return GetBool(false).ToObject(), nil
+		return False.ToObject(), nil
 	}
 	for i := range s {
 		if !isDigit(s[i]) {
-			return GetBool(false).ToObject(), nil
+			return False.ToObject(), nil
 		}
 	}
 
-	return GetBool(true).ToObject(), nil
+	return True.ToObject(), nil
 }
 
 func strRepeatCount(f *Frame, numChars int, mult *Object) (int, bool, *BaseException) {
