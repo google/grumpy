@@ -136,6 +136,18 @@ func hashString(s string) int {
 	return h
 }
 
+func isAlNum(c byte) bool {
+	return isAlpha(c) || isDigit(c)
+}
+
+func isAlpha(c byte) bool {
+	return 'A' <= c && c <= 'Z' || 'a' <= c && c <= 'z'
+}
+
+func isDigit(c byte) bool {
+	return '0' <= c && c <= '9'
+}
+
 func strAdd(f *Frame, v, w *Object) (*Object, *BaseException) {
 	if w.isInstance(UnicodeType) {
 		// CPython explicitly dispatches to unicode here so that's how
@@ -777,6 +789,9 @@ func initStrType(dict map[string]*Object) {
 	dict["decode"] = newBuiltinFunction("decode", strDecode).ToObject()
 	dict["endswith"] = newBuiltinFunction("endswith", strEndsWith).ToObject()
 	dict["find"] = newBuiltinFunction("find", strFind).ToObject()
+	dict["isalnum"] = newBuiltinFunction("isalnum", strIsAlNum).ToObject()
+	dict["isalpha"] = newBuiltinFunction("isalpha", strIsAlpha).ToObject()
+	dict["isdigit"] = newBuiltinFunction("isdigit", strIsDigit).ToObject()
 	dict["join"] = newBuiltinFunction("join", strJoin).ToObject()
 	dict["lower"] = newBuiltinFunction("lower", strLower).ToObject()
 	dict["lstrip"] = newBuiltinFunction("lstrip", strLStrip).ToObject()
@@ -916,6 +931,57 @@ func strInterpolate(f *Frame, format string, values *Tuple) (*Object, *BaseExcep
 	}
 	buf.WriteString(format)
 	return NewStr(buf.String()).ToObject(), nil
+}
+
+func strIsAlNum(f *Frame, args Args, kwargs KWArgs) (*Object, *BaseException) {
+	if raised := checkMethodArgs(f, "isalnum", args, StrType); raised != nil {
+		return nil, raised
+	}
+	s := toStrUnsafe(args[0]).Value()
+	if len(s) == 0 {
+		return GetBool(false).ToObject(), nil
+	}
+	for i := range s {
+		if !isAlNum(s[i]) {
+			return GetBool(false).ToObject(), nil
+		}
+	}
+
+	return GetBool(true).ToObject(), nil
+}
+
+func strIsAlpha(f *Frame, args Args, kwargs KWArgs) (*Object, *BaseException) {
+	if raised := checkMethodArgs(f, "isalpha", args, StrType); raised != nil {
+		return nil, raised
+	}
+	s := toStrUnsafe(args[0]).Value()
+	if len(s) == 0 {
+		return GetBool(false).ToObject(), nil
+	}
+	for i := range s {
+		if !isAlpha(s[i]) {
+			return GetBool(false).ToObject(), nil
+		}
+	}
+
+	return GetBool(true).ToObject(), nil
+}
+
+func strIsDigit(f *Frame, args Args, kwargs KWArgs) (*Object, *BaseException) {
+	if raised := checkMethodArgs(f, "isdigit", args, StrType); raised != nil {
+		return nil, raised
+	}
+	s := toStrUnsafe(args[0]).Value()
+	if len(s) == 0 {
+		return GetBool(false).ToObject(), nil
+	}
+	for i := range s {
+		if !isDigit(s[i]) {
+			return GetBool(false).ToObject(), nil
+		}
+	}
+
+	return GetBool(true).ToObject(), nil
 }
 
 func strRepeatCount(f *Frame, numChars int, mult *Object) (int, bool, *BaseException) {
