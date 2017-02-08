@@ -98,11 +98,13 @@ func propertySet(f *Frame, desc, inst, value *Object) *BaseException {
 
 // makeStructFieldDescriptor creates a descriptor with a getter that returns
 // the field given by fieldName from t's basis structure.
-func makeStructFieldDescriptor(t *Type, fieldName, propertyName string) *Object {
+func makeStructFieldDescriptor(t *Type, fieldName, propertyName string, writtable bool) *Object {
 	field, ok := t.basis.FieldByName(fieldName)
 	if !ok {
 		logFatal(fmt.Sprintf("no such field %q for basis %s", fieldName, nativeTypeName(t.basis)))
 	}
+	nativeFieldType := getNativeType(field.Type)
+
 	getterFunc := func(f *Frame, args Args, _ KWArgs) (*Object, *BaseException) {
 		var ret *Object
 		var raised *BaseException
@@ -116,6 +118,27 @@ func makeStructFieldDescriptor(t *Type, fieldName, propertyName string) *Object 
 			}
 		}
 		return ret, raised
+	}
+	if writtable {
+		setterFunc := func(f *Frame, args Args, _ KWArgs) (*Object, *BaseException) {
+			var ret *Object
+			var raised *BaseException
+			if raised = checkFunctionArgs(f, fieldName, args, ObjectType, ObjectType); raised == nil {
+				//self := args[0]
+				newvalue := args[1]
+				if !newvalue.isInstance(nativeFieldType) {
+					format := "descriptor '%s' for '%s' objects doesn't apply to '%s' objects"
+					raised = f.RaiseType(TypeErrorType, fmt.Sprintf(format, propertyName, t.Name(), newvalue.typ.Name()))
+				} else {
+					ret, raised = SetNative(f, &field, newvalue)
+				}
+			}
+			return ret, raised
+		}
+		return newProperty(
+			newBuiltinFunction("_get"+fieldName, getterFunc).ToObject(),
+			newBuiltinFunction("_set"+fieldName, setterFunc).ToObject(),
+			None).ToObject()
 	}
 	return newProperty(newBuiltinFunction("_get"+fieldName, getterFunc).ToObject(), None, None).ToObject()
 }

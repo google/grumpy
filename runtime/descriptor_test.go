@@ -90,7 +90,7 @@ func TestMakeStructFieldDescriptor(t *testing.T) {
 			return nil, raised
 		}
 		t := toTypeUnsafe(args[0])
-		desc := makeStructFieldDescriptor(t, toStrUnsafe(args[1]).Value(), toStrUnsafe(args[2]).Value())
+		desc := makeStructFieldDescriptor(t, toStrUnsafe(args[1]).Value(), toStrUnsafe(args[2]).Value(), false)
 		get, raised := GetAttr(f, desc, NewStr("__get__"), nil)
 		if raised != nil {
 			return nil, raised

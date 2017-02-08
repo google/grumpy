@@ -153,7 +153,11 @@ func prepareBuiltinType(typ *Type, init builtinTypeInit) {
 		for i := 0; i < numFields; i++ {
 			field := basis.Field(i)
 			if attr := field.Tag.Get("attr"); attr != "" {
-				dict[attr] = makeStructFieldDescriptor(typ, field.Name, attr)
+				writtable := false
+				if mode := field.Tag.Get("attr_mode"); mode == "rw" {
+					writtable = true
+				}
+				dict[attr] = makeStructFieldDescriptor(typ, field.Name, attr, writtable)
 			}
 		}
 	}
