@@ -335,6 +335,54 @@ func strHash(f *Frame, o *Object) (*Object, *BaseException) {
 	return h.ToObject(), nil
 }
 
+func strIsAlNum(f *Frame, args Args, kwargs KWArgs) (*Object, *BaseException) {
+	if raised := checkMethodArgs(f, "isalnum", args, StrType); raised != nil {
+		return nil, raised
+	}
+	s := toStrUnsafe(args[0]).Value()
+	if len(s) == 0 {
+		return False.ToObject(), nil
+	}
+	for i := range s {
+		if !isAlNum(s[i]) {
+			return False.ToObject(), nil
+		}
+	}
+	return True.ToObject(), nil
+}
+
+func strIsAlpha(f *Frame, args Args, kwargs KWArgs) (*Object, *BaseException) {
+	if raised := checkMethodArgs(f, "isalpha", args, StrType); raised != nil {
+		return nil, raised
+	}
+	s := toStrUnsafe(args[0]).Value()
+	if len(s) == 0 {
+		return False.ToObject(), nil
+	}
+	for i := range s {
+		if !isAlpha(s[i]) {
+			return False.ToObject(), nil
+		}
+	}
+	return True.ToObject(), nil
+}
+
+func strIsDigit(f *Frame, args Args, kwargs KWArgs) (*Object, *BaseException) {
+	if raised := checkMethodArgs(f, "isdigit", args, StrType); raised != nil {
+		return nil, raised
+	}
+	s := toStrUnsafe(args[0]).Value()
+	if len(s) == 0 {
+		return False.ToObject(), nil
+	}
+	for i := range s {
+		if !isDigit(s[i]) {
+			return False.ToObject(), nil
+		}
+	}
+	return True.ToObject(), nil
+}
+
 func strJoin(f *Frame, args Args, _ KWArgs) (*Object, *BaseException) {
 	if raised := checkMethodArgs(f, "join", args, StrType, ObjectType); raised != nil {
 		return nil, raised
@@ -777,6 +825,9 @@ func initStrType(dict map[string]*Object) {
 	dict["decode"] = newBuiltinFunction("decode", strDecode).ToObject()
 	dict["endswith"] = newBuiltinFunction("endswith", strEndsWith).ToObject()
 	dict["find"] = newBuiltinFunction("find", strFind).ToObject()
+	dict["isalnum"] = newBuiltinFunction("isalnum", strIsAlNum).ToObject()
+	dict["isalpha"] = newBuiltinFunction("isalpha", strIsAlpha).ToObject()
+	dict["isdigit"] = newBuiltinFunction("isdigit", strIsDigit).ToObject()
 	dict["join"] = newBuiltinFunction("join", strJoin).ToObject()
 	dict["lower"] = newBuiltinFunction("lower", strLower).ToObject()
 	dict["lstrip"] = newBuiltinFunction("lstrip", strLStrip).ToObject()
@@ -1134,6 +1185,18 @@ func toUpper(b byte) byte {
 		return b - caseOffset
 	}
 	return b
+}
+
+func isAlNum(c byte) bool {
+	return isAlpha(c) || isDigit(c)
+}
+
+func isAlpha(c byte) bool {
+	return 'A' <= c && c <= 'Z' || 'a' <= c && c <= 'z'
+}
+
+func isDigit(c byte) bool {
+	return '0' <= c && c <= '9'
 }
 
 // strLeftPad returns s padded with fillchar so that its length is at least width.
