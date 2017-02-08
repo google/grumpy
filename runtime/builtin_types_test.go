@@ -18,6 +18,7 @@ import (
 	"bytes"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"math/big"
 	"os"
 	"testing"
@@ -423,18 +424,33 @@ func TestBuiltinSetAttr(t *testing.T) {
 	}
 }
 
-// TODO: Improvment unit tests codes into catch user's input and output.
 func TestRawInput(t *testing.T) {
 	fun := newBuiltinFunction("TestRawInput", func(f *Frame, args Args, _ KWArgs) (*Object, *BaseException) {
+		// Create a fake Stdin for input test.
+		stdinFile, _ := ioutil.TempFile(os.TempDir(), "prefix")
+		stdinFile.Write([]byte("hello grumpy\n"))
+		stdinFile.Close()
+		stdinFile, _ = os.Open(stdinFile.Name())
+		testStdin := NewFileFromFD(stdinFile.Fd())
+		oldStdin := Stdin
+		Stdin = testStdin
+
+		defer func() {
+			Stdin = oldStdin
+			stdinFile.Close()
+			os.Remove(stdinFile.Name())
+		}()
+
 		input, raised := builtinRawInput(f, args, nil)
+
 		if raised != nil {
 			return nil, raised
 		}
 		return input, nil
 	}).ToObject()
 	cases := []invokeTestCase{
-		{args: wrapArgs(""), want: NewStr("").ToObject()},
-		{args: wrapArgs("abc"), want: NewStr("").ToObject()},
+		{args: wrapArgs(), want: NewStr("hello grumpy").ToObject()},
+		{args: wrapArgs("abc"), want: NewStr("hello grumpy").ToObject()},
 		{args: wrapArgs(5, 4), wantExc: mustCreateException(TypeErrorType, "[raw_]input expcted at most 1 arguments, got 2")},
 	}
 	for _, cas := range cases {

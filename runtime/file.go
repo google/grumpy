@@ -342,3 +342,12 @@ func fileParseReadArgs(f *Frame, method string, args Args) (*File, int, *BaseExc
 	}
 	return toFileUnsafe(args[0]), size, nil
 }
+
+var (
+	// Stdin is an alias for sys.stdin.
+	Stdin = NewFileFromFD(os.Stdin.Fd())
+	// Stdout is an alias for sys.stdout.
+	Stdout = NewFileFromFD(os.Stdout.Fd())
+	// Stderr is an alias for sys.stderr.
+	Stderr = NewFileFromFD(os.Stderr.Fd())
+)

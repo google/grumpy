@@ -566,23 +566,25 @@ func builtinRawInput(f *Frame, args Args, kwargs KWArgs) (*Object, *BaseExceptio
 		return nil, f.RaiseType(TypeErrorType, msg)
 	}
 
-	stdout := os.Stdout
-	stdin := NewFileFromFD(os.Stdin.Fd())
-	if stdin == nil {
+	osStdout := os.Stdout
+	if Stdin == nil {
 		msg := fmt.Sprintf("[raw_]input: lost sys.stdin")
 		return nil, f.RaiseType(RuntimeErrorType, msg)
 	}
 
-	if stdout == nil {
+	if osStdout == nil {
 		msg := fmt.Sprintf("[raw_]input: lost sys.stdout")
 		return nil, f.RaiseType(RuntimeErrorType, msg)
 	}
 
 	if len(args) == 1 {
-		pyPrint(f, args, "", "", stdout)
+		pyPrint(f, args, "", "", osStdout)
 	}
 
-	line, _ := stdin.readLine(MaxInt)
+	line, err := Stdin.reader.ReadString('\n')
+	if err != nil {
+		return nil, f.RaiseType(IOErrorType, err.Error())
+	}
 	line = strings.TrimRight(line, "\n")
 	return NewStr(line).ToObject(), nil
 }
