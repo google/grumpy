@@ -136,18 +136,6 @@ func hashString(s string) int {
 	return h
 }
 
-func isAlNum(c byte) bool {
-	return isAlpha(c) || isDigit(c)
-}
-
-func isAlpha(c byte) bool {
-	return 'A' <= c && c <= 'Z' || 'a' <= c && c <= 'z'
-}
-
-func isDigit(c byte) bool {
-	return '0' <= c && c <= '9'
-}
-
 func strAdd(f *Frame, v, w *Object) (*Object, *BaseException) {
 	if w.isInstance(UnicodeType) {
 		// CPython explicitly dispatches to unicode here so that's how
@@ -1181,4 +1169,16 @@ func toUpper(b byte) byte {
 		return b - caseOffset
 	}
 	return b
+}
+
+func isAlNum(c byte) bool {
+	return isAlpha(c) || isDigit(c)
+}
+
+func isAlpha(c byte) bool {
+	return 'A' <= c && c <= 'Z' || 'a' <= c && c <= 'z'
+}
+
+func isDigit(c byte) bool {
+	return '0' <= c && c <= '9'
 }
