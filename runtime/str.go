@@ -335,6 +335,54 @@ func strHash(f *Frame, o *Object) (*Object, *BaseException) {
 	return h.ToObject(), nil
 }
 
+func strIsAlNum(f *Frame, args Args, kwargs KWArgs) (*Object, *BaseException) {
+	if raised := checkMethodArgs(f, "isalnum", args, StrType); raised != nil {
+		return nil, raised
+	}
+	s := toStrUnsafe(args[0]).Value()
+	if len(s) == 0 {
+		return False.ToObject(), nil
+	}
+	for i := range s {
+		if !isAlNum(s[i]) {
+			return False.ToObject(), nil
+		}
+	}
+	return True.ToObject(), nil
+}
+
+func strIsAlpha(f *Frame, args Args, kwargs KWArgs) (*Object, *BaseException) {
+	if raised := checkMethodArgs(f, "isalpha", args, StrType); raised != nil {
+		return nil, raised
+	}
+	s := toStrUnsafe(args[0]).Value()
+	if len(s) == 0 {
+		return False.ToObject(), nil
+	}
+	for i := range s {
+		if !isAlpha(s[i]) {
+			return False.ToObject(), nil
+		}
+	}
+	return True.ToObject(), nil
+}
+
+func strIsDigit(f *Frame, args Args, kwargs KWArgs) (*Object, *BaseException) {
+	if raised := checkMethodArgs(f, "isdigit", args, StrType); raised != nil {
+		return nil, raised
+	}
+	s := toStrUnsafe(args[0]).Value()
+	if len(s) == 0 {
+		return False.ToObject(), nil
+	}
+	for i := range s {
+		if !isDigit(s[i]) {
+			return False.ToObject(), nil
+		}
+	}
+	return True.ToObject(), nil
+}
+
 func strJoin(f *Frame, args Args, _ KWArgs) (*Object, *BaseException) {
 	if raised := checkMethodArgs(f, "join", args, StrType, ObjectType); raised != nil {
 		return nil, raised
@@ -951,57 +999,6 @@ func strInterpolate(f *Frame, format string, values *Tuple) (*Object, *BaseExcep
 	}
 	buf.WriteString(format)
 	return NewStr(buf.String()).ToObject(), nil
-}
-
-func strIsAlNum(f *Frame, args Args, kwargs KWArgs) (*Object, *BaseException) {
-	if raised := checkMethodArgs(f, "isalnum", args, StrType); raised != nil {
-		return nil, raised
-	}
-	s := toStrUnsafe(args[0]).Value()
-	if len(s) == 0 {
-		return False.ToObject(), nil
-	}
-	for i := range s {
-		if !isAlNum(s[i]) {
-			return False.ToObject(), nil
-		}
-	}
-
-	return True.ToObject(), nil
-}
-
-func strIsAlpha(f *Frame, args Args, kwargs KWArgs) (*Object, *BaseException) {
-	if raised := checkMethodArgs(f, "isalpha", args, StrType); raised != nil {
-		return nil, raised
-	}
-	s := toStrUnsafe(args[0]).Value()
-	if len(s) == 0 {
-		return False.ToObject(), nil
-	}
-	for i := range s {
-		if !isAlpha(s[i]) {
-			return False.ToObject(), nil
-		}
-	}
-
-	return True.ToObject(), nil
-}
-
-func strIsDigit(f *Frame, args Args, kwargs KWArgs) (*Object, *BaseException) {
-	if raised := checkMethodArgs(f, "isdigit", args, StrType); raised != nil {
-		return nil, raised
-	}
-	s := toStrUnsafe(args[0]).Value()
-	if len(s) == 0 {
-		return False.ToObject(), nil
-	}
-	for i := range s {
-		if !isDigit(s[i]) {
-			return False.ToObject(), nil
-		}
-	}
-
-	return True.ToObject(), nil
 }
 
 func strRepeatCount(f *Frame, numChars int, mult *Object) (int, bool, *BaseException) {
