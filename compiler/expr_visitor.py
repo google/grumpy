@@ -179,6 +179,17 @@ class ExprVisitor(ast.NodeVisitor):
       self.writer.write('{} = {}.ToObject()'.format(result.name, d.expr))
     return result
 
+  def visit_Set(self, node):
+    with self.block.alloc_temp('*πg.Set') as s:
+      self.writer.write('{} = πg.NewSet()'.format(s.name))
+      for e in node.elts:
+        with self.visit(e) as value:
+          self.writer.write_checked_call2(expr.blank_var, '{}.Add(πF, {})',
+                                          s.expr, value.expr)
+      result = self.block.alloc_temp()
+      self.writer.write('{} = {}.ToObject()'.format(result.name, s.expr))
+    return result
+
   def visit_DictComp(self, node):
     result = self.block.alloc_temp()
     elt = ast.Tuple(elts=[node.key, node.value], context=ast.Load)
