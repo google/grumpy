@@ -584,6 +584,19 @@ func TestDictKeys(t *testing.T) {
 	}
 }
 
+func TestDictPop(t *testing.T) {
+	cases := []invokeTestCase{
+		{args: wrapArgs(newTestDict("foo", 42), "foo"), want: NewInt(42).ToObject()},
+		{args: wrapArgs(NewDict(), "foo", 42), want: NewInt(42).ToObject()},
+		{args: wrapArgs(NewDict(), "foo"), wantExc: mustCreateException(KeyErrorType, "foo")},
+	}
+	for _, cas := range cases {
+		if err := runInvokeMethodTestCase(DictType, "pop", &cas); err != "" {
+			t.Error(err)
+		}
+	}
+}
+
 func TestDictNewInit(t *testing.T) {
 	cases := []invokeTestCase{
 		{args: wrapArgs(), want: NewDict().ToObject()},

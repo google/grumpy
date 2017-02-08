@@ -326,25 +326,11 @@ func (d *Dict) incVersion() {
 // DelItem removes the entry associated with key from d. It returns true if an
 // item was removed, or false if it did not exist in d.
 func (d *Dict) DelItem(f *Frame, key *Object) (bool, *BaseException) {
-	hash, raised := Hash(f, key)
+	originValue, raised := d.putItem(f, key, nil)
 	if raised != nil {
 		return false, raised
 	}
-	deleted := false
-	d.mutex.Lock(f)
-	v := d.version
-	if index, entry, raised := d.table.lookupEntry(f, hash.Value(), key); raised == nil {
-		if v != d.version {
-			raised = f.RaiseType(RuntimeErrorType, "dictionary changed during write")
-		} else if entry != nil && entry != deletedEntry {
-			d.table.storeEntry(index, deletedEntry)
-			d.table.incUsed(-1)
-			d.incVersion()
-			deleted = true
-		}
-	}
-	d.mutex.Unlock(f)
-	return deleted, raised
+	return originValue != nil, nil
 }
 
 // DelItemString removes the entry associated with key from d. It returns true
@@ -376,6 +362,12 @@ func (d *Dict) GetItemString(f *Frame, key string) (*Object, *BaseException) {
 	return d.GetItem(f, NewStr(key).ToObject())
 }
 
+// Pop looks up key in d, returning and removing the associalted value if exist,
+// or nil if key is not present in d.
+func (d *Dict) Pop(f *Frame, key *Object) (*Object, *BaseException) {
+	return d.putItem(f, key, nil)
+}
+
 // Keys returns a list containing all the keys in d.
 func (d *Dict) Keys(f *Frame) *List {
 	d.mutex.Lock(f)
@@ -396,38 +388,49 @@ func (d *Dict) Len() int {
 	return d.loadTable().loadUsed()
 }
 
-// putItem associates value with key in d, returning true if the key was added
-// (i.e. it was not already present in d).
-func (d *Dict) putItem(f *Frame, key, value *Object) (bool, *BaseException) {
+// putItem associates value with key in d, returning the old associated value if
+// the key was added, or nil if it was not already present in d.
+func (d *Dict) putItem(f *Frame, key, value *Object) (*Object, *BaseException) {
 	hash, raised := Hash(f, key)
 	if raised != nil {
-		return false, raised
+		return nil, raised
 	}
 	d.mutex.Lock(f)
 	t := d.table
 	v := d.version
 	index, entry, raised := t.lookupEntry(f, hash.Value(), key)
-	added := false
+	var originValue *Object
 	if raised == nil {
 		if v != d.version {
 			// Dictionary was recursively modified. Blow up instead
 			// of trying to recover.
 			raised = f.RaiseType(RuntimeErrorType, "dictionary changed during write")
 		} else {
-			if newTable, ok := t.writeEntry(f, index, &dictEntry{hash.Value(), key, value}); ok {
-				if newTable != nil {
-					d.storeTable(newTable)
+			if value == nil {
+				// Going to delete the entry.
+				if entry != nil && entry != deletedEntry {
+					d.table.storeEntry(index, deletedEntry)
+					d.table.incUsed(-1)
+					d.incVersion()
 				}
-				d.incVersion()
-				// Key absent if entry == nil or deletedEntry.
-				added = entry == nil || entry == deletedEntry
 			} else {
-				raised = f.RaiseType(OverflowErrorType, errResultTooLarge)
+				newEntry := &dictEntry{hash.Value(), key, value}
+				if newTable, ok := t.writeEntry(f, index, newEntry); ok {
+					if newTable != nil {
+						d.storeTable(newTable)
+					}
+					d.incVersion()
+				} else {
+					raised = f.RaiseType(OverflowErrorType, errResultTooLarge)
+				}
+			}
+			if entry != nil && entry != deletedEntry {
+				originValue = entry.value
 			}
 		}
 	}
 	d.mutex.Unlock(f)
-	return added, raised
+	return originValue, raised
 }
 
 // SetItem associates value with key in d.
@@ -631,6 +634,28 @@ func dictKeys(f *Frame, args Args, kwargs KWArgs) (*Object, *BaseException) {
 	return toDictUnsafe(args[0]).Keys(f).ToObject(), nil
 }
 
+func dictPop(f *Frame, args Args, _ KWArgs) (*Object, *BaseException) {
+	expectedTypes := []*Type{DictType, ObjectType, ObjectType}
+	argc := len(args)
+	if argc == 2 {
+		expectedTypes = expectedTypes[:2]
+	}
+	if raised := checkMethodArgs(f, "pop", args, expectedTypes...); raised != nil {
+		return nil, raised
+	}
+	key := args[1]
+	d := toDictUnsafe(args[0])
+	item, raised := d.Pop(f, key)
+	if raised == nil && item == nil {
+		if argc > 2 {
+			item = args[2]
+		} else {
+			raised = raiseKeyError(f, key)
+		}
+	}
+	return item, raised
+}
+
 func dictGetItem(f *Frame, o, key *Object) (*Object, *BaseException) {
 	item, raised := toDictUnsafe(o).GetItem(f, key)
 	if raised != nil {
@@ -777,6 +802,7 @@ func initDictType(dict map[string]*Object) {
 	dict["iterkeys"] = newBuiltinFunction("iterkeys", dictIterKeys).ToObject()
 	dict["itervalues"] = newBuiltinFunction("itervalues", dictIterValues).ToObject()
 	dict["keys"] = newBuiltinFunction("keys", dictKeys).ToObject()
+	dict["pop"] = newBuiltinFunction("pop", dictPop).ToObject()
 	dict["update"] = newBuiltinFunction("update", dictUpdate).ToObject()
 	dict["values"] = newBuiltinFunction("values", dictValues).ToObject()
 	DictType.slots.Contains = &binaryOpSlot{dictContains}
