@@ -577,6 +577,13 @@ func dictGet(f *Frame, args Args, kwargs KWArgs) (*Object, *BaseException) {
 	return item, raised
 }
 
+func dictHasKey(f *Frame, args Args, _ KWArgs) (*Object, *BaseException) {
+	if raised := checkMethodArgs(f, "has_key", args, DictType, ObjectType); raised != nil {
+		return nil, raised
+	}
+	return dictContains(f, args[0], args[1])
+}
+
 func dictItems(f *Frame, args Args, kwargs KWArgs) (*Object, *BaseException) {
 	if raised := checkMethodArgs(f, "items", args, DictType); raised != nil {
 		return nil, raised
@@ -764,6 +771,7 @@ func dictValues(f *Frame, args Args, kwargs KWArgs) (*Object, *BaseException) {
 func initDictType(dict map[string]*Object) {
 	dict["clear"] = newBuiltinFunction("clear", dictClear).ToObject()
 	dict["get"] = newBuiltinFunction("get", dictGet).ToObject()
+	dict["has_key"] = newBuiltinFunction("has_key", dictHasKey).ToObject()
 	dict["items"] = newBuiltinFunction("items", dictItems).ToObject()
 	dict["iteritems"] = newBuiltinFunction("iteritems", dictIterItems).ToObject()
 	dict["iterkeys"] = newBuiltinFunction("iterkeys", dictIterKeys).ToObject()
