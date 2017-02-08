@@ -1137,7 +1137,7 @@ func tryRichTo3wayCompare(f *Frame, v, w *Object) (*Object, *BaseException) {
 
 func checkFunctionArgs(f *Frame, function string, args Args, types ...*Type) *BaseException {
 	if len(args) != len(types) {
-		msg := fmt.Sprintf("'%s' requires %d arguments", function, len(types))
+		msg := fmt.Sprintf("'%s' requires %d arguments but received %d", function, len(types), len(args))
 		return f.RaiseType(TypeErrorType, msg)
 	}
 	for i, t := range types {
