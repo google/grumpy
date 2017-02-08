@@ -94,6 +94,7 @@ STDLIB_TESTS := \
   test/test_string \
   test/test_md5 \
   test/test_bisect \
+  test/test_colorsys \
   threading_test \
   time_test \
   types_test \
