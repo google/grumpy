@@ -121,16 +121,21 @@ func makeStructFieldDescriptor(t *Type, fieldName, propertyName string, writtabl
 	}
 	if writtable {
 		setterFunc := func(f *Frame, args Args, _ KWArgs) (*Object, *BaseException) {
-			var ret *Object
+			ret := None
 			var raised *BaseException
 			if raised = checkFunctionArgs(f, fieldName, args, ObjectType, ObjectType); raised == nil {
-				//self := args[0]
+				self := args[0]
 				newvalue := args[1]
 				if !newvalue.isInstance(nativeFieldType) {
 					format := "descriptor '%s' for '%s' objects doesn't apply to '%s' objects"
 					raised = f.RaiseType(TypeErrorType, fmt.Sprintf(format, propertyName, t.Name(), newvalue.typ.Name()))
 				} else {
-					ret, raised = SetNative(f, &field, newvalue)
+					var converted reflect.Value
+					val := t.slots.Basis.Fn(self).FieldByIndex(field.Index)
+
+					if converted, raised = maybeConvertValue(f, newvalue, val.Type()); raised == nil {
+						val.Set(converted)
+					}
 				}
 			}
 			return ret, raised

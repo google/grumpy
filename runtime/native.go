@@ -268,14 +268,6 @@ func initSliceIteratorType(map[string]*Object) {
 	sliceIteratorType.slots.Next = &unaryOpSlot{sliceIteratorNext}
 }
 
-func SetNative(f *Frame, v *reflect.StructField, newvalue *Object) (*Object, *BaseException) {
-	//fmt.Printf("Field: -> %+v <- \n", v)	// DEBUG
-	//fmt.Printf("New Value: -> %+v <- \n", newvalue)	// DEBUG
-	//TODO: DO SET THE VALUE
-	//v.SetInt(WrapNative(f, newvalue))
-	return None, nil
-}
-
 // WrapNative takes a reflect.Value object and converts the underlying Go
 // object to a Python object in the following way:
 //
