@@ -435,22 +435,46 @@ func TestRawInput(t *testing.T) {
 		oldStdin := Stdin
 		Stdin = testStdin
 
+		// Create a fake Stdout for output test.
+		r, w, err := os.Pipe()
+		if err != nil {
+			return nil, f.RaiseType(RuntimeErrorType, fmt.Sprintf("failed to open pipe: %v", err))
+		}
+
+		oldStdout := os.Stdout
+		os.Stdout = w
 		defer func() {
+			os.Stdout = oldStdout
 			Stdin = oldStdin
 			stdinFile.Close()
 			os.Remove(stdinFile.Name())
 		}()
+		done := make(chan struct{})
+		var input *Object
+		var output bytes.Buffer
+		var raised *BaseException
 
-		input, raised := builtinRawInput(f, args, nil)
+		go func() {
+			defer close(done)
+			defer w.Close()
+			input, raised = builtinRawInput(f, args, nil)
+
+		}()
+
+		if _, err := io.Copy(&output, r); err != nil {
+			return nil, f.RaiseType(RuntimeErrorType, fmt.Sprintf("failed to open pipe: %v", err))
+		}
+		<-done
 
 		if raised != nil {
 			return nil, raised
 		}
-		return input, nil
+		result := newTestTuple(input, output.String()).ToObject()
+		return result, nil
 	}).ToObject()
 	cases := []invokeTestCase{
-		{args: wrapArgs(), want: NewStr("hello grumpy").ToObject()},
-		{args: wrapArgs("abc"), want: NewStr("hello grumpy").ToObject()},
+		{args: wrapArgs(), want: newTestTuple("hello grumpy", "").ToObject()},
+		{args: wrapArgs("abc"), want: newTestTuple("hello grumpy", "abc").ToObject()},
 		{args: wrapArgs(5, 4), wantExc: mustCreateException(TypeErrorType, "[raw_]input expcted at most 1 arguments, got 2")},
 	}
 	for _, cas := range cases {
