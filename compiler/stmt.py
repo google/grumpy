@@ -16,6 +16,8 @@
 
 """Visitor class for traversing Python statements."""
 
+import os
+import sys
 import ast
 import string
 import textwrap
@@ -375,12 +377,6 @@ class StatementVisitor(ast.NodeVisitor):
         self.block.bind_var(self.writer, asname, mod.expr)
 
   def visit_ImportFrom(self, node):
-    # Wildcard imports are not yet supported.
-    for alias in node.names:
-      if alias.name == '*':
-        msg = 'wildcard member import is not implemented: from %s import %s' % (
-            node.module, alias.name)
-        raise util.ParseError(node, msg)
     self._write_py_context(node.lineno)
     if node.module.startswith(_NATIVE_MODULE_PREFIX):
       values = [alias.name for alias in node.names]
@@ -408,12 +404,57 @@ class StatementVisitor(ast.NodeVisitor):
       if node.lineno > self.future_features.future_lineno:
         raise util.ParseError(node, late_future)
     else:
+      members = []
+      members_alias = {}
+      submodules = []
+      mods = [os.path.join(os.getcwd(), x)
+              for x in ['third_party/stdlib', 'third_party/pypy']]
+      original_path = sys.path
+      extra_sys_path = mods + sys.path
+      for alias in node.names:
+        name = '{}.{}'.format(node.module, alias.name)
+        if name in sys.modules:
+          submodules.append(alias)
+          continue
+        try:
+          if alias.name == '*':
+            sys.path = mods
+            raw_mod = __import__(node.module)
+            if hasattr(raw_mod, '__all__'):
+              members += raw_mod.__all__
+            else:
+              members += [x for x in raw_mod.__dict__
+                          if x[0] != '_']
+          else:
+            sys.path = extra_sys_path
+            __import__(name)
+            submodules.append(alias)
+          sys.path = original_path
+          if alias.name == '*':
+            break
+        except ImportError:
+          sys.path = original_path
+          members.append(alias.name)
+          if alias.asname:
+            members_alias[alias.name] = alias.asname
+
+      if members:
+        with self._import(node.module, node.module.count('.')) as mod:
+          self.block.bind_var(self.writer, node.module, mod.expr)
+          for m in members:
+            with self.block.alloc_temp() as member:
+              self.writer.write_checked_call2(
+                  member, 'πg.GetAttr(πF, {}, {}, nil)',
+                  mod.expr, self.block.intern(m))
+              self.block.bind_var(
+                  self.writer, members_alias.get(m, m), member.expr)
+
       # NOTE: Assume that the names being imported are all modules within a
       # package. E.g. "from a.b import c" is importing the module c from package
       # a.b, not some member of module b. We cannot distinguish between these
       # two cases at compile time and the Google style guide forbids the latter
       # so we support that use case only.
-      for alias in node.names:
+      for alias in submodules:
         name = '{}.{}'.format(node.module, alias.name)
         with self._import(name, name.count('.')) as mod:
           asname = alias.asname or alias.name
