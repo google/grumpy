@@ -16,6 +16,8 @@
 
 """Visitor class for traversing Python expressions."""
 
+from __future__ import unicode_literals
+
 import ast
 import contextlib
 import textwrap
@@ -462,10 +464,10 @@ class ExprVisitor(ast.NodeVisitor):
           self.writer.write('return πg.NewGenerator(πF, func(πSent *πg.Object) '
                             '(*πg.Object, *πg.BaseException) {')
           with self.writer.indent_block():
-            self.writer.write_block(func_block, visitor.writer.out.getvalue())
+            self.writer.write_block(func_block, visitor.writer.getvalue())
           self.writer.write('}).ToObject(), nil')
         else:
-          self.writer.write_block(func_block, visitor.writer.out.getvalue())
+          self.writer.write_block(func_block, visitor.writer.getvalue())
       self.writer.write('}), πF.Globals()).ToObject()')
     return result
 

@@ -16,9 +16,13 @@
 
 """Utilities for generating Go code."""
 
+from __future__ import unicode_literals
+
+import codecs
 import contextlib
 import cStringIO
 import string
+import StringIO
 import textwrap
 
 
@@ -44,8 +48,11 @@ class Writer(object):
   """Utility class for writing blocks of Go code to a file-like object."""
 
   def __init__(self, out=None):
-    self.out = out or cStringIO.StringIO()
+    self.out = codecs.getwriter('utf8')(out or cStringIO.StringIO())
     self.indent_level = 0
+
+  def getvalue(self):
+    return self.out.getvalue().decode('utf8')
 
   @contextlib.contextmanager
   def indent_block(self, n=1):
@@ -127,7 +134,7 @@ class Writer(object):
 
 def go_str(value):
   """Returns value as a valid Go string literal."""
-  io = cStringIO.StringIO()
+  io = StringIO.StringIO()
   io.write('"')
   for c in value:
     if c in _ESCAPES:

@@ -16,10 +16,14 @@
 
 """Classes for analyzing and storing the state of Python code blocks."""
 
+from __future__ import unicode_literals
+
 import abc
 import ast
 import collections
 import re
+
+from pythonparser import source
 
 from grumpy.compiler import expr
 from grumpy.compiler import util
@@ -56,7 +60,7 @@ class Block(object):
   _filename = None
   _full_package_name = None
   _libroot = None
-  _lines = None
+  _buffer = None
   _runtime = None
   _strings = None
   imports = None
@@ -96,8 +100,8 @@ class Block(object):
     return self._module_block._filename  # pylint: disable=protected-access
 
   @property
-  def lines(self):
-    return self._module_block._lines  # pylint: disable=protected-access
+  def buffer(self):
+    return self._module_block._buffer  # pylint: disable=protected-access
 
   @property
   def strings(self):
@@ -220,14 +224,14 @@ class ModuleBlock(Block):
     imports: A dict mapping fully qualified Go package names to Package objects.
   """
 
-  def __init__(self, full_package_name, runtime, libroot, filename, lines,
+  def __init__(self, full_package_name, runtime, libroot, filename, src,
                future_features):
     super(ModuleBlock, self).__init__(None, '<module>')
     self._full_package_name = full_package_name
     self._runtime = runtime
     self._libroot = libroot
     self._filename = filename
-    self._lines = lines
+    self._buffer = source.Buffer(src)
     self._strings = set()
     self.imports = {}
     self._future_features = future_features

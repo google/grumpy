@@ -16,6 +16,8 @@
 
 """Tests for StatementVisitor."""
 
+from __future__ import unicode_literals
+
 import ast
 import re
 import subprocess
@@ -573,7 +575,7 @@ class StatementVisitorTest(unittest.TestCase):
         'exc', 'tb', handlers), [1, 2])
     expected = re.compile(r'ResolveGlobal\(.*foo.*\bIsInstance\(.*'
                           r'goto Label1.*goto Label2', re.DOTALL)
-    self.assertRegexpMatches(visitor.writer.out.getvalue(), expected)
+    self.assertRegexpMatches(visitor.writer.getvalue(), expected)
 
   def testWriteExceptDispatcherBareExceptionNotLast(self):
     visitor = stmt.StatementVisitor(_MakeModuleBlock())
@@ -593,11 +595,11 @@ class StatementVisitorTest(unittest.TestCase):
         r'ResolveGlobal\(.*foo.*\bif .*\bIsInstance\(.*\{.*goto Label1.*'
         r'ResolveGlobal\(.*bar.*\bif .*\bIsInstance\(.*\{.*goto Label2.*'
         r'\bRaise\(exc\.ToObject\(\), nil, tb\.ToObject\(\)\)', re.DOTALL)
-    self.assertRegexpMatches(visitor.writer.out.getvalue(), expected)
+    self.assertRegexpMatches(visitor.writer.getvalue(), expected)
 
 
 def _MakeModuleBlock():
-  return block.ModuleBlock('__main__', 'grumpy', 'grumpy/lib', '<test>', [],
+  return block.ModuleBlock('__main__', 'grumpy', 'grumpy/lib', '<test>', '',
                            stmt.FutureFeatures())
 
 
@@ -605,7 +607,7 @@ def _ParseAndVisit(source):
   mod = ast.parse(source)
   future_features = stmt.visit_future(mod)
   b = block.ModuleBlock('__main__', 'grumpy', 'grumpy/lib', '<test>',
-                        source.split('\n'), future_features)
+                        source, future_features)
   visitor = stmt.StatementVisitor(b)
   visitor.visit(mod)
   return visitor

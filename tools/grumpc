@@ -17,6 +17,8 @@
 
 """A Python -> Go transcompiler."""
 
+from __future__ import unicode_literals
+
 import argparse
 import ast
 import sys
@@ -59,8 +61,7 @@ def main(args):
 
   full_package_name = args.modname.replace('.', '/')
   mod_block = block.ModuleBlock(full_package_name, args.runtime, args.libroot,
-                                args.filename, py_contents.split('\n'),
-                                future_features)
+                                args.filename, py_contents, future_features)
   mod_block.add_native_import('grumpy')
   visitor = stmt.StatementVisitor(mod_block)
   # Indent so that the module body is aligned with the goto labels.
@@ -89,7 +90,7 @@ def main(args):
     for s in sorted(mod_block.strings):
       writer.write('ß{} := πg.InternStr({})'.format(s, util.go_str(s)))
     writer.write_temp_decls(mod_block)
-    writer.write_block(mod_block, visitor.writer.out.getvalue())
+    writer.write_block(mod_block, visitor.writer.getvalue())
   writer.write('}')
   writer.write('var Code *πg.Code')
 

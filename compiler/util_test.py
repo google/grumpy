@@ -16,6 +16,8 @@
 
 """Tests Writer and other utils."""
 
+from __future__ import unicode_literals
+
 import unittest
 
 from grumpy.compiler import block
@@ -31,14 +33,14 @@ class WriterTest(unittest.TestCase):
     with writer.indent_block(n=2):
       writer.write('bar')
     writer.write('baz')
-    self.assertEqual(writer.out.getvalue(), 'foo\n\t\tbar\nbaz\n')
+    self.assertEqual(writer.getvalue(), 'foo\n\t\tbar\nbaz\n')
 
   def testWriteBlock(self):
     writer = util.Writer()
     mod_block = block.ModuleBlock('__main__', 'grumpy', 'grumpy/lib', '<test>',
-                                  [], stmt.FutureFeatures())
+                                  '', stmt.FutureFeatures())
     writer.write_block(mod_block, 'BODY')
-    output = writer.out.getvalue()
+    output = writer.getvalue()
     dispatch = 'switch πF.State() {\n\tcase 0:\n\tdefault: panic'
     self.assertIn(dispatch, output)
     self.assertIn('return nil, nil\n}', output)
@@ -46,48 +48,48 @@ class WriterTest(unittest.TestCase):
   def testWriteImportBlockEmptyImports(self):
     writer = util.Writer()
     writer.write_import_block({})
-    self.assertEqual(writer.out.getvalue(), '')
+    self.assertEqual(writer.getvalue(), '')
 
   def testWriteImportBlockImportsSorted(self):
     writer = util.Writer()
     imports = {name: block.Package(name) for name in ('a', 'b', 'c')}
     writer.write_import_block(imports)
-    self.assertEqual(writer.out.getvalue(),
+    self.assertEqual(writer.getvalue(),
                      'import (\n\tπ_a "a"\n\tπ_b "b"\n\tπ_c "c"\n)\n')
 
   def testWriteMultiline(self):
     writer = util.Writer()
     writer.indent(2)
     writer.write('foo\nbar\nbaz\n')
-    self.assertEqual(writer.out.getvalue(), '\t\tfoo\n\t\tbar\n\t\tbaz\n')
+    self.assertEqual(writer.getvalue(), '\t\tfoo\n\t\tbar\n\t\tbaz\n')
 
   def testWritePyContext(self):
     writer = util.Writer()
     writer.write_py_context(12, 'print "foo"')
-    self.assertEqual(writer.out.getvalue(), '// line 12: print "foo"\n')
+    self.assertEqual(writer.getvalue(), '// line 12: print "foo"\n')
 
   def testWriteSkipBlankLine(self):
     writer = util.Writer()
     writer.write('foo\n\nbar')
-    self.assertEqual(writer.out.getvalue(), 'foo\nbar\n')
+    self.assertEqual(writer.getvalue(), 'foo\nbar\n')
 
   def testWriteTmpl(self):
     writer = util.Writer()
     writer.write_tmpl('$foo, $bar\n$baz', foo=1, bar=2, baz=3)
-    self.assertEqual(writer.out.getvalue(), '1, 2\n3\n')
+    self.assertEqual(writer.getvalue(), '1, 2\n3\n')
 
   def testIndent(self):
     writer = util.Writer()
     writer.indent(2)
     writer.write('foo')
-    self.assertEqual(writer.out.getvalue(), '\t\tfoo\n')
+    self.assertEqual(writer.getvalue(), '\t\tfoo\n')
 
   def testDedent(self):
     writer = util.Writer()
     writer.indent(4)
     writer.dedent(3)
     writer.write('foo')
-    self.assertEqual(writer.out.getvalue(), '\tfoo\n')
+    self.assertEqual(writer.getvalue(), '\tfoo\n')
 
 
 if __name__ == '__main__':

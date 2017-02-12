@@ -16,6 +16,8 @@
 
 """Tests Package, Block, BlockVisitor and related classes."""
 
+from __future__ import unicode_literals
+
 import ast
 import textwrap
 import unittest
@@ -106,7 +108,7 @@ class BlockTest(unittest.TestCase):
   def _ResolveName(self, b, name):
     writer = util.Writer()
     b.resolve_name(writer, name)
-    return writer.out.getvalue()
+    return writer.getvalue()
 
 
 class BlockVisitorTest(unittest.TestCase):
@@ -243,7 +245,7 @@ class FunctionBlockVisitorTest(unittest.TestCase):
 
 
 def _MakeModuleBlock():
-  return block.ModuleBlock('__main__', 'grumpy', 'grumpy/lib', '<test>', [],
+  return block.ModuleBlock('__main__', 'grumpy', 'grumpy/lib', '<test>', '',
                            stmt.FutureFeatures())
 
 

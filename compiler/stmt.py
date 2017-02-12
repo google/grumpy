@@ -16,6 +16,8 @@
 
 """Visitor class for traversing Python statements."""
 
+from __future__ import unicode_literals
+
 import ast
 import string
 import textwrap
@@ -221,7 +223,7 @@ class StatementVisitor(ast.NodeVisitor):
       with self.writer.indent_block():
         self.writer.write_temp_decls(body_visitor.block)
         self.writer.write_block(body_visitor.block,
-                                body_visitor.writer.out.getvalue())
+                                body_visitor.writer.getvalue())
       tmpl = textwrap.dedent("""\
           }).Eval(πF, πF.Globals(), nil, nil)
           if πE != nil {
@@ -815,6 +817,6 @@ class StatementVisitor(ast.NodeVisitor):
 
   def _write_py_context(self, lineno):
     if lineno:
-      line = self.block.lines[lineno - 1].strip()
+      line = self.block.buffer.source_line(lineno).strip()
       self.writer.write('// line {}: {}'.format(lineno, line))
       self.writer.write('πF.SetLineno({})'.format(lineno))
