@@ -16,6 +16,7 @@ package grumpy
 
 import (
 	"fmt"
+	"math"
 	"math/big"
 	"os"
 	"unicode"
@@ -570,6 +571,33 @@ func builtinRepr(f *Frame, args Args, kwargs KWArgs) (*Object, *BaseException) {
 	return s.ToObject(), nil
 }
 
+func builtinRound(f *Frame, args Args, _ KWArgs) (*Object, *BaseException) {
+	argc := len(args)
+	expectedTypes := []*Type{ObjectType, ObjectType}
+	if argc == 1 {
+		expectedTypes = expectedTypes[:1]
+	}
+	if raised := checkFunctionArgs(f, "round", args, expectedTypes...); raised != nil {
+		return nil, raised
+	}
+	ndigits := 0
+	if argc > 1 {
+		var raised *BaseException
+		if ndigits, raised = IndexInt(f, args[1]); raised != nil {
+			return nil, raised
+		}
+	}
+	// TODO: implement this.
+	if ndigits != 0 {
+		return nil, f.RaiseType(NotImplementedErrorType, "round with ndigits is not implemented in grumpy")
+	}
+	number, isFloat := floatCoerce(args[0])
+	if !isFloat {
+		return nil, f.RaiseType(TypeErrorType, "a float is required")
+	}
+	return NewFloat(math.Floor(number + 0.5)).ToObject(), nil
+}
+
 func builtinSetAttr(f *Frame, args Args, _ KWArgs) (*Object, *BaseException) {
 	if raised := checkFunctionArgs(f, "setattr", args, ObjectType, StrType, ObjectType); raised != nil {
 		return nil, raised
@@ -667,6 +695,7 @@ func init() {
 		"print":          newBuiltinFunction("print", builtinPrint).ToObject(),
 		"range":          newBuiltinFunction("range", builtinRange).ToObject(),
 		"repr":           newBuiltinFunction("repr", builtinRepr).ToObject(),
+		"round":          newBuiltinFunction("round", builtinRound).ToObject(),
 		"setattr":        newBuiltinFunction("setattr", builtinSetAttr).ToObject(),
 		"sorted":         newBuiltinFunction("sorted", builtinSorted).ToObject(),
 		"True":           True.ToObject(),

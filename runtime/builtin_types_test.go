@@ -75,11 +75,6 @@ func TestBuiltinFuncs(t *testing.T) {
 			return NewStr("0octal").ToObject(), nil
 		}).ToObject(),
 	}))
-	indexType := newTestClass("Index", []*Type{ObjectType}, newStringDict(map[string]*Object{
-		"__index__": newBuiltinFunction("__index__", func(f *Frame, _ Args, _ KWArgs) (*Object, *BaseException) {
-			return NewInt(123).ToObject(), nil
-		}).ToObject(),
-	}))
 	badNonZeroType := newTestClass("BadNonZeroType", []*Type{ObjectType}, newStringDict(map[string]*Object{
 		"__nonzero__": newBuiltinFunction("__nonzero__", func(f *Frame, args Args, kwargs KWArgs) (*Object, *BaseException) {
 			return nil, f.RaiseType(RuntimeErrorType, "foo")
@@ -140,7 +135,7 @@ func TestBuiltinFuncs(t *testing.T) {
 		{f: "bin", args: wrapArgs("foo"), wantExc: mustCreateException(TypeErrorType, "str object cannot be interpreted as an index")},
 		{f: "bin", args: wrapArgs(0.1), wantExc: mustCreateException(TypeErrorType, "float object cannot be interpreted as an index")},
 		{f: "bin", args: wrapArgs(1, 2, 3), wantExc: mustCreateException(TypeErrorType, "'bin' requires 1 arguments")},
-		{f: "bin", args: wrapArgs(newObject(indexType)), want: NewStr("0b1111011").ToObject()},
+		{f: "bin", args: wrapArgs(newTestIndexObject(123)), want: NewStr("0b1111011").ToObject()},
 		{f: "callable", args: wrapArgs(fooBuiltinFunc), want: True.ToObject()},
 		{f: "callable", args: wrapArgs(fooFunc), want: True.ToObject()},
 		{f: "callable", args: wrapArgs(0), want: False.ToObject()},
@@ -275,6 +270,13 @@ func TestBuiltinFuncs(t *testing.T) {
 		{f: "repr", args: wrapArgs(NewUnicode("abc")), want: NewStr("u'abc'").ToObject()},
 		{f: "repr", args: wrapArgs(newTestTuple("foo", "bar")), want: NewStr("('foo', 'bar')").ToObject()},
 		{f: "repr", args: wrapArgs("a", "b", "c"), wantExc: mustCreateException(TypeErrorType, "'repr' requires 1 arguments")},
+		{f: "round", args: wrapArgs(1234.567), want: NewFloat(1235).ToObject()},
+		{f: "round", args: wrapArgs(1234.111), want: NewFloat(1234).ToObject()},
+		{f: "round", args: wrapArgs(-1234.567), want: NewFloat(-1235).ToObject()},
+		{f: "round", args: wrapArgs(-1234.111), want: NewFloat(-1234).ToObject()},
+		{f: "round", args: wrapArgs(1234.567, newTestIndexObject(0)), want: NewFloat(1235).ToObject()},
+		{f: "round", args: wrapArgs("foo"), wantExc: mustCreateException(TypeErrorType, "a float is required")},
+		{f: "round", args: wrapArgs(1234.5, 1), wantExc: mustCreateException(NotImplementedErrorType, "round with ndigits is not implemented in grumpy")},
 		{f: "sorted", args: wrapArgs(NewList()), want: NewList().ToObject()},
 		{f: "sorted", args: wrapArgs(newTestList("foo", "bar")), want: newTestList("bar", "foo").ToObject()},
 		{f: "sorted", args: wrapArgs(newTestList(true, false)), want: newTestList(false, true).ToObject()},
@@ -421,4 +423,13 @@ func TestBuiltinSetAttr(t *testing.T) {
 			t.Error(err)
 		}
 	}
+}
+
+func newTestIndexObject(index int) *Object {
+	indexType := newTestClass("Index", []*Type{ObjectType}, newStringDict(map[string]*Object{
+		"__index__": newBuiltinFunction("__index__", func(f *Frame, _ Args, _ KWArgs) (*Object, *BaseException) {
+			return NewInt(index).ToObject(), nil
+		}).ToObject(),
+	}))
+	return newObject(indexType)
 }
