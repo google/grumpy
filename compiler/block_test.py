@@ -18,9 +18,10 @@
 
 from __future__ import unicode_literals
 
-import ast
 import textwrap
 import unittest
+
+import pythonparser
 
 from grumpy.compiler import block
 from grumpy.compiler import stmt
@@ -206,7 +207,7 @@ class BlockVisitorTest(unittest.TestCase):
                             visitor.visit, _ParseStmt('global foo'))
 
   def testGlobalUsedPriorToDeclaration(self):
-    node = ast.parse('foo = 42\nglobal foo')
+    node = pythonparser.parse('foo = 42\nglobal foo')
     visitor = block.BlockVisitor()
     self.assertRaisesRegexp(util.ParseError, 'used prior to global declaration',
                             visitor.generic_visit, node)
@@ -250,7 +251,7 @@ def _MakeModuleBlock():
 
 
 def _ParseStmt(stmt_str):
-  return ast.parse(stmt_str).body[0]
+  return pythonparser.parse(stmt_str).body[0]
 
 
 if __name__ == '__main__':

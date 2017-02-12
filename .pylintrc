@@ -20,3 +20,8 @@ disable=design,similarities,no-self-use,attribute-defined-outside-init,locally-d
 [REPORTS]
 msg-template={path}:{line}: {msg} ({symbol})
 reports=no
+
+[TYPECHECK]
+# AST classes have dynamic members. Writer does not but for some reason pylint
+# barfs on some of its members.
+ignored-classes=pythonparser.ast.Module,grumpy.compiler.util.Writer

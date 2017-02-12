@@ -19,10 +19,11 @@
 from __future__ import unicode_literals
 
 import abc
-import ast
 import collections
 import re
 
+from pythonparser import algorithm
+from pythonparser import ast
 from pythonparser import source
 
 from grumpy.compiler import expr
@@ -226,7 +227,7 @@ class ModuleBlock(Block):
 
   def __init__(self, full_package_name, runtime, libroot, filename, src,
                future_features):
-    super(ModuleBlock, self).__init__(None, '<module>')
+    Block.__init__(self, None, '<module>')
     self._full_package_name = full_package_name
     self._runtime = runtime
     self._libroot = libroot
@@ -253,7 +254,7 @@ class ClassBlock(Block):
   """Python block for a class definition."""
 
   def __init__(self, parent_block, name, global_vars):
-    super(ClassBlock, self).__init__(parent_block, name)
+    Block.__init__(self, parent_block, name)
     self.global_vars = global_vars
 
   def bind_var(self, writer, name, value):
@@ -293,7 +294,7 @@ class FunctionBlock(Block):
   """Python block for a function definition."""
 
   def __init__(self, parent_block, name, block_vars, is_generator):
-    super(FunctionBlock, self).__init__(parent_block, name)
+    Block.__init__(self, parent_block, name)
     self.vars = block_vars
     self.parent_block = parent_block
     self.is_generator = is_generator
@@ -353,7 +354,7 @@ class Var(object):
       self.init_expr = None
 
 
-class BlockVisitor(ast.NodeVisitor):
+class BlockVisitor(algorithm.Visitor):
   """Visits nodes in a function or class to determine block variables."""
 
   # pylint: disable=invalid-name,missing-docstring
@@ -401,8 +402,9 @@ class BlockVisitor(ast.NodeVisitor):
       self._register_local(alias.asname or alias.name)
 
   def visit_With(self, node):
-    if node.optional_vars:
-      self._assign_target(node.optional_vars)
+    for item in node.items:
+      if item.optional_vars:
+        self._assign_target(item.optional_vars)
     self.generic_visit(node)
 
   def _assign_target(self, target):
@@ -435,14 +437,14 @@ class FunctionBlockVisitor(BlockVisitor):
   # pylint: disable=invalid-name,missing-docstring
 
   def __init__(self, node):
-    super(FunctionBlockVisitor, self).__init__()
+    BlockVisitor.__init__(self)
     self.is_generator = False
     node_args = node.args
-    args = [a.id for a in node_args.args]
+    args = [a.arg for a in node_args.args]
     if node_args.vararg:
-      args.append(node_args.vararg)
+      args.append(node_args.vararg.arg)
     if node_args.kwarg:
-      args.append(node_args.kwarg)
+      args.append(node_args.kwarg.arg)
     for i, name in enumerate(args):
       if name in self.vars:
         msg = "duplicate argument '{}' in function definition".format(name)

@@ -18,16 +18,18 @@
 
 from __future__ import unicode_literals
 
-import ast
 import contextlib
 import textwrap
+
+from pythonparser import algorithm
+from pythonparser import ast
 
 from grumpy.compiler import block
 from grumpy.compiler import expr
 from grumpy.compiler import util
 
 
-class ExprVisitor(ast.NodeVisitor):
+class ExprVisitor(algorithm.Visitor):
   """Builds and returns a Go expression representing the Python nodes."""
 
   # pylint: disable=invalid-name,missing-docstring
@@ -194,8 +196,10 @@ class ExprVisitor(ast.NodeVisitor):
 
   def visit_DictComp(self, node):
     result = self.block.alloc_temp()
-    elt = ast.Tuple(elts=[node.key, node.value], context=ast.Load)
-    with self.visit(ast.GeneratorExp(elt, node.generators)) as gen:
+    elt = ast.Tuple(elts=[node.key, node.value])
+    gen_node = ast.GeneratorExp(
+        elt=elt, generators=node.generators, loc=node.loc)
+    with self.visit(gen_node) as gen:
       self.writer.write_checked_call2(
           result, 'πg.DictType.Call(πF, πg.Args{{{}}}, nil)', gen.expr)
     return result
@@ -218,12 +222,12 @@ class ExprVisitor(ast.NodeVisitor):
     return result
 
   def visit_GeneratorExp(self, node):
-    body = ast.Expr(value=ast.Yield(node.elt), lineno=None)
+    body = ast.Expr(value=ast.Yield(value=node.elt), loc=node.loc)
     for comp_node in reversed(node.generators):
       for if_node in reversed(comp_node.ifs):
-        body = ast.If(test=if_node, body=[body], orelse=[], lineno=None)  # pylint: disable=redefined-variable-type
+        body = ast.If(test=if_node, body=[body], orelse=[], loc=node.loc)  # pylint: disable=redefined-variable-type
       body = ast.For(target=comp_node.target, iter=comp_node.iter,
-                     body=[body], orelse=[], lineno=None)
+                     body=[body], orelse=[], loc=node.loc)
 
     args = ast.arguments(args=[], vararg=None, kwarg=None, defaults=[])
     node = ast.FunctionDef(name='<generator>', args=args, body=[body])
@@ -259,7 +263,7 @@ class ExprVisitor(ast.NodeVisitor):
     return result
 
   def visit_Lambda(self, node):
-    ret = ast.Return(node.body, lineno=node.lineno)
+    ret = ast.Return(value=node.body, loc=node.loc)
     func_node = ast.FunctionDef(
         name='<lambda>', args=node.args, body=[ret])
     return self.visit_function_inline(func_node)
@@ -273,7 +277,9 @@ class ExprVisitor(ast.NodeVisitor):
 
   def visit_ListComp(self, node):
     result = self.block.alloc_temp()
-    with self.visit(ast.GeneratorExp(node.elt, node.generators)) as gen:
+    gen_node = ast.GeneratorExp(
+        elt=node.elt, generators=node.generators, loc=node.loc)
+    with self.visit(gen_node) as gen:
       self.writer.write_checked_call2(
           result, 'πg.ListType.Call(πF, πg.Args{{{}}}, nil)', gen.expr)
     return result
@@ -438,7 +444,7 @@ class ExprVisitor(ast.NodeVisitor):
         with self.visit(d) if d else expr.nil_expr as default:
           tmpl = '$args[$i] = πg.Param{Name: $name, Def: $default}'
           self.writer.write_tmpl(tmpl, args=func_args.expr, i=i,
-                                 name=util.go_str(a.id), default=default.expr)
+                                 name=util.go_str(a.arg), default=default.expr)
       flags = []
       if args.vararg:
         flags.append('πg.CodeFlagVarArg')

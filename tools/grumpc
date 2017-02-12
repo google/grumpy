@@ -20,9 +20,10 @@
 from __future__ import unicode_literals
 
 import argparse
-import ast
 import sys
 import textwrap
+
+import pythonparser
 
 from grumpy.compiler import block
 from grumpy.compiler import stmt
@@ -46,7 +47,7 @@ def main(args):
   with open(args.filename) as py_file:
     py_contents = py_file.read()
   try:
-    mod = ast.parse(py_contents)
+    mod = pythonparser.parse(py_contents)
   except SyntaxError as e:
     print >> sys.stderr, '{}: line {}: invalid syntax: {}'.format(
         e.filename, e.lineno, e.text)

@@ -18,10 +18,11 @@
 
 from __future__ import unicode_literals
 
-import ast
 import subprocess
 import textwrap
 import unittest
+
+import pythonparser
 
 from grumpy.compiler import block
 from grumpy.compiler import expr_visitor
@@ -231,7 +232,7 @@ def _MakeModuleBlock():
 
 
 def _ParseExpr(expr):
-  return ast.parse(expr).body[0].value
+  return pythonparser.parse(expr).body[0].value
 
 
 def _ParseAndVisitExpr(expr):

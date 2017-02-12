@@ -18,11 +18,13 @@
 
 from __future__ import unicode_literals
 
-import ast
 import re
 import subprocess
 import textwrap
 import unittest
+
+import pythonparser
+from pythonparser import ast
 
 from grumpy.compiler import block
 from grumpy.compiler import shard_test
@@ -335,7 +337,7 @@ class StatementVisitorTest(unittest.TestCase):
 
     for i, tc in enumerate(testcases):
       source, want_flags = tc
-      mod = ast.parse(textwrap.dedent(source))
+      mod = pythonparser.parse(textwrap.dedent(source))
       node = mod.body[0]
       got = stmt.import_from_future(node)
       msg = '#{}: want {}, got {}'.format(i, want_flags, got)
@@ -359,7 +361,7 @@ class StatementVisitorTest(unittest.TestCase):
 
     for tc in testcases:
       source, want_regexp = tc
-      mod = ast.parse(source)
+      mod = pythonparser.parse(source)
       node = mod.body[0]
       self.assertRaisesRegexp(util.ParseError, want_regexp,
                               stmt.import_from_future, node)
@@ -392,7 +394,7 @@ class StatementVisitorTest(unittest.TestCase):
 
     for tc in testcases:
       source, flags, lineno = tc
-      mod = ast.parse(textwrap.dedent(source))
+      mod = pythonparser.parse(textwrap.dedent(source))
       future_features = stmt.visit_future(mod)
       self.assertEqual(future_features.parser_flags, flags)
       self.assertEqual(future_features.future_lineno, lineno)
@@ -412,7 +414,7 @@ class StatementVisitorTest(unittest.TestCase):
     ]
 
     for source in testcases:
-      mod = ast.parse(textwrap.dedent(source))
+      mod = pythonparser.parse(textwrap.dedent(source))
       self.assertRaisesRegexp(util.ParseError, stmt.late_future,
                               stmt.visit_future, mod)
 
@@ -604,7 +606,7 @@ def _MakeModuleBlock():
 
 
 def _ParseAndVisit(source):
-  mod = ast.parse(source)
+  mod = pythonparser.parse(source)
   future_features = stmt.visit_future(mod)
   b = block.ModuleBlock('__main__', 'grumpy', 'grumpy/lib', '<test>',
                         source, future_features)
