@@ -225,10 +225,10 @@ class StatementVisitor(ast.NodeVisitor):
       tmpl = textwrap.dedent("""\
           }).Eval(πF, πF.Globals(), nil, nil)
           if πE != nil {
-          \treturn nil, πE
+          \tcontinue
           }
           if $meta, πE = $cls.GetItem(πF, $metaclass_str.ToObject()); πE != nil {
-          \treturn nil, πE
+          \tcontinue
           }
           if $meta == nil {
           \t$meta = πg.TypeType.ToObject()
@@ -342,7 +342,7 @@ class StatementVisitor(ast.NodeVisitor):
         with self.block.alloc_temp('bool') as is_true:
           self.writer.write_tmpl(textwrap.dedent("""\
               if $is_true, πE = πg.IsTrue(πF, $cond); πE != nil {
-              \treturn nil, πE
+              \tcontinue
               }
               if $is_true {
               \tgoto Label$label
