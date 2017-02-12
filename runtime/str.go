@@ -426,10 +426,7 @@ func strIsTitle(f *Frame, args Args, kwargs KWArgs) (*Object, *BaseException) {
 	}
 
 	if len(s) == 1 {
-		if isUpper(s[0]) {
-			return True.ToObject(), nil
-		}
-		return False.ToObject(), nil
+		return GetBool(isUpper(s[0])).ToObject(), nil
 	}
 
 	cased := false
@@ -896,9 +893,9 @@ func strSwapCase(f *Frame, args Args, kwargs KWArgs) (*Object, *BaseException) {
 	}
 	b := make([]byte, numBytes)
 	for i := 0; i < numBytes; i++ {
-		if s[i] >= 'a' && s[i] <= 'z' {
+		if isLower(s[i]) {
 			b[i] = toUpper(s[i])
-		} else if s[i] >= 'A' && s[i] <= 'Z' {
+		} else if isUpper(s[i]) {
 			b[i] = toLower(s[i])
 		} else {
 			b[i] = s[i]
@@ -1212,12 +1209,12 @@ func strTitle(f *Frame, args Args, kwargs KWArgs) (*Object, *BaseException) {
 	for i := 0; i < numBytes; i++ {
 		c := s[i]
 		switch {
-		case s[i] >= 'a' && s[i] <= 'z':
+		case isLower(c):
 			if !previousIsCased {
 				c = toUpper(c)
 			}
 			previousIsCased = true
-		case s[i] >= 'A' && s[i] <= 'Z':
+		case isUpper(c):
 			if previousIsCased {
 				c = toLower(c)
 			}
@@ -1267,14 +1264,14 @@ func init() {
 }
 
 func toLower(b byte) byte {
-	if b >= 'A' && b <= 'Z' {
+	if isUpper(b) {
 		return b + caseOffset
 	}
 	return b
 }
 
 func toUpper(b byte) byte {
-	if b >= 'a' && b <= 'z' {
+	if isLower(b) {
 		return b - caseOffset
 	}
 	return b
@@ -1285,7 +1282,7 @@ func isAlNum(c byte) bool {
 }
 
 func isAlpha(c byte) bool {
-	return 'A' <= c && c <= 'Z' || 'a' <= c && c <= 'z'
+	return isUpper(c) || isLower(c)
 }
 
 func isDigit(c byte) bool {
@@ -1297,8 +1294,14 @@ func isLower(c byte) bool {
 }
 
 func isSpace(c byte) bool {
-	return c == ' ' || c == '\n' || c == '\t' || c == '\v' || c == '\f' || c == '\r'
+	switch c {
+	case ' ', '\n', '\t', '\v', '\f', '\r':
+		return true
+	default:
+		return false
+	}
 }
+
 func isUpper(c byte) bool {
 	return 'A' <= c && c <= 'Z'
 }
