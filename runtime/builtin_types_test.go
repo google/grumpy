@@ -350,10 +350,10 @@ func captureStdout(f *Frame, fn func() *BaseException) (string, *BaseException) 
 	if err != nil {
 		return "", f.RaiseType(RuntimeErrorType, fmt.Sprintf("failed to open pipe: %v", err))
 	}
-	oldStdout := os.Stdout
-	os.Stdout = w
+	oldStdout := Stdout
+	Stdout = NewFileFromFD(w.Fd())
 	defer func() {
-		os.Stdout = oldStdout
+		Stdout = oldStdout
 	}()
 	done := make(chan struct{})
 	var raised *BaseException

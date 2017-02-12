@@ -16,7 +16,6 @@ package grumpy
 
 import (
 	"fmt"
-	"io"
 	"log"
 	"os"
 	"reflect"
@@ -641,7 +640,7 @@ func Print(f *Frame, args Args, nl bool) *BaseException {
 	} else if len(args) > 0 {
 		end = " "
 	}
-	return pyPrint(f, args, " ", end, os.Stdout)
+	return pyPrint(f, args, " ", end, Stdout)
 }
 
 // Repr returns a string containing a printable representation of o. This is
@@ -1216,17 +1215,17 @@ func hashNotImplemented(f *Frame, o *Object) (*Object, *BaseException) {
 }
 
 // pyPrint encapsulates the logic of the Python print function.
-func pyPrint(f *Frame, args Args, sep, end string, file io.Writer) *BaseException {
+func pyPrint(f *Frame, args Args, sep, end string, file *File) *BaseException {
 	for i, arg := range args {
 		if i > 0 {
-			fmt.Fprint(file, sep)
+			file.writeString(sep)
 		}
 		s, raised := ToStr(f, arg)
 		if raised != nil {
 			return raised
 		}
-		fmt.Fprint(file, s.Value())
+		file.writeString(s.Value())
 	}
-	fmt.Fprint(file, end)
+	file.writeString(end)
 	return nil
 }

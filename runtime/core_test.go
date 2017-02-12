@@ -15,7 +15,6 @@
 package grumpy
 
 import (
-	"bytes"
 	"fmt"
 	"math/big"
 	"reflect"
@@ -790,12 +789,9 @@ func TestOct(t *testing.T) {
 
 func TestPyPrint(t *testing.T) {
 	fun := wrapFuncForTest(func(f *Frame, args *Tuple, sep, end string) (string, *BaseException) {
-		var buf bytes.Buffer
-		raised := pyPrint(NewRootFrame(), args.elems, sep, end, &buf)
-		if raised != nil {
-			return "", raised
-		}
-		return buf.String(), nil
+		return captureStdout(f, func() *BaseException {
+			return pyPrint(NewRootFrame(), args.elems, sep, end, Stdout)
+		})
 	})
 	cases := []invokeTestCase{
 		{args: wrapArgs(NewTuple(), "", "\n"), want: NewStr("\n").ToObject()},
