@@ -18,7 +18,6 @@ import (
 	"fmt"
 	"math"
 	"math/big"
-	"os"
 	"strings"
 	"unicode"
 )
@@ -567,19 +566,18 @@ func builtinRawInput(f *Frame, args Args, kwargs KWArgs) (*Object, *BaseExceptio
 		return nil, f.RaiseType(TypeErrorType, msg)
 	}
 
-	osStdout := os.Stdout
 	if Stdin == nil {
 		msg := fmt.Sprintf("[raw_]input: lost sys.stdin")
 		return nil, f.RaiseType(RuntimeErrorType, msg)
 	}
 
-	if osStdout == nil {
+	if Stdout == nil {
 		msg := fmt.Sprintf("[raw_]input: lost sys.stdout")
 		return nil, f.RaiseType(RuntimeErrorType, msg)
 	}
 
 	if len(args) == 1 {
-		pyPrint(f, args, "", "", osStdout)
+		pyPrint(f, args, "", "", Stdout)
 	}
 
 	line, err := Stdin.reader.ReadString('\n')
