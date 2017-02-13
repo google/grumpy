@@ -1,6 +1,7 @@
 # Grumpy: Go running Python
 
 [![Build Status](https://travis-ci.org/google/grumpy.svg?branch=master)](https://travis-ci.org/google/grumpy)
+[![Join the chat at https://gitter.im/grumpy-devel/Lobby](https://badges.gitter.im/grumpy-devel/Lobby.svg)](https://gitter.im/grumpy-devel/Lobby?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 
 ## Overview
 

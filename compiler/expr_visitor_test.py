@@ -16,10 +16,13 @@
 
 """Tests for ExprVisitor."""
 
-import ast
+from __future__ import unicode_literals
+
 import subprocess
 import textwrap
 import unittest
+
+import pythonparser
 
 from grumpy.compiler import block
 from grumpy.compiler import expr_visitor
@@ -35,11 +38,13 @@ def _MakeExprTest(expr):
   return Test
 
 
-def _MakeLiteralTest(lit):
+def _MakeLiteralTest(lit, expected=None):
+  if expected is None:
+    expected = lit
   def Test(self):
-    status, output = _GrumpRun('print repr({!r}),'.format(lit))
+    status, output = _GrumpRun('print repr({}),'.format(lit))
     self.assertEqual(0, status, output)
-    self.assertEqual(lit, ast.literal_eval(output))
+    self.assertEqual(expected, output.strip())  # pylint: disable=eval-used
   return Test
 
 
@@ -129,8 +134,10 @@ class ExprVisitorTest(unittest.TestCase):
   testCompareInTuple = _MakeExprTest('1 in (1, 2, 3)')
   testCompareNotInTuple = _MakeExprTest('10 < 12 not in (1, 2, 3)')
 
-  testDictEmpty = _MakeLiteralTest({})
-  testDictNonEmpty = _MakeLiteralTest({'foo': 42, 'bar': 43})
+  testDictEmpty = _MakeLiteralTest('{}')
+  testDictNonEmpty = _MakeLiteralTest("{'foo': 42, 'bar': 43}")
+
+  testSetNonEmpty = _MakeLiteralTest("{'foo', 'bar'}", "set(['foo', 'bar'])")
 
   testDictCompFor = _MakeExprTest('{x: str(x) for x in range(3)}')
   testDictCompForIf = _MakeExprTest(
@@ -155,8 +162,8 @@ class ExprVisitorTest(unittest.TestCase):
   testLambda = _MakeExprTest('(lambda *args: args)(1, 2, 3)')
   testLambda = _MakeExprTest('(lambda **kwargs: kwargs)(x="foo", y="bar")')
 
-  testListEmpty = _MakeLiteralTest([])
-  testListNonEmpty = _MakeLiteralTest([1, 2])
+  testListEmpty = _MakeLiteralTest('[]')
+  testListNonEmpty = _MakeLiteralTest('[1, 2]')
 
   testListCompFor = _MakeExprTest('[int(x) for x in "123"]')
   testListCompForIf = _MakeExprTest('[x / 3 for x in range(10) if x % 3]')
@@ -177,17 +184,18 @@ class ExprVisitorTest(unittest.TestCase):
         foo()""")
     self.assertEqual((0, ''), _GrumpRun(code))
 
-  testNumInt = _MakeLiteralTest(42)
-  testNumLong = _MakeLiteralTest(42L)
-  testNumIntLarge = _MakeLiteralTest(12345678901234567890)
-  testNumFloat = _MakeLiteralTest(102.1)
-  testNumFloatNoDecimal = _MakeLiteralTest(5.)
-  testNumFloatOnlyDecimal = _MakeLiteralTest(.5)
-  testNumFloatSci = _MakeLiteralTest(1e6)
-  testNumFloatSciCap = _MakeLiteralTest(1E6)
-  testNumFloatSciCapPlus = _MakeLiteralTest(1E+6)
-  testNumFloatSciMinus = _MakeLiteralTest(1e-6)
-  testNumComplex = _MakeLiteralTest(3j)
+  testNumInt = _MakeLiteralTest('42')
+  testNumLong = _MakeLiteralTest('42L')
+  testNumIntLarge = _MakeLiteralTest('12345678901234567890',
+                                     '12345678901234567890L')
+  testNumFloat = _MakeLiteralTest('102.1')
+  testNumFloatOnlyDecimal = _MakeLiteralTest('.5', '0.5')
+  testNumFloatNoDecimal = _MakeLiteralTest('5.', '5')
+  testNumFloatSci = _MakeLiteralTest('1e6', '1e+06')
+  testNumFloatSciCap = _MakeLiteralTest('1E6', '1e+06')
+  testNumFloatSciCapPlus = _MakeLiteralTest('1E+6', '1e+06')
+  testNumFloatSciMinus = _MakeLiteralTest('1e-06')
+  testNumComplex = _MakeLiteralTest('3j')
 
   testSubscriptDictStr = _MakeExprTest('{"foo": 42}["foo"]')
   testSubscriptListInt = _MakeExprTest('[1, 2, 3][2]')
@@ -201,14 +209,14 @@ class ExprVisitorTest(unittest.TestCase):
   testSubscriptMultiDimSlice = _MakeSliceTest(
       "'foo','bar':'baz':'qux'", "('foo', slice('bar', 'baz', 'qux'))")
 
-  testStrEmpty = _MakeLiteralTest('')
-  testStrAscii = _MakeLiteralTest('abc')
-  testStrUtf8 = _MakeLiteralTest('\tfoo\n\xcf\x80')
-  testStrQuoted = _MakeLiteralTest('"foo"')
-  testStrUtf16 = _MakeLiteralTest(u'\u0432\u043e\u043b\u043d')
+  testStrEmpty = _MakeLiteralTest("''")
+  testStrAscii = _MakeLiteralTest("'abc'")
+  testStrUtf8 = _MakeLiteralTest(r"'\tfoo\n\xcf\x80'")
+  testStrQuoted = _MakeLiteralTest('\'"foo"\'', '\'"foo"\'')
+  testStrUtf16 = _MakeLiteralTest("u'\\u0432\\u043e\\u043b\\u043d'")
 
-  testTupleEmpty = _MakeLiteralTest(())
-  testTupleNonEmpty = _MakeLiteralTest((1, 2, 3))
+  testTupleEmpty = _MakeLiteralTest('()')
+  testTupleNonEmpty = _MakeLiteralTest('(1, 2, 3)')
 
   testUnaryOpNot = _MakeExprTest('not True')
   testUnaryOpInvert = _MakeExprTest('~4')
@@ -219,19 +227,19 @@ class ExprVisitorTest(unittest.TestCase):
 
 
 def _MakeModuleBlock():
-  return block.ModuleBlock('__main__', 'grumpy', 'grumpy/lib', '<test>', [],
+  return block.ModuleBlock('__main__', 'grumpy', 'grumpy/lib', '<test>', '',
                            stmt.FutureFeatures())
 
 
 def _ParseExpr(expr):
-  return ast.parse(expr).body[0].value
+  return pythonparser.parse(expr).body[0].value
 
 
 def _ParseAndVisitExpr(expr):
   writer = util.Writer()
   visitor = expr_visitor.ExprVisitor(_MakeModuleBlock(), writer)
   visitor.visit(_ParseExpr(expr))
-  return writer.out.getvalue()
+  return writer.getvalue()
 
 
 def _GrumpRun(cmd):

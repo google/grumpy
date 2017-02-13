@@ -174,30 +174,20 @@ func listRemove(f *Frame, args Args, kwargs KWArgs) (*Object, *BaseException) {
 	if raised := checkMethodArgs(f, "remove", args, ListType, ObjectType); raised != nil {
 		return nil, raised
 	}
+	value := args[1]
 	l := toListUnsafe(args[0])
 	l.mutex.Lock()
-	value := args[1]
-	found := false
-	var raised *BaseException
-	for i, elem := range l.elems {
-		var eq *Object
-		if eq, raised = Eq(f, elem, value); raised != nil {
-			break
-		}
-		if found, raised = IsTrue(f, eq); raised != nil {
-			break
-		}
-		if found {
-			l.elems = append(l.elems[:i], l.elems[i+1:]...)
-			break
+	index, raised := seqFindElem(f, l.elems, value)
+	if raised == nil {
+		if index != -1 {
+			l.elems = append(l.elems[:index], l.elems[index+1:]...)
+		} else {
+			raised = f.RaiseType(ValueErrorType, "list.remove(x): x not in list")
 		}
 	}
 	l.mutex.Unlock()
 	if raised != nil {
 		return nil, raised
-	}
-	if !found {
-		return nil, f.RaiseType(ValueErrorType, "list.remove(x): x not in list")
 	}
 	return None, nil
 }
@@ -338,6 +328,50 @@ func listNE(f *Frame, v, w *Object) (*Object, *BaseException) {
 	return listCompare(f, toListUnsafe(v), w, NE)
 }
 
+func listIndex(f *Frame, args Args, _ KWArgs) (*Object, *BaseException) {
+	expectedTypes := []*Type{ListType, ObjectType, ObjectType, ObjectType}
+	argc := len(args)
+	var raised *BaseException
+	if argc == 2 || argc == 3 {
+		expectedTypes = expectedTypes[:argc]
+	}
+	if raised = checkMethodArgs(f, "index", args, expectedTypes...); raised != nil {
+		return nil, raised
+	}
+	l := toListUnsafe(args[0])
+	l.mutex.RLock()
+	numElems := len(l.elems)
+	start, stop := 0, numElems
+	if argc > 2 {
+		start, raised = IndexInt(f, args[2])
+		if raised != nil {
+			l.mutex.RUnlock()
+			return nil, raised
+		}
+	}
+	if argc > 3 {
+		stop, raised = IndexInt(f, args[3])
+		if raised != nil {
+			l.mutex.RUnlock()
+			return nil, raised
+		}
+	}
+	start, stop = adjustIndex(start, stop, numElems)
+	value := args[1]
+	index := -1
+	if start < numElems && start < stop {
+		index, raised = seqFindElem(f, l.elems[start:stop], value)
+	}
+	l.mutex.RUnlock()
+	if raised != nil {
+		return nil, raised
+	}
+	if index == -1 {
+		return nil, f.RaiseType(ValueErrorType, fmt.Sprintf("%v is not in list", value))
+	}
+	return NewInt(index + start).ToObject(), nil
+}
+
 func listPop(f *Frame, args Args, _ KWArgs) (*Object, *BaseException) {
 	argc := len(args)
 	expectedTypes := []*Type{ListType, ObjectType}
@@ -432,6 +466,7 @@ func initListType(dict map[string]*Object) {
 	dict["append"] = newBuiltinFunction("append", listAppend).ToObject()
 	dict["count"] = newBuiltinFunction("count", listCount).ToObject()
 	dict["extend"] = newBuiltinFunction("extend", listExtend).ToObject()
+	dict["index"] = newBuiltinFunction("index", listIndex).ToObject()
 	dict["insert"] = newBuiltinFunction("insert", listInsert).ToObject()
 	dict["pop"] = newBuiltinFunction("pop", listPop).ToObject()
 	dict["remove"] = newBuiltinFunction("remove", listRemove).ToObject()

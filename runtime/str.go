@@ -335,6 +335,140 @@ func strHash(f *Frame, o *Object) (*Object, *BaseException) {
 	return h.ToObject(), nil
 }
 
+func strIsAlNum(f *Frame, args Args, kwargs KWArgs) (*Object, *BaseException) {
+	if raised := checkMethodArgs(f, "isalnum", args, StrType); raised != nil {
+		return nil, raised
+	}
+	s := toStrUnsafe(args[0]).Value()
+	if len(s) == 0 {
+		return False.ToObject(), nil
+	}
+	for i := range s {
+		if !isAlNum(s[i]) {
+			return False.ToObject(), nil
+		}
+	}
+	return True.ToObject(), nil
+}
+
+func strIsAlpha(f *Frame, args Args, kwargs KWArgs) (*Object, *BaseException) {
+	if raised := checkMethodArgs(f, "isalpha", args, StrType); raised != nil {
+		return nil, raised
+	}
+	s := toStrUnsafe(args[0]).Value()
+	if len(s) == 0 {
+		return False.ToObject(), nil
+	}
+	for i := range s {
+		if !isAlpha(s[i]) {
+			return False.ToObject(), nil
+		}
+	}
+	return True.ToObject(), nil
+}
+
+func strIsDigit(f *Frame, args Args, kwargs KWArgs) (*Object, *BaseException) {
+	if raised := checkMethodArgs(f, "isdigit", args, StrType); raised != nil {
+		return nil, raised
+	}
+	s := toStrUnsafe(args[0]).Value()
+	if len(s) == 0 {
+		return False.ToObject(), nil
+	}
+	for i := range s {
+		if !isDigit(s[i]) {
+			return False.ToObject(), nil
+		}
+	}
+	return True.ToObject(), nil
+}
+
+func strIsLower(f *Frame, args Args, kwargs KWArgs) (*Object, *BaseException) {
+	if raised := checkMethodArgs(f, "islower", args, StrType); raised != nil {
+		return nil, raised
+	}
+	s := toStrUnsafe(args[0]).Value()
+	if len(s) == 0 {
+		return False.ToObject(), nil
+	}
+	for i := range s {
+		if !isLower(s[i]) {
+			return False.ToObject(), nil
+		}
+	}
+	return True.ToObject(), nil
+}
+
+func strIsSpace(f *Frame, args Args, kwargs KWArgs) (*Object, *BaseException) {
+	if raised := checkMethodArgs(f, "isspace", args, StrType); raised != nil {
+		return nil, raised
+	}
+	s := toStrUnsafe(args[0]).Value()
+	if len(s) == 0 {
+		return False.ToObject(), nil
+	}
+	for i := range s {
+		if !isSpace(s[i]) {
+			return False.ToObject(), nil
+		}
+	}
+	return True.ToObject(), nil
+}
+
+func strIsTitle(f *Frame, args Args, kwargs KWArgs) (*Object, *BaseException) {
+	if raised := checkMethodArgs(f, "istitle", args, StrType); raised != nil {
+		return nil, raised
+	}
+
+	s := toStrUnsafe(args[0]).Value()
+	if len(s) == 0 {
+		return False.ToObject(), nil
+	}
+
+	if len(s) == 1 {
+		return GetBool(isUpper(s[0])).ToObject(), nil
+	}
+
+	cased := false
+	previousIsCased := false
+
+	for i := range s {
+		if isUpper(s[i]) {
+			if previousIsCased {
+				return False.ToObject(), nil
+			}
+			previousIsCased = true
+			cased = true
+		} else if isLower(s[i]) {
+			if !previousIsCased {
+				return False.ToObject(), nil
+			}
+			previousIsCased = true
+			cased = true
+		} else {
+			previousIsCased = false
+		}
+	}
+
+	return GetBool(cased).ToObject(), nil
+}
+
+func strIsUpper(f *Frame, args Args, kwargs KWArgs) (*Object, *BaseException) {
+	if raised := checkMethodArgs(f, "isupper", args, StrType); raised != nil {
+		return nil, raised
+	}
+	s := toStrUnsafe(args[0]).Value()
+	if len(s) == 0 {
+		return False.ToObject(), nil
+	}
+	for i := range s {
+		if !isUpper(s[i]) {
+			return False.ToObject(), nil
+		}
+	}
+	return True.ToObject(), nil
+}
+
 func strJoin(f *Frame, args Args, _ KWArgs) (*Object, *BaseException) {
 	if raised := checkMethodArgs(f, "join", args, StrType, ObjectType); raised != nil {
 		return nil, raised
@@ -759,9 +893,9 @@ func strSwapCase(f *Frame, args Args, kwargs KWArgs) (*Object, *BaseException) {
 	}
 	b := make([]byte, numBytes)
 	for i := 0; i < numBytes; i++ {
-		if s[i] >= 'a' && s[i] <= 'z' {
+		if isLower(s[i]) {
 			b[i] = toUpper(s[i])
-		} else if s[i] >= 'A' && s[i] <= 'Z' {
+		} else if isUpper(s[i]) {
 			b[i] = toLower(s[i])
 		} else {
 			b[i] = s[i]
@@ -777,6 +911,13 @@ func initStrType(dict map[string]*Object) {
 	dict["decode"] = newBuiltinFunction("decode", strDecode).ToObject()
 	dict["endswith"] = newBuiltinFunction("endswith", strEndsWith).ToObject()
 	dict["find"] = newBuiltinFunction("find", strFind).ToObject()
+	dict["isalnum"] = newBuiltinFunction("isalnum", strIsAlNum).ToObject()
+	dict["isalpha"] = newBuiltinFunction("isalpha", strIsAlpha).ToObject()
+	dict["isdigit"] = newBuiltinFunction("isdigit", strIsDigit).ToObject()
+	dict["islower"] = newBuiltinFunction("islower", strIsLower).ToObject()
+	dict["isspace"] = newBuiltinFunction("isspace", strIsSpace).ToObject()
+	dict["istitle"] = newBuiltinFunction("istitle", strIsTitle).ToObject()
+	dict["isupper"] = newBuiltinFunction("isupper", strIsUpper).ToObject()
 	dict["join"] = newBuiltinFunction("join", strJoin).ToObject()
 	dict["lower"] = newBuiltinFunction("lower", strLower).ToObject()
 	dict["lstrip"] = newBuiltinFunction("lstrip", strLStrip).ToObject()
@@ -839,21 +980,31 @@ func strInterpolate(f *Frame, format string, values *Tuple) (*Object, *BaseExcep
 		if matches == nil {
 			return nil, f.RaiseType(ValueErrorType, "invalid format spec")
 		}
-		if matches[7] != "%" && valueIndex >= len(values.elems) {
+		flags, fieldType := matches[1], matches[7]
+		if fieldType != "%" && valueIndex >= len(values.elems) {
 			return nil, f.RaiseType(TypeErrorType, "not enough arguments for format string")
 		}
-		if matches[1] != "" {
-			return nil, f.RaiseType(NotImplementedErrorType, "conversion flags not yet supported")
-		}
-		if matches[2] != "" || matches[4] != "" {
+		fieldWidth := -1
+		if matches[2] == "*" || matches[4] != "" {
 			return nil, f.RaiseType(NotImplementedErrorType, "field width not yet supported")
 		}
-		switch matches[7] {
+		if matches[2] != "" {
+			var err error
+			fieldWidth, err = strconv.Atoi(matches[2])
+			if err != nil {
+				return nil, f.RaiseType(TypeErrorType, fmt.Sprint(err))
+			}
+		}
+		if flags != "" && flags != "0" {
+			return nil, f.RaiseType(NotImplementedErrorType, "conversion flags not yet supported")
+		}
+		var val string
+		switch fieldType {
 		case "r", "s":
 			o := values.elems[valueIndex]
 			var s *Str
 			var raised *BaseException
-			if matches[7] == "r" {
+			if fieldType == "r" {
 				s, raised = Repr(f, o)
 			} else {
 				s, raised = ToStr(f, o)
@@ -861,24 +1012,35 @@ func strInterpolate(f *Frame, format string, values *Tuple) (*Object, *BaseExcep
 			if raised != nil {
 				return nil, raised
 			}
-			buf.WriteString(s.Value())
+			val = s.Value()
+			if fieldWidth > 0 {
+				val = strLeftPad(val, fieldWidth, " ")
+			}
+			buf.WriteString(val)
 			valueIndex++
 		case "f":
 			o := values.elems[valueIndex]
-			if val, ok := floatCoerce(o); ok {
-				buf.WriteString(strconv.FormatFloat(val, 'f', 6, 64))
+			if v, ok := floatCoerce(o); ok {
+				val := strconv.FormatFloat(v, 'f', 6, 64)
+				if fieldWidth > 0 {
+					fillchar := " "
+					if flags != "" {
+						fillchar = flags
+					}
+					val = strLeftPad(val, fieldWidth, fillchar)
+				}
+				buf.WriteString(val)
 				valueIndex++
 			} else {
 				return nil, f.RaiseType(TypeErrorType, fmt.Sprintf("float argument required, not %s", o.typ.Name()))
 			}
 		case "d", "x", "X", "o":
-			var val string
 			o := values.elems[valueIndex]
 			i, raised := ToInt(f, values.elems[valueIndex])
 			if raised != nil {
 				return nil, raised
 			}
-			if matches[7] == "d" {
+			if fieldType == "d" {
 				s, raised := ToStr(f, i)
 				if raised != nil {
 					return nil, raised
@@ -896,17 +1058,28 @@ func strInterpolate(f *Frame, format string, values *Tuple) (*Object, *BaseExcep
 				} else {
 					val = strconv.FormatInt(int64(toIntUnsafe(i).Value()), 16)
 				}
-				if matches[7] == "X" {
+				if fieldType == "X" {
 					val = strings.ToUpper(val)
 				}
+			}
+			if fieldWidth > 0 {
+				fillchar := " "
+				if flags != "" {
+					fillchar = flags
+				}
+				val = strLeftPad(val, fieldWidth, fillchar)
 			}
 			buf.WriteString(val)
 			valueIndex++
 		case "%":
-			buf.WriteString("%")
+			val = "%"
+			if fieldWidth > 0 {
+				val = strLeftPad(val, fieldWidth, " ")
+			}
+			buf.WriteString(val)
 		default:
 			format := "conversion type not yet supported: %s"
-			return nil, f.RaiseType(NotImplementedErrorType, fmt.Sprintf(format, matches[7]))
+			return nil, f.RaiseType(NotImplementedErrorType, fmt.Sprintf(format, fieldType))
 		}
 		format = format[len(matches[0]):]
 		index = strings.Index(format, "%")
@@ -1036,12 +1209,12 @@ func strTitle(f *Frame, args Args, kwargs KWArgs) (*Object, *BaseException) {
 	for i := 0; i < numBytes; i++ {
 		c := s[i]
 		switch {
-		case s[i] >= 'a' && s[i] <= 'z':
+		case isLower(c):
 			if !previousIsCased {
 				c = toUpper(c)
 			}
 			previousIsCased = true
-		case s[i] >= 'A' && s[i] <= 'Z':
+		case isUpper(c):
 			if previousIsCased {
 				c = toLower(c)
 			}
@@ -1076,24 +1249,11 @@ func strZFill(f *Frame, args Args, _ KWArgs) (*Object, *BaseException) {
 		return nil, raised
 	}
 	s := toStrUnsafe(args[0]).Value()
-	l := len(s)
 	width, raised := ToIntValue(f, args[1])
 	if raised != nil {
 		return nil, raised
 	}
-	if width <= l {
-		return args[0], nil
-	}
-	buf := bytes.Buffer{}
-	buf.Grow(width)
-	if l > 0 && (s[0] == '-' || s[0] == '+') {
-		buf.WriteByte(s[0])
-		s = s[1:]
-		width--
-	}
-	buf.WriteString(strings.Repeat("0", width-len(s)))
-	buf.WriteString(s)
-	return NewStr(buf.String()).ToObject(), nil
+	return NewStr(strLeftPad(s, width, "0")).ToObject(), nil
 }
 
 func init() {
@@ -1104,15 +1264,66 @@ func init() {
 }
 
 func toLower(b byte) byte {
-	if b >= 'A' && b <= 'Z' {
+	if isUpper(b) {
 		return b + caseOffset
 	}
 	return b
 }
 
 func toUpper(b byte) byte {
-	if b >= 'a' && b <= 'z' {
+	if isLower(b) {
 		return b - caseOffset
 	}
 	return b
+}
+
+func isAlNum(c byte) bool {
+	return isAlpha(c) || isDigit(c)
+}
+
+func isAlpha(c byte) bool {
+	return isUpper(c) || isLower(c)
+}
+
+func isDigit(c byte) bool {
+	return '0' <= c && c <= '9'
+}
+
+func isLower(c byte) bool {
+	return 'a' <= c && c <= 'z'
+}
+
+func isSpace(c byte) bool {
+	switch c {
+	case ' ', '\n', '\t', '\v', '\f', '\r':
+		return true
+	default:
+		return false
+	}
+}
+
+func isUpper(c byte) bool {
+	return 'A' <= c && c <= 'Z'
+}
+
+// strLeftPad returns s padded with fillchar so that its length is at least width.
+// Fillchar must be a single character. When fillchar is "0", s starting with a
+// sign are handled correctly.
+func strLeftPad(s string, width int, fillchar string) string {
+	l := len(s)
+	if width <= l {
+		return s
+	}
+	buf := bytes.Buffer{}
+	buf.Grow(width)
+	if l > 0 && fillchar == "0" && (s[0] == '-' || s[0] == '+') {
+		buf.WriteByte(s[0])
+		s = s[1:]
+		l = len(s)
+		width--
+	}
+	// TODO: Support or throw fillchar len more than one.
+	buf.WriteString(strings.Repeat(fillchar, width-l))
+	buf.WriteString(s)
+	return buf.String()
 }

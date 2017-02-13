@@ -409,6 +409,19 @@ func TestDictGetItemString(t *testing.T) {
 	}
 }
 
+func TestDictHasKey(t *testing.T) {
+	cases := []invokeTestCase{
+		{args: wrapArgs(NewDict(), "foo"), want: False.ToObject()},
+		{args: wrapArgs(newTestDict("foo", 1, "bar", 2), "foo"), want: True.ToObject()},
+		{args: wrapArgs(newTestDict(3, "foo", "bar", 42), 42), want: False.ToObject()},
+	}
+	for _, cas := range cases {
+		if err := runInvokeMethodTestCase(DictType, "has_key", &cas); err != "" {
+			t.Error(err)
+		}
+	}
+}
+
 func TestDictItemIteratorIter(t *testing.T) {
 	iter := &newDictItemIterator(NewDict()).Object
 	cas := &invokeTestCase{args: wrapArgs(iter), want: iter}
@@ -566,6 +579,19 @@ func TestDictKeys(t *testing.T) {
 	}
 	for _, cas := range cases {
 		if err := runInvokeMethodTestCase(DictType, "keys", &cas); err != "" {
+			t.Error(err)
+		}
+	}
+}
+
+func TestDictPop(t *testing.T) {
+	cases := []invokeTestCase{
+		{args: wrapArgs(newTestDict("foo", 42), "foo"), want: NewInt(42).ToObject()},
+		{args: wrapArgs(NewDict(), "foo", 42), want: NewInt(42).ToObject()},
+		{args: wrapArgs(NewDict(), "foo"), wantExc: mustCreateException(KeyErrorType, "foo")},
+	}
+	for _, cas := range cases {
+		if err := runInvokeMethodTestCase(DictType, "pop", &cas); err != "" {
 			t.Error(err)
 		}
 	}

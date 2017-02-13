@@ -16,7 +16,6 @@ package grumpy
 
 import (
 	"fmt"
-	"io"
 	"log"
 	"os"
 	"reflect"
@@ -288,6 +287,12 @@ func IDiv(f *Frame, v, w *Object) (*Object, *BaseException) {
 	return inplaceOp(f, v, w, v.typ.slots.IDiv, Div)
 }
 
+// ILShift returns the result of v.__ilshift__ if defined, otherwise falls back
+// to lshift.
+func ILShift(f *Frame, v, w *Object) (*Object, *BaseException) {
+	return inplaceOp(f, v, w, v.typ.slots.ILShift, LShift)
+}
+
 // IMod returns the result of v.__imod__ if defined, otherwise falls back to
 // mod.
 func IMod(f *Frame, v, w *Object) (*Object, *BaseException) {
@@ -313,6 +318,12 @@ func Invert(f *Frame, o *Object) (*Object, *BaseException) {
 // IOr returns the result of v.__ior__ if defined, otherwise falls back to Or.
 func IOr(f *Frame, v, w *Object) (*Object, *BaseException) {
 	return inplaceOp(f, v, w, v.typ.slots.IOr, Or)
+}
+
+// IRShift returns the result of v.__irshift__ if defined, otherwise falls back
+// to rshift.
+func IRShift(f *Frame, v, w *Object) (*Object, *BaseException) {
+	return inplaceOp(f, v, w, v.typ.slots.IRShift, RShift)
 }
 
 // IsInstance returns true if the type o is an instance of classinfo, or an
@@ -641,7 +652,7 @@ func Print(f *Frame, args Args, nl bool) *BaseException {
 	} else if len(args) > 0 {
 		end = " "
 	}
-	return pyPrint(f, args, " ", end, os.Stdout)
+	return pyPrint(f, args, " ", end, Stdout)
 }
 
 // Repr returns a string containing a printable representation of o. This is
@@ -1216,17 +1227,30 @@ func hashNotImplemented(f *Frame, o *Object) (*Object, *BaseException) {
 }
 
 // pyPrint encapsulates the logic of the Python print function.
-func pyPrint(f *Frame, args Args, sep, end string, file io.Writer) *BaseException {
+func pyPrint(f *Frame, args Args, sep, end string, file *File) *BaseException {
 	for i, arg := range args {
 		if i > 0 {
-			fmt.Fprint(file, sep)
+			err := file.writeString(sep)
+			if err != nil {
+				return f.RaiseType(IOErrorType, err.Error())
+			}
 		}
+
 		s, raised := ToStr(f, arg)
 		if raised != nil {
 			return raised
 		}
-		fmt.Fprint(file, s.Value())
+
+		err := file.writeString(s.Value())
+		if err != nil {
+			return f.RaiseType(IOErrorType, err.Error())
+		}
 	}
-	fmt.Fprint(file, end)
+
+	err := file.writeString(end)
+	if err != nil {
+		return f.RaiseType(IOErrorType, err.Error())
+	}
+
 	return nil
 }

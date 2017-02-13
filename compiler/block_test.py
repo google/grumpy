@@ -16,9 +16,12 @@
 
 """Tests Package, Block, BlockVisitor and related classes."""
 
-import ast
+from __future__ import unicode_literals
+
 import textwrap
 import unittest
+
+import pythonparser
 
 from grumpy.compiler import block
 from grumpy.compiler import stmt
@@ -106,7 +109,7 @@ class BlockTest(unittest.TestCase):
   def _ResolveName(self, b, name):
     writer = util.Writer()
     b.resolve_name(writer, name)
-    return writer.out.getvalue()
+    return writer.getvalue()
 
 
 class BlockVisitorTest(unittest.TestCase):
@@ -204,7 +207,7 @@ class BlockVisitorTest(unittest.TestCase):
                             visitor.visit, _ParseStmt('global foo'))
 
   def testGlobalUsedPriorToDeclaration(self):
-    node = ast.parse('foo = 42\nglobal foo')
+    node = pythonparser.parse('foo = 42\nglobal foo')
     visitor = block.BlockVisitor()
     self.assertRaisesRegexp(util.ParseError, 'used prior to global declaration',
                             visitor.generic_visit, node)
@@ -243,12 +246,12 @@ class FunctionBlockVisitorTest(unittest.TestCase):
 
 
 def _MakeModuleBlock():
-  return block.ModuleBlock('__main__', 'grumpy', 'grumpy/lib', '<test>', [],
+  return block.ModuleBlock('__main__', 'grumpy', 'grumpy/lib', '<test>', '',
                            stmt.FutureFeatures())
 
 
 def _ParseStmt(stmt_str):
-  return ast.parse(stmt_str).body[0]
+  return pythonparser.parse(stmt_str).body[0]
 
 
 if __name__ == '__main__':

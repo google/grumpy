@@ -89,6 +89,19 @@ func (f *File) readLine(maxBytes int) (string, error) {
 	return buf.String(), nil
 }
 
+func (f *File) writeString(s string) error {
+	f.mutex.Lock()
+	defer f.mutex.Unlock()
+	if !f.open {
+		return io.ErrClosedPipe
+	}
+	if _, err := f.file.Write([]byte(s)); err != nil {
+		return err
+	}
+
+	return nil
+}
+
 // FileType is the object representing the Python 'file' type.
 var FileType = newBasisType("file", reflect.TypeOf(File{}), toFileUnsafe, ObjectType)
 

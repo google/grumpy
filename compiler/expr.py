@@ -16,6 +16,8 @@
 
 """Classes representing generated expressions."""
 
+from __future__ import unicode_literals
+
 import abc
 
 from grumpy.compiler import util
@@ -79,3 +81,15 @@ class GeneratedLiteral(GeneratedExpr):
 
 
 nil_expr = GeneratedLiteral('nil')
+
+
+class BlankVar(GeneratedExpr):
+  def __init__(self):
+    self.name = '_'
+
+  @property
+  def expr(self):
+    return '_'
+
+
+blank_var = BlankVar()

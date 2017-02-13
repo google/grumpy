@@ -173,6 +173,23 @@ func seqFindFirst(f *Frame, iterable *Object, pred func(*Object) (bool, *BaseExc
 	return false, nil
 }
 
+func seqFindElem(f *Frame, elems []*Object, o *Object) (int, *BaseException) {
+	for i, elem := range elems {
+		eq, raised := Eq(f, elem, o)
+		if raised != nil {
+			return -1, raised
+		}
+		found, raised := IsTrue(f, eq)
+		if raised != nil {
+			return -1, raised
+		}
+		if found {
+			return i, nil
+		}
+	}
+	return -1, nil
+}
+
 func seqForEach(f *Frame, iterable *Object, callback func(*Object) *BaseException) *BaseException {
 	iter, raised := Iter(f, iterable)
 	if raised != nil {
