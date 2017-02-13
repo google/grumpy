@@ -18,7 +18,6 @@ import (
 	"bytes"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"math/big"
 	"os"
 	"testing"
@@ -427,10 +426,16 @@ func TestBuiltinSetAttr(t *testing.T) {
 func TestRawInput(t *testing.T) {
 	fun := newBuiltinFunction("TestRawInput", func(f *Frame, args Args, _ KWArgs) (*Object, *BaseException) {
 		// Create a fake Stdin for input test.
-		stdinFile, _ := ioutil.TempFile(os.TempDir(), "prefix")
-		stdinFile.Write([]byte("hello grumpy\n"))
-		stdinFile.Close()
-		stdinFile, _ = os.Open(stdinFile.Name())
+		stdinFile, w , err := os.Pipe()
+		if err != nil {
+			return nil, f.RaiseType(RuntimeErrorType, fmt.Sprintf("failed to open pipe: %v", err))
+		}
+		defer os.Remove(stdinFile.Name())
+		go func(){
+			w.Write([]byte("hello grumpy\n"))
+			w.Close()
+			stdinFile.Sync()
+		}()
 		testStdin := NewFileFromFD(stdinFile.Fd())
 		oldStdin := Stdin
 		Stdin = testStdin
@@ -447,7 +452,6 @@ func TestRawInput(t *testing.T) {
 			os.Stdout = oldStdout
 			Stdin = oldStdin
 			stdinFile.Close()
-			os.Remove(stdinFile.Name())
 		}()
 		done := make(chan struct{})
 		var input *Object
