@@ -488,6 +488,7 @@ func TestRawInput(t *testing.T) {
 			t.Error(err)
 		}
 	}
+}
 
 func newTestIndexObject(index int) *Object {
 	indexType := newTestClass("Index", []*Type{ObjectType}, newStringDict(map[string]*Object{
