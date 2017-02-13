@@ -571,9 +571,11 @@ class StatementVisitor(algorithm.Visitor):
       ast.Add: 'πg.IAdd(πF, {lhs}, {rhs})',
       ast.BitAnd: 'πg.IAnd(πF, {lhs}, {rhs})',
       ast.Div: 'πg.IDiv(πF, {lhs}, {rhs})',
+      ast.LShift: 'πg.ILShift(πF, {lhs}, {rhs})',
       ast.Mod: 'πg.IMod(πF, {lhs}, {rhs})',
       ast.Mult: 'πg.IMul(πF, {lhs}, {rhs})',
       ast.BitOr: 'πg.IOr(πF, {lhs}, {rhs})',
+      ast.RShift: 'πg.IRShift(πF, {lhs}, {rhs})',
       ast.Sub: 'πg.ISub(πF, {lhs}, {rhs})',
       ast.BitXor: 'πg.IXor(πF, {lhs}, {rhs})',
   }
