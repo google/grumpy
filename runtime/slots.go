@@ -392,7 +392,7 @@ type typeSlots struct {
 	IAdd         *binaryOpSlot
 	IAnd         *binaryOpSlot
 	IDiv         *binaryOpSlot
-	ILShift         *binaryOpSlot
+	ILShift      *binaryOpSlot
 	IMod         *binaryOpSlot
 	IMul         *binaryOpSlot
 	Index        *unaryOpSlot
@@ -401,7 +401,7 @@ type typeSlots struct {
 	Invert       *unaryOpSlot
 	IOr          *binaryOpSlot
 	IPow         *binaryOpSlot
-	IRShift         *binaryOpSlot
+	IRShift      *binaryOpSlot
 	ISub         *binaryOpSlot
 	Iter         *unaryOpSlot
 	IXor         *binaryOpSlot
