@@ -18,7 +18,6 @@ import (
 	"fmt"
 	"math"
 	"math/big"
-	"os"
 	"unicode"
 )
 
@@ -528,7 +527,7 @@ func builtinOrd(f *Frame, args Args, _ KWArgs) (*Object, *BaseException) {
 func builtinPrint(f *Frame, args Args, kwargs KWArgs) (*Object, *BaseException) {
 	sep := " "
 	end := "\n"
-	file := os.Stdout
+	file := Stdout
 	for _, kwarg := range kwargs {
 		switch kwarg.Name {
 		case "sep":
