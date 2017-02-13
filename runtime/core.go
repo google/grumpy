@@ -1218,14 +1218,27 @@ func hashNotImplemented(f *Frame, o *Object) (*Object, *BaseException) {
 func pyPrint(f *Frame, args Args, sep, end string, file *File) *BaseException {
 	for i, arg := range args {
 		if i > 0 {
-			file.writeString(sep)
+			err := file.writeString(sep)
+			if err != nil {
+				return f.RaiseType(IOErrorType, err.Error())
+			}
 		}
+
 		s, raised := ToStr(f, arg)
 		if raised != nil {
 			return raised
 		}
-		file.writeString(s.Value())
+
+		err := file.writeString(s.Value())
+		if err != nil {
+			return f.RaiseType(IOErrorType, err.Error())
+		}
 	}
-	file.writeString(end)
+
+	err := file.writeString(end)
+	if err != nil {
+		return f.RaiseType(IOErrorType, err.Error())
+	}
+
 	return nil
 }
