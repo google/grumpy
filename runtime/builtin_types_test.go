@@ -428,32 +428,34 @@ func TestBuiltinSetAttr(t *testing.T) {
 func TestRawInput(t *testing.T) {
 	fun := newBuiltinFunction("TestRawInput", func(f *Frame, args Args, _ KWArgs) (*Object, *BaseException) {
 		// Create a fake Stdin for input test.
-		stdinFile, w , err := os.Pipe()
+		stdinFile, w, err := os.Pipe()
 		if err != nil {
 			return nil, f.RaiseType(RuntimeErrorType, fmt.Sprintf("failed to open pipe: %v", err))
 		}
-		defer os.Remove(stdinFile.Name())
-		go func(){
+
+		go func() {
+			defer w.Close()
 			w.Write([]byte("hello grumpy\n"))
-			w.Close()
 			stdinFile.Sync()
 		}()
-		testStdin := NewFileFromFD(stdinFile.Fd())
+
 		oldStdin := Stdin
-		Stdin = testStdin
+		Stdin = NewFileFromFD(stdinFile.Fd())
+		defer func() {
+			Stdin = oldStdin
+			stdinFile.Close()
+		}()
 
 		// Create a fake Stdout for output test.
-		r, w, err := os.Pipe()
+		r, stdoutFile, err := os.Pipe()
 		if err != nil {
 			return nil, f.RaiseType(RuntimeErrorType, fmt.Sprintf("failed to open pipe: %v", err))
 		}
 
-		oldStdout := os.Stdout
-		os.Stdout = w
+		oldStdout := Stdout
+		Stdout = NewFileFromFD(stdoutFile.Fd())
 		defer func() {
-			os.Stdout = oldStdout
-			Stdin = oldStdin
-			stdinFile.Close()
+			Stdout = oldStdout
 		}()
 		done := make(chan struct{})
 		var input *Object
@@ -462,7 +464,7 @@ func TestRawInput(t *testing.T) {
 
 		go func() {
 			defer close(done)
-			defer w.Close()
+			defer stdoutFile.Close()
 			input, raised = builtinRawInput(f, args, nil)
 
 		}()
@@ -475,8 +477,7 @@ func TestRawInput(t *testing.T) {
 		if raised != nil {
 			return nil, raised
 		}
-		result := newTestTuple(input, output.String()).ToObject()
-		return result, nil
+		return newTestTuple(input, output.String()).ToObject(), nil
 	}).ToObject()
 	cases := []invokeTestCase{
 		{args: wrapArgs(), want: newTestTuple("hello grumpy", "").ToObject()},
