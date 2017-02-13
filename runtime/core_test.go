@@ -83,6 +83,9 @@ func TestBinaryOps(t *testing.T) {
 		"__idiv__": newBuiltinFunction("__idiv__", func(f *Frame, args Args, kwargs KWArgs) (*Object, *BaseException) {
 			return args[1], nil
 		}).ToObject(),
+		"__ilshift__": newBuiltinFunction("__ilshift__", func(f *Frame, args Args, kwargs KWArgs) (*Object, *BaseException) {
+			return args[1], nil
+		}).ToObject(),
 		"__imod__": newBuiltinFunction("__imod__", func(f *Frame, args Args, kwargs KWArgs) (*Object, *BaseException) {
 			return args[1], nil
 		}).ToObject(),
@@ -90,6 +93,9 @@ func TestBinaryOps(t *testing.T) {
 			return args[1], nil
 		}).ToObject(),
 		"__ior__": newBuiltinFunction("__ior__", func(f *Frame, args Args, kwargs KWArgs) (*Object, *BaseException) {
+			return args[1], nil
+		}).ToObject(),
+		"__irshift__": newBuiltinFunction("__irshift__", func(f *Frame, args Args, kwargs KWArgs) (*Object, *BaseException) {
 			return args[1], nil
 		}).ToObject(),
 		"__isub__": newBuiltinFunction("__isub__", func(f *Frame, args Args, kwargs KWArgs) (*Object, *BaseException) {
@@ -121,6 +127,7 @@ func TestBinaryOps(t *testing.T) {
 		{IAnd, newObject(ObjectType), newObject(fooType), nil, mustCreateException(TypeErrorType, "unsupported operand type(s) for &: 'object' and 'Foo'")},
 		{IDiv, NewInt(123).ToObject(), newObject(bazType), NewStr("123").ToObject(), nil},
 		{IDiv, newObject(inplaceType), NewInt(42).ToObject(), NewInt(42).ToObject(), nil},
+		{ILShift, newObject(inplaceType), NewInt(123).ToObject(), NewInt(123).ToObject(), nil},
 		{IMod, NewInt(24).ToObject(), NewInt(6).ToObject(), NewInt(0).ToObject(), nil},
 		{IMod, newObject(inplaceType), NewFloat(3.14).ToObject(), NewFloat(3.14).ToObject(), nil},
 		{IMul, NewStr("foo").ToObject(), NewInt(3).ToObject(), NewStr("foofoofoo").ToObject(), nil},
@@ -129,6 +136,7 @@ func TestBinaryOps(t *testing.T) {
 		{IOr, newObject(inplaceType), NewInt(42).ToObject(), NewInt(42).ToObject(), nil},
 		{IOr, NewInt(9).ToObject(), NewInt(12).ToObject(), NewInt(13).ToObject(), nil},
 		{IOr, newObject(ObjectType), newObject(fooType), nil, mustCreateException(TypeErrorType, "unsupported operand type(s) for |: 'object' and 'Foo'")},
+		{IRShift, newObject(inplaceType), NewInt(123).ToObject(), NewInt(123).ToObject(), nil},
 		{ISub, NewInt(3).ToObject(), NewInt(-3).ToObject(), NewInt(6).ToObject(), nil},
 		{ISub, newObject(inplaceType), None, None, nil},
 		{IXor, newObject(inplaceType), None, None, nil},

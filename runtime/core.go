@@ -287,6 +287,12 @@ func IDiv(f *Frame, v, w *Object) (*Object, *BaseException) {
 	return inplaceOp(f, v, w, v.typ.slots.IDiv, Div)
 }
 
+// ILShift returns the result of v.__ilshift__ if defined, otherwise falls back
+// to lshift.
+func ILShift(f *Frame, v, w *Object) (*Object, *BaseException) {
+	return inplaceOp(f, v, w, v.typ.slots.ILShift, LShift)
+}
+
 // IMod returns the result of v.__imod__ if defined, otherwise falls back to
 // mod.
 func IMod(f *Frame, v, w *Object) (*Object, *BaseException) {
@@ -312,6 +318,12 @@ func Invert(f *Frame, o *Object) (*Object, *BaseException) {
 // IOr returns the result of v.__ior__ if defined, otherwise falls back to Or.
 func IOr(f *Frame, v, w *Object) (*Object, *BaseException) {
 	return inplaceOp(f, v, w, v.typ.slots.IOr, Or)
+}
+
+// IRShift returns the result of v.__irshift__ if defined, otherwise falls back
+// to rshift.
+func IRShift(f *Frame, v, w *Object) (*Object, *BaseException) {
+	return inplaceOp(f, v, w, v.typ.slots.IRShift, RShift)
 }
 
 // IsInstance returns true if the type o is an instance of classinfo, or an
