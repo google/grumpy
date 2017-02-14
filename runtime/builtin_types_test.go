@@ -434,9 +434,8 @@ func TestRawInput(t *testing.T) {
 		}
 
 		go func() {
-			defer w.Close()
 			w.Write([]byte("hello grumpy\n"))
-			stdinFile.Sync()
+			w.Sync()
 		}()
 
 		oldStdin := Stdin
@@ -459,16 +458,15 @@ func TestRawInput(t *testing.T) {
 		}()
 		done := make(chan struct{})
 		var input *Object
-		var output bytes.Buffer
 		var raised *BaseException
 
 		go func() {
-			defer close(done)
-			defer stdoutFile.Close()
 			input, raised = builtinRawInput(f, args, nil)
-
+			stdoutFile.Close()
+			close(done)
 		}()
 
+		var output bytes.Buffer
 		if _, err := io.Copy(&output, r); err != nil {
 			return nil, f.RaiseType(RuntimeErrorType, fmt.Sprintf("failed to open pipe: %v", err))
 		}

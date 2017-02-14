@@ -577,7 +577,10 @@ func builtinRawInput(f *Frame, args Args, kwargs KWArgs) (*Object, *BaseExceptio
 	}
 
 	if len(args) == 1 {
-		pyPrint(f, args, "", "", Stdout)
+		err := pyPrint(f, args, "", "", Stdout)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	line, err := Stdin.reader.ReadString('\n')
