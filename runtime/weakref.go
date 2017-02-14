@@ -16,7 +16,6 @@ package grumpy
 
 import (
 	"fmt"
-	"os"
 	"reflect"
 	"runtime"
 	"sync"
@@ -194,7 +193,7 @@ func weakRefFinalizeReferent(o *Object) {
 			if raised != nil {
 				s = raised.String()
 			}
-			fmt.Fprint(os.Stderr, s)
+			Stderr.writeString(s)
 		}
 	}
 }

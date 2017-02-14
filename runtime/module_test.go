@@ -307,15 +307,15 @@ func TestRunMain(t *testing.T) {
 }
 
 func runMainAndCaptureStderr(code *Code) (int, string, error) {
-	oldStderr := os.Stderr
+	oldStderr := Stderr
 	defer func() {
-		os.Stderr = oldStderr
+		Stderr = oldStderr
 	}()
 	r, w, err := os.Pipe()
 	if err != nil {
 		return 0, "", err
 	}
-	os.Stderr = w
+	Stderr = NewFileFromFD(w.Fd())
 	c := make(chan int)
 	go func() {
 		defer w.Close()

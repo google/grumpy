@@ -17,7 +17,6 @@ package grumpy
 import (
 	"fmt"
 	"log"
-	"os"
 	"reflect"
 )
 
@@ -756,7 +755,7 @@ func StartThread(callable *Object) {
 			if raised != nil {
 				s = raised.String()
 			}
-			fmt.Fprintf(os.Stderr, s)
+			Stderr.writeString(s)
 		}
 	}()
 }
