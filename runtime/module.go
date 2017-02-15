@@ -289,7 +289,7 @@ func RunMain(code *Code) int {
 	m.state = moduleStateInitializing
 	f := NewRootFrame()
 	if raised := SysModules.SetItemString(f, "__main__", m.ToObject()); raised != nil {
-		fmt.Fprint(os.Stderr, raised.String())
+		Stderr.writeString(raised.String())
 	}
 	_, e := code.Eval(f, m.Dict(), nil, nil)
 	if e == nil {
@@ -300,7 +300,7 @@ func RunMain(code *Code) int {
 		if raised != nil {
 			s = e.String()
 		}
-		fmt.Fprint(os.Stderr, s)
+		Stderr.writeString(s)
 		return 1
 	}
 	f.RestoreExc(nil, nil)
@@ -315,7 +315,7 @@ func RunMain(code *Code) int {
 		return 0
 	}
 	if s, raised := ToStr(f, o); raised == nil {
-		fmt.Fprintln(os.Stderr, s.Value())
+		Stderr.writeString(s.Value() + "\n")
 	}
 	return 1
 }
