@@ -445,37 +445,18 @@ func TestRawInput(t *testing.T) {
 			stdinFile.Close()
 		}()
 
-		// Create a fake Stdout for output test.
-		r, stdoutFile, err := os.Pipe()
-		if err != nil {
-			return nil, f.RaiseType(RuntimeErrorType, fmt.Sprintf("failed to open pipe: %v", err))
-		}
-
-		oldStdout := Stdout
-		Stdout = NewFileFromFD(stdoutFile.Fd())
-		defer func() {
-			Stdout = oldStdout
-		}()
-		done := make(chan struct{})
 		var input *Object
-		var raised *BaseException
-
-		go func() {
-			input, raised = builtinRawInput(f, args, nil)
-			stdoutFile.Close()
-			close(done)
-		}()
-
-		var output bytes.Buffer
-		if _, err := io.Copy(&output, r); err != nil {
-			return nil, f.RaiseType(RuntimeErrorType, fmt.Sprintf("failed to open pipe: %v", err))
-		}
-		<-done
+		output, raised := captureStdout(f, func() *BaseException {
+			in, raised := builtinRawInput(f, args, nil)
+			input = in
+			return raised
+		})
 
 		if raised != nil {
 			return nil, raised
 		}
-		return newTestTuple(input, output.String()).ToObject(), nil
+
+		return newTestTuple(input, output).ToObject(), nil
 	}).ToObject()
 	cases := []invokeTestCase{
 		{args: wrapArgs(), want: newTestTuple("hello grumpy", "").ToObject()},
