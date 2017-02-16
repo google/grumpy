@@ -366,14 +366,25 @@ class StatementVisitorTest(unittest.TestCase):
       self.assertRaisesRegexp(util.ParseError, want_regexp,
                               stmt.import_from_future, node)
 
-  def testImportWildcardMemberRaises(self):
-    regexp = r'wildcard member import is not implemented: from foo import *'
-    self.assertRaisesRegexp(util.ParseError, regexp, _ParseAndVisit,
-                            'from foo import *')
-    regexp = (r'wildcard member import is not '
-              r'implemented: from __go__.foo import *')
-    self.assertRaisesRegexp(util.ParseError, regexp, _ParseAndVisit,
-                            'from __go__.foo import *')
+  def testImportWildcard(self):
+    # Between 'compile' and 'sre_compile', only 'compile' is declared in __all__,
+    # so 'sre_compile' should not be visible.
+    result = _GrumpRun(textwrap.dedent("""\
+        from re import *
+        print compile"""))
+    self.assertEqual(0, result[0])
+    self.assertIn('<function compile at',result[1])
+
+    self.assertEqual((0, 'False\n'), _GrumpRun(textwrap.dedent("""\
+        from re import *
+        print 'sre_compile' in globals()""")))
+
+    # 'time' does not define __all__
+    result = _GrumpRun(textwrap.dedent("""\
+        from time import *
+        print sleep"""))
+    self.assertEqual(0, result[0])
+    self.assertIn('<function sleep at', result[1])
 
   def testVisitFuture(self):
     testcases = [
