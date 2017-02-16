@@ -748,8 +748,7 @@ class StatementVisitor(algorithm.Visitor):
       else_label = self.block.genlabel()
       endif_label = self.block.genlabel()
 
-      self.writer.write_tmpl(textwrap.dedent(
-          """\
+      tmpl = textwrap.dedent("""\
           if $is_true, πE = πg.IsTrue(πF, $condition); πE != nil {
           \tcontinue
           }
@@ -757,7 +756,9 @@ class StatementVisitor(algorithm.Visitor):
           \tgoto Label$if_label
           } else {
           \tgoto Label$else_label
-          }"""),
+          }""")
+      self.writer.write_tmpl(
+          tmpl,
           is_true=is_true.name, condition=hasattr_response.expr,
           if_label=if_label, else_label=else_label)
 
@@ -839,14 +840,15 @@ class StatementVisitor(algorithm.Visitor):
         self.writer.write('πF.FreeArgs({})'.format(startswith_args.expr))
 
         start_loop = loop.start_label
-        self.writer.write_tmpl(textwrap.dedent(
-            """\
+        tmpl = textwrap.dedent("""\
             if $is_true, πE = πg.IsTrue(πF, $condition); πE != nil {
             \tcontinue
             }
             if $is_true {
             \tgoto Label$start_loop
-            }"""),
+            }""")
+        self.writer.write_tmpl(
+            tmpl,
             is_true=is_true.name, condition=startswith_response.expr,
             start_loop=start_loop)
 
