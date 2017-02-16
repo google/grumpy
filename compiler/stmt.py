@@ -378,13 +378,11 @@ class StatementVisitor(algorithm.Visitor):
         self.block.bind_var(self.writer, asname, mod.expr)
 
   def visit_ImportFrom(self, node):
-    # Wildcard imports are not yet supported.
+    self._write_py_context(node.lineno)
     for alias in node.names:
       if alias.name == '*':
-        msg = 'wildcard member import is not implemented: from %s import %s' % (
-            node.module, alias.name)
-        raise util.ParseError(node, msg)
-    self._write_py_context(node.lineno)
+        self._import_wildcard(node)
+        return
     if node.module.startswith(_NATIVE_MODULE_PREFIX):
       values = [alias.name for alias in node.names]
       with self._import_native(node.module, values) as mod:
@@ -667,6 +665,55 @@ class StatementVisitor(algorithm.Visitor):
       msg = 'assignment target not yet implemented: ' + type(target).__name__
       raise util.ParseError(target, msg)
 
+  def _bind_module_members(self, module, members):
+    with self.block.alloc_temp() as member, \
+        self.block.alloc_temp() as members_iterator, \
+        self.block.alloc_temp() as member_name:
+
+      self.writer.write_checked_call2(members_iterator, 'πg.Iter(πF, {})', members.expr)
+
+      loop = self.block.push_loop()
+      self.writer.write_label(loop.start_label)
+
+      tmpl = textwrap.dedent("""\
+          if $member_name, πE = πg.Next(πF, $members_iterator); πE != nil {
+          \tisStop, exc := πg.IsInstance(πF, πE.ToObject(), πg.StopIterationType.ToObject())
+          \tif exc != nil {
+          \t\tπE = exc
+          \t\tcontinue
+          \t}
+          \tif !isStop {
+          \t\tcontinue
+          \t}
+          \tπE = nil
+          \tπF.RestoreExc(nil, nil)
+          \tgoto Label$end_label
+          }""")
+      self.writer.write_tmpl(tmpl,
+          member_name=member_name.expr,
+          members_iterator=members_iterator.expr,
+          end_label=loop.end_label)
+
+      with self.block.resolve_name(self.writer, 'getattr') as getattr_method, \
+          self.block.alloc_temp('[]*πg.Object') as getattr_args:
+        self.writer.write('{} = πF.MakeArgs(2)'.format(getattr_args.expr))
+        self.writer.write('{}[0] = {}'.format(getattr_args.expr, module.expr))
+        self.writer.write(
+            '{}[1] = {}'.format(getattr_args.expr, member_name.expr))
+        self.writer.write_checked_call2(
+            member,
+            '{}.Call(πF, {}, nil)', getattr_method.expr, getattr_args.expr)
+        self.writer.write('πF.FreeArgs({})'.format(getattr_args.expr))
+
+      self.writer.write_checked_call1(
+          'πF.Globals().SetItem(πF, {}, {})',
+          member_name.expr, member.expr)
+
+      self.writer.write('goto Label{}'.format(loop.start_label))
+
+      self.writer.write_label(loop.end_label)
+      self.block.pop_loop()
+
   def _build_assign_target(self, target, assigns):
     if isinstance(target, (ast.Tuple, ast.List)):
       children = []
@@ -678,6 +725,136 @@ class StatementVisitor(algorithm.Visitor):
     assigns.append((target, temp))
     tmpl = 'πg.TieTarget{Target: &$temp}'
     return string.Template(tmpl).substitute(temp=temp.name)
+
+  def _extract_module_members(self, module, members):
+    with self.block.alloc_temp('[]*πg.Object') as hasattr_args, \
+        self.block.resolve_name(self.writer, 'hasattr') as hasattr_method, \
+        self.block.alloc_temp() as hasattr_response, \
+        self.block.alloc_temp('bool') as is_true:
+
+      self.writer.write('{} = πF.MakeArgs(2)'.format(hasattr_args.expr))
+      self.writer.write('{}[0] = {}'.format(hasattr_args.expr, module.expr))
+      self.writer.write(
+          '{}[1] = {}.ToObject()'.format(hasattr_args.expr, self.block.intern('__all__')))
+      self.writer.write_checked_call2(
+          hasattr_response,
+          '{}.Call(πF, {}, nil)', hasattr_method.expr, hasattr_args.expr)
+      self.writer.write('πF.FreeArgs({})'.format(hasattr_args.expr))
+
+      if_label = self.block.genlabel()
+      else_label = self.block.genlabel()
+      endif_label = self.block.genlabel()
+
+      self.writer.write_tmpl(textwrap.dedent("""\
+          if $is_true, πE = πg.IsTrue(πF, $condition); πE != nil {
+          \tcontinue
+          }
+          if $is_true {
+          \tgoto Label$if_label
+          } else {
+          \tgoto Label$else_label
+          }"""),
+          is_true=is_true.name, condition=hasattr_response.expr,
+          if_label=if_label, else_label=else_label)
+
+      self.writer.write_label(if_label)
+      self._extract_module_members_from_all(module, members)
+      self.writer.write('goto Label{}'.format(endif_label))
+      self.writer.write_label(else_label)
+      self._extract_module_members_from_dict(module, members)
+      self.writer.write_label(endif_label)
+
+  def _extract_module_members_from_all(self, module, members):
+    self.writer.write_checked_call2(
+        members, 'πg.GetAttr(πF, {}, {}, nil)',
+        module.expr, self.block.intern('__all__'))
+
+  def _extract_module_members_from_dict(self, module, members):
+    with self.block.alloc_temp() as dict_attr, \
+        self.block.alloc_temp() as key, \
+        self.block.alloc_temp() as keys, \
+        self.block.alloc_temp() as keys_iterator, \
+        self.block.alloc_temp() as keys_method:
+
+      self.writer.write_checked_call2(
+          dict_attr, 'πg.GetAttr(πF, {}, {}, nil)',
+          module.expr, self.block.intern('__dict__'))
+      self.writer.write_checked_call2(
+          keys_method, 'πg.GetAttr(πF, {}, {}, nil)',
+          dict_attr.expr, self.block.intern('keys'))
+      self.writer.write_checked_call2(keys, '{}.Call(πF, nil, nil)', keys_method.expr)
+      self.writer.write_checked_call2(keys_iterator, 'πg.Iter(πF, {})', keys.expr)
+
+      with self.block.alloc_temp('[]*πg.Object') as list_obj:
+        self.writer.write('{} = make([]*πg.Object, 0)'.format(list_obj.expr))
+        self.writer.write('{} = πg.NewList({}...).ToObject()'.format(members.expr, list_obj.expr))
+
+      loop = self.block.push_loop()
+      self.writer.write_label(loop.start_label)
+
+      tmpl = textwrap.dedent("""\
+          if $key, πE = πg.Next(πF, $keys_iterator); πE != nil {
+          \tisStop, exc := πg.IsInstance(πF, πE.ToObject(), πg.StopIterationType.ToObject())
+          \tif exc != nil {
+          \t\tπE = exc
+          \t\tcontinue
+          \t}
+          \tif !isStop {
+          \t\tcontinue
+          \t}
+          \tπE = nil
+          \tπF.RestoreExc(nil, nil)
+          \tgoto Label$end_label
+          }""")
+      self.writer.write_tmpl(tmpl,
+          key=key.expr,
+          keys_iterator=keys_iterator.expr,
+          end_label=loop.end_label)
+
+      with self.block.alloc_temp('bool') as is_true, \
+          self.block.alloc_temp('[]*πg.Object') as startswith_args, \
+          self.block.alloc_temp() as startswith_method, \
+          self.block.alloc_temp() as startswith_response:
+
+        self.writer.write_checked_call2(
+            startswith_method, 'πg.GetAttr(πF, {}, {}, nil)',
+            key.expr, self.block.intern('startswith'))
+
+        self.writer.write('{} = πF.MakeArgs(1)'.format(startswith_args.expr))
+        self.writer.write('{}[0] = {}.ToObject()'.format(
+            startswith_args.expr, self.block.intern('_')))
+        self.writer.write_checked_call2(
+            startswith_response,
+            '{}.Call(πF, {}, nil)', startswith_method.expr, startswith_args.expr)
+        self.writer.write('πF.FreeArgs({})'.format(startswith_args.expr))
+
+        start_loop = loop.start_label
+        self.writer.write_tmpl(textwrap.dedent("""\
+            if $is_true, πE = πg.IsTrue(πF, $condition); πE != nil {
+            \tcontinue
+            }
+            if $is_true {
+            \tgoto Label$start_loop
+            }"""),
+            is_true=is_true.name, condition=startswith_response.expr,
+            start_loop=start_loop)
+
+        with self.block.alloc_temp('[]*πg.Object') as append_args, \
+            self.block.alloc_temp() as append_method, \
+            self.block.alloc_temp() as append_response:
+          self.writer.write_checked_call2(
+              append_method, 'πg.GetAttr(πF, {}, {}, nil)',
+              members.expr, self.block.intern('append'))
+          self.writer.write('{} = πF.MakeArgs(1)'.format(append_args.expr))
+          self.writer.write('{}[0] = {}'.format(append_args.expr, key.expr))
+          self.writer.write_checked_call2(
+              append_response,
+              '{}.Call(πF, {}, nil)', append_method.expr, append_args.expr)
+          self.writer.write('πF.FreeArgs({})'.format(append_args.expr))
+
+      self.writer.write('goto Label{}'.format(loop.start_label))
+      self.writer.write_label(loop.end_label)
+      self.block.pop_loop()
 
   def _import(self, name, index):
     """Returns an expression for a Module object returned from ImportModule.
@@ -747,6 +924,19 @@ class StatementVisitor(algorithm.Visitor):
       self.writer.write_checked_call2(mod, 'πg.ImportNativeModule(πF, {}, {})',
                                       util.go_str(name), members.expr)
     return mod
+
+  def _import_wildcard(self, node):
+    """If __all__ is defined, attempts to bind everything from it,
+    falls back on __dict__ otherwise.
+
+    Note: items in __dict__ whose names start with '_' are skipped.
+    """
+    module_name = node.module
+
+    with self.block.alloc_temp() as members, \
+        self._import(module_name, module_name.count('.')) as module:
+      self._extract_module_members(module, members)
+      self._bind_module_members(module, members)
 
   def _tie_target(self, target, value):
     if isinstance(target, ast.Name):
