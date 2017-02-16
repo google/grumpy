@@ -220,11 +220,7 @@ class ExprVisitorTest(unittest.TestCase):
 
   testUnaryOpNot = _MakeExprTest('not True')
   testUnaryOpInvert = _MakeExprTest('~4')
-
-  def testUnaryOpNotImplemented(self):
-    self.assertRaisesRegexp(util.ParseError, 'unary op not implemented',
-                            _ParseAndVisitExpr, '+foo')
-
+  testUnaryOpPos = _MakeExprTest('+4')
 
 def _MakeModuleBlock():
   return block.ModuleBlock('__main__', 'grumpy', 'grumpy/lib', '<test>', '',

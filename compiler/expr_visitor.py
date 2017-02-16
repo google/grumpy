@@ -410,6 +410,7 @@ class ExprVisitor(algorithm.Visitor):
 
   _UNARY_OP_TEMPLATES = {
       ast.Invert: 'πg.Invert(πF, {operand})',
+      ast.UAdd: 'πg.Pos(πF, {operand})',
       ast.USub: 'πg.Neg(πF, {operand})',
   }
 
