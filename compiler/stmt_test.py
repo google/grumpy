@@ -367,13 +367,13 @@ class StatementVisitorTest(unittest.TestCase):
                               stmt.import_from_future, node)
 
   def testImportWildcard(self):
-    # Between 'compile' and 'sre_compile', only 'compile' is declared in __all__,
-    # so 'sre_compile' should not be visible.
+    # Between 'compile' and 'sre_compile', only 'compile'
+    # is declared in __all__, so 'sre_compile' should not be visible.
     result = _GrumpRun(textwrap.dedent("""\
         from re import *
         print compile"""))
     self.assertEqual(0, result[0])
-    self.assertIn('<function compile at',result[1])
+    self.assertIn('<function compile at', result[1])
 
     self.assertEqual((0, 'False\n'), _GrumpRun(textwrap.dedent("""\
         from re import *

@@ -670,7 +670,8 @@ class StatementVisitor(algorithm.Visitor):
         self.block.alloc_temp() as members_iterator, \
         self.block.alloc_temp() as member_name:
 
-      self.writer.write_checked_call2(members_iterator, 'πg.Iter(πF, {})', members.expr)
+      self.writer.write_checked_call2(
+          members_iterator, 'πg.Iter(πF, {})', members.expr)
 
       loop = self.block.push_loop()
       self.writer.write_label(loop.start_label)
@@ -689,7 +690,8 @@ class StatementVisitor(algorithm.Visitor):
           \tπF.RestoreExc(nil, nil)
           \tgoto Label$end_label
           }""")
-      self.writer.write_tmpl(tmpl,
+      self.writer.write_tmpl(
+          tmpl,
           member_name=member_name.expr,
           members_iterator=members_iterator.expr,
           end_label=loop.end_label)
@@ -735,7 +737,8 @@ class StatementVisitor(algorithm.Visitor):
       self.writer.write('{} = πF.MakeArgs(2)'.format(hasattr_args.expr))
       self.writer.write('{}[0] = {}'.format(hasattr_args.expr, module.expr))
       self.writer.write(
-          '{}[1] = {}.ToObject()'.format(hasattr_args.expr, self.block.intern('__all__')))
+          '{}[1] = {}.ToObject()'.format(
+              hasattr_args.expr, self.block.intern('__all__')))
       self.writer.write_checked_call2(
           hasattr_response,
           '{}.Call(πF, {}, nil)', hasattr_method.expr, hasattr_args.expr)
@@ -745,7 +748,8 @@ class StatementVisitor(algorithm.Visitor):
       else_label = self.block.genlabel()
       endif_label = self.block.genlabel()
 
-      self.writer.write_tmpl(textwrap.dedent("""\
+      self.writer.write_tmpl(textwrap.dedent(
+          """\
           if $is_true, πE = πg.IsTrue(πF, $condition); πE != nil {
           \tcontinue
           }
@@ -782,12 +786,16 @@ class StatementVisitor(algorithm.Visitor):
       self.writer.write_checked_call2(
           keys_method, 'πg.GetAttr(πF, {}, {}, nil)',
           dict_attr.expr, self.block.intern('keys'))
-      self.writer.write_checked_call2(keys, '{}.Call(πF, nil, nil)', keys_method.expr)
-      self.writer.write_checked_call2(keys_iterator, 'πg.Iter(πF, {})', keys.expr)
+      self.writer.write_checked_call2(
+          keys, '{}.Call(πF, nil, nil)', keys_method.expr)
+      self.writer.write_checked_call2(
+          keys_iterator, 'πg.Iter(πF, {})', keys.expr)
 
       with self.block.alloc_temp('[]*πg.Object') as list_obj:
         self.writer.write('{} = make([]*πg.Object, 0)'.format(list_obj.expr))
-        self.writer.write('{} = πg.NewList({}...).ToObject()'.format(members.expr, list_obj.expr))
+        self.writer.write(
+            '{} = πg.NewList({}...).ToObject()'.format(
+                members.expr, list_obj.expr))
 
       loop = self.block.push_loop()
       self.writer.write_label(loop.start_label)
@@ -806,7 +814,8 @@ class StatementVisitor(algorithm.Visitor):
           \tπF.RestoreExc(nil, nil)
           \tgoto Label$end_label
           }""")
-      self.writer.write_tmpl(tmpl,
+      self.writer.write_tmpl(
+          tmpl,
           key=key.expr,
           keys_iterator=keys_iterator.expr,
           end_label=loop.end_label)
@@ -825,11 +834,13 @@ class StatementVisitor(algorithm.Visitor):
             startswith_args.expr, self.block.intern('_')))
         self.writer.write_checked_call2(
             startswith_response,
-            '{}.Call(πF, {}, nil)', startswith_method.expr, startswith_args.expr)
+            '{}.Call(πF, {}, nil)',
+            startswith_method.expr, startswith_args.expr)
         self.writer.write('πF.FreeArgs({})'.format(startswith_args.expr))
 
         start_loop = loop.start_label
-        self.writer.write_tmpl(textwrap.dedent("""\
+        self.writer.write_tmpl(textwrap.dedent(
+            """\
             if $is_true, πE = πg.IsTrue(πF, $condition); πE != nil {
             \tcontinue
             }
