@@ -194,6 +194,10 @@ func floatNonZero(f *Frame, o *Object) (*Object, *BaseException) {
 	return GetBool(toFloatUnsafe(o).Value() != 0).ToObject(), nil
 }
 
+func floatPos(f *Frame, o *Object) (*Object, *BaseException) {
+	return o, nil
+}
+
 func floatPow(f *Frame, v, w *Object) (*Object, *BaseException) {
 	return floatArithmeticOp(f, "__pow__", v, w, func(v, w float64) float64 { return math.Pow(v, w) })
 }
@@ -257,6 +261,7 @@ func initFloatType(dict map[string]*Object) {
 	FloatType.slots.Neg = &unaryOpSlot{floatNeg}
 	FloatType.slots.New = &newSlot{floatNew}
 	FloatType.slots.NonZero = &unaryOpSlot{floatNonZero}
+	FloatType.slots.Pos = &unaryOpSlot{floatPos}
 	FloatType.slots.Pow = &binaryOpSlot{floatPow}
 	FloatType.slots.RAdd = &binaryOpSlot{floatRAdd}
 	FloatType.slots.RDiv = &binaryOpSlot{floatRDiv}

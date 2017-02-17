@@ -420,6 +420,7 @@ type typeSlots struct {
 	NonZero      *unaryOpSlot
 	Oct          *unaryOpSlot
 	Or           *binaryOpSlot
+	Pos          *unaryOpSlot
 	Pow          *binaryOpSlot
 	RAdd         *binaryOpSlot
 	RAnd         *binaryOpSlot

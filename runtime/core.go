@@ -640,6 +640,16 @@ func Oct(f *Frame, o *Object) (*Object, *BaseException) {
 	return o, nil
 }
 
+// Pos returns the result of o.__pos__ and is equivalent to the Python
+// expression "+o".
+func Pos(f *Frame, o *Object) (*Object, *BaseException) {
+	pos := o.typ.slots.Pos
+	if pos == nil {
+		return nil, f.RaiseType(TypeErrorType, fmt.Sprintf("bad operand type for unary +: '%s'", o.typ.Name()))
+	}
+	return pos.Fn(f, o)
+}
+
 // Print implements the Python print statement. It calls str() on the given args
 // and outputs the results to stdout separated by spaces. Similar to the Python
 // print statement.

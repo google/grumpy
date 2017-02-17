@@ -264,6 +264,10 @@ func intOr(f *Frame, v, w *Object) (*Object, *BaseException) {
 	return NewInt(toIntUnsafe(v).Value() | toIntUnsafe(w).Value()).ToObject(), nil
 }
 
+func intPos(f *Frame, o *Object) (*Object, *BaseException) {
+	return o, nil
+}
+
 func intPow(f *Frame, v, w *Object) (*Object, *BaseException) {
 	if w.isInstance(IntType) {
 		// First try to use the faster floating point arithmetic
@@ -388,6 +392,7 @@ func initIntType(dict map[string]*Object) {
 	IntType.slots.NonZero = &unaryOpSlot{intNonZero}
 	IntType.slots.Oct = &unaryOpSlot{intOct}
 	IntType.slots.Or = &binaryOpSlot{intOr}
+	IntType.slots.Pos = &unaryOpSlot{intPos}
 	IntType.slots.Pow = &binaryOpSlot{intPow}
 	IntType.slots.RAdd = &binaryOpSlot{intRAdd}
 	IntType.slots.RAnd = &binaryOpSlot{intAnd}

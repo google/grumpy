@@ -307,6 +307,10 @@ func longOr(z, x, y *big.Int) {
 	z.Or(x, y)
 }
 
+func longPos(z, x *big.Int) {
+	z.Set(x)
+}
+
 func longRepr(f *Frame, o *Object) (*Object, *BaseException) {
 	return NewStr(toLongUnsafe(o).value.Text(10) + "L").ToObject(), nil
 }
@@ -355,6 +359,7 @@ func initLongType(dict map[string]*Object) {
 	LongType.slots.NonZero = longUnaryBoolOpSlot(longNonZero)
 	LongType.slots.Oct = &unaryOpSlot{longOct}
 	LongType.slots.Or = longBinaryOpSlot(longOr)
+	LongType.slots.Pos = longUnaryOpSlot(longPos)
 	// This operation can return a float, it must use binaryOpSlot directly.
 	LongType.slots.Pow = &binaryOpSlot{longPow}
 	LongType.slots.RAdd = longRBinaryOpSlot(longAdd)
