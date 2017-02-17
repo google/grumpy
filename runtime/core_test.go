@@ -796,10 +796,16 @@ func TestOct(t *testing.T) {
 }
 
 func TestPos(t *testing.T) {
+	pos := newTestClass("pos", []*Type{ObjectType}, newStringDict(map[string]*Object{
+		"__pos__": newBuiltinFunction("__pos__", func(f *Frame, _ Args, _ KWArgs) (*Object, *BaseException) {
+			return NewInt(-42).ToObject(), nil
+		}).ToObject(),
+	}))
 	cases := []invokeTestCase{
 		{args: wrapArgs(42), want: NewInt(42).ToObject()},
 		{args: wrapArgs(1.2), want: NewFloat(1.2).ToObject()},
 		{args: wrapArgs(NewLong(big.NewInt(123))), want: NewLong(big.NewInt(123)).ToObject()},
+		{args: wrapArgs(newObject(pos)), want: NewInt(-42).ToObject()},
 		{args: wrapArgs("foo"), wantExc: mustCreateException(TypeErrorType, "bad operand type for unary +: 'str'")},
 	}
 	for _, cas := range cases {
