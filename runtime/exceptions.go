@@ -28,6 +28,8 @@ var (
 	// EnvironmentErrorType corresponds to the Python type
 	// 'EnvironmentError'.
 	EnvironmentErrorType = newSimpleType("EnvironmentError", StandardErrorType)
+	// EOFErrorType corresponds to the Python type 'EOFError'.
+	EOFErrorType = newSimpleType("EOFError", StandardErrorType)
 	// ExceptionType corresponds to the Python type 'Exception'.
 	ExceptionType = newSimpleType("Exception", BaseExceptionType)
 	// FutureWarningType corresponds to the Python type 'FutureWarning'.

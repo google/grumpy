@@ -111,6 +111,7 @@ var builtinTypes = map[*Type]*builtinTypeInfo{
 	EllipsisType:                  {init: initEllipsisType, global: true},
 	enumerateType:                 {init: initEnumerateType, global: true},
 	EnvironmentErrorType:          {global: true},
+	EOFErrorType:                  {global: true},
 	ExceptionType:                 {global: true},
 	FileType:                      {init: initFileType, global: true},
 	FloatType:                     {init: initFloatType, global: true},
@@ -585,7 +586,7 @@ func builtinRawInput(f *Frame, args Args, kwargs KWArgs) (*Object, *BaseExceptio
 
 	line, err := Stdin.reader.ReadString('\n')
 	if err != nil {
-		return nil, f.RaiseType(IOErrorType, err.Error())
+		return nil, f.RaiseType(EOFErrorType, "EOF when reading a line")
 	}
 	line = strings.TrimRight(line, "\n")
 	return NewStr(line).ToObject(), nil
