@@ -705,7 +705,7 @@ func dictLen(f *Frame, o *Object) (*Object, *BaseException) {
 }
 
 func dictNE(f *Frame, v, w *Object) (*Object, *BaseException) {
-	if !v.isInstance(DictType) {
+	if !w.isInstance(DictType) {
 		return NotImplemented, nil
 	}
 	eq, raised := dictsAreEqual(f, toDictUnsafe(v), toDictUnsafe(w))
