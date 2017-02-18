@@ -328,50 +328,49 @@ class TestTimeDelta(HarmlessMixedComparison, unittest.TestCase):
     #         derived = unpickler.loads(green)
     #         self.assertEqual(orig, derived)
 
-    # TODO: this cause panic: #251
-    # def test_compare(self):
-    #     t1 = timedelta(2, 3, 4)
-    #     t2 = timedelta(2, 3, 4)
-    #     self.assertTrue(t1 == t2)
-    #     self.assertTrue(t1 <= t2)
-    #     self.assertTrue(t1 >= t2)
-    #     self.assertFalse(t1 != t2)
-    #     self.assertFalse(t1 < t2)
-    #     self.assertFalse(t1 > t2)
-    #     self.assertEqual(cmp(t1, t2), 0)
-    #     self.assertEqual(cmp(t2, t1), 0)
+    def test_compare(self):
+        t1 = timedelta(2, 3, 4)
+        t2 = timedelta(2, 3, 4)
+        self.assertTrue(t1 == t2)
+        self.assertTrue(t1 <= t2)
+        self.assertTrue(t1 >= t2)
+        self.assertFalse(t1 != t2)
+        self.assertFalse(t1 < t2)
+        self.assertFalse(t1 > t2)
+        self.assertEqual(cmp(t1, t2), 0)
+        self.assertEqual(cmp(t2, t1), 0)
 
-    #     for args in (3, 3, 3), (2, 4, 4), (2, 3, 5):
-    #         t2 = timedelta(*args)   # this is larger than t1
-    #         self.assertTrue(t1 < t2)
-    #         self.assertTrue(t2 > t1)
-    #         self.assertTrue(t1 <= t2)
-    #         self.assertTrue(t2 >= t1)
-    #         self.assertTrue(t1 != t2)
-    #         self.assertTrue(t2 != t1)
-    #         self.assertFalse(t1 == t2)
-    #         self.assertFalse(t2 == t1)
-    #         self.assertFalse(t1 > t2)
-    #         self.assertFalse(t2 < t1)
-    #         self.assertFalse(t1 >= t2)
-    #         self.assertFalse(t2 <= t1)
-    #         self.assertEqual(cmp(t1, t2), -1)
-    #         self.assertEqual(cmp(t2, t1), 1)
+        for args in (3, 3, 3), (2, 4, 4), (2, 3, 5):
+            t2 = timedelta(*args)   # this is larger than t1
+            self.assertTrue(t1 < t2)
+            self.assertTrue(t2 > t1)
+            self.assertTrue(t1 <= t2)
+            self.assertTrue(t2 >= t1)
+            self.assertTrue(t1 != t2)
+            self.assertTrue(t2 != t1)
+            self.assertFalse(t1 == t2)
+            self.assertFalse(t2 == t1)
+            self.assertFalse(t1 > t2)
+            self.assertFalse(t2 < t1)
+            self.assertFalse(t1 >= t2)
+            self.assertFalse(t2 <= t1)
+            self.assertEqual(cmp(t1, t2), -1)
+            self.assertEqual(cmp(t2, t1), 1)
 
-    #     for badarg in OTHERSTUFF:
-    #         self.assertEqual(t1 == badarg, False)
-    #         self.assertEqual(t1 != badarg, True)
-    #         self.assertEqual(badarg == t1, False)
-    #         self.assertEqual(badarg != t1, True)
+        for badarg in OTHERSTUFF:
+            self.assertEqual(t1 == badarg, False)
+            self.assertEqual(t1 != badarg, True)
+            self.assertEqual(badarg == t1, False)
+            self.assertEqual(badarg != t1, True)
 
-    #         self.assertRaises(TypeError, lambda: t1 <= badarg)
-    #         self.assertRaises(TypeError, lambda: t1 < badarg)
-    #         self.assertRaises(TypeError, lambda: t1 > badarg)
-    #         self.assertRaises(TypeError, lambda: t1 >= badarg)
-    #         self.assertRaises(TypeError, lambda: badarg <= t1)
-    #         self.assertRaises(TypeError, lambda: badarg < t1)
-    #         self.assertRaises(TypeError, lambda: badarg > t1)
-    #         self.assertRaises(TypeError, lambda: badarg >= t1)
+            self.assertRaises(TypeError, lambda: t1 <= badarg)
+            self.assertRaises(TypeError, lambda: t1 < badarg)
+            self.assertRaises(TypeError, lambda: t1 > badarg)
+            self.assertRaises(TypeError, lambda: t1 >= badarg)
+            self.assertRaises(TypeError, lambda: badarg <= t1)
+            self.assertRaises(TypeError, lambda: badarg < t1)
+            self.assertRaises(TypeError, lambda: badarg > t1)
+            self.assertRaises(TypeError, lambda: badarg >= t1)
 
     def test_str(self):
         td = timedelta
@@ -981,49 +980,48 @@ class TestDate(HarmlessMixedComparison, unittest.TestCase):
     #         derived = unpickler.loads(green)
     #         self.assertEqual(orig, derived)
 
-    # TODO: this cause panic, #251
-    # def test_compare(self):
-    #     t1 = self.theclass(2, 3, 4)
-    #     t2 = self.theclass(2, 3, 4)
-    #     self.assertTrue(t1 == t2)
-    #     self.assertTrue(t1 <= t2)
-    #     self.assertTrue(t1 >= t2)
-    #     self.assertFalse(t1 != t2)
-    #     self.assertFalse(t1 < t2)
-    #     self.assertFalse(t1 > t2)
-    #     self.assertEqual(cmp(t1, t2), 0)
-    #     self.assertEqual(cmp(t2, t1), 0)
+    def test_compare(self):
+        t1 = self.theclass(2, 3, 4)
+        t2 = self.theclass(2, 3, 4)
+        self.assertTrue(t1 == t2)
+        self.assertTrue(t1 <= t2)
+        self.assertTrue(t1 >= t2)
+        self.assertFalse(t1 != t2)
+        self.assertFalse(t1 < t2)
+        self.assertFalse(t1 > t2)
+        self.assertEqual(cmp(t1, t2), 0)
+        self.assertEqual(cmp(t2, t1), 0)
 
-    #     for args in (3, 3, 3), (2, 4, 4), (2, 3, 5):
-    #         t2 = self.theclass(*args)   # this is larger than t1
-    #         self.assertTrue(t1 < t2)
-    #         self.assertTrue(t2 > t1)
-    #         self.assertTrue(t1 <= t2)
-    #         self.assertTrue(t2 >= t1)
-    #         self.assertTrue(t1 != t2)
-    #         self.assertTrue(t2 != t1)
-    #         self.assertFalse(t1 == t2)
-    #         self.assertFalse(t2 == t1)
-    #         self.assertFalse(t1 > t2)
-    #         self.assertFalse(t2 < t1)
-    #         self.assertFalse(t1 >= t2)
-    #         self.assertFalse(t2 <= t1)
-    #         self.assertEqual(cmp(t1, t2), -1)
-    #         self.assertEqual(cmp(t2, t1), 1)
+        for args in (3, 3, 3), (2, 4, 4), (2, 3, 5):
+            t2 = self.theclass(*args)   # this is larger than t1
+            self.assertTrue(t1 < t2)
+            self.assertTrue(t2 > t1)
+            self.assertTrue(t1 <= t2)
+            self.assertTrue(t2 >= t1)
+            self.assertTrue(t1 != t2)
+            self.assertTrue(t2 != t1)
+            self.assertFalse(t1 == t2)
+            self.assertFalse(t2 == t1)
+            self.assertFalse(t1 > t2)
+            self.assertFalse(t2 < t1)
+            self.assertFalse(t1 >= t2)
+            self.assertFalse(t2 <= t1)
+            self.assertEqual(cmp(t1, t2), -1)
+            self.assertEqual(cmp(t2, t1), 1)
 
-    #     for badarg in OTHERSTUFF:
-    #         self.assertEqual(t1 == badarg, False)
-    #         self.assertEqual(t1 != badarg, True)
-    #         self.assertEqual(badarg == t1, False)
-    #         self.assertEqual(badarg != t1, True)
+        for badarg in OTHERSTUFF:
+            self.assertEqual(t1 == badarg, False)
+            self.assertEqual(t1 != badarg, True)
+            self.assertEqual(badarg == t1, False)
+            self.assertEqual(badarg != t1, True)
 
-    #         self.assertRaises(TypeError, lambda: t1 < badarg)
-    #         self.assertRaises(TypeError, lambda: t1 > badarg)
-    #         self.assertRaises(TypeError, lambda: t1 >= badarg)
-    #         self.assertRaises(TypeError, lambda: badarg <= t1)
-    #         self.assertRaises(TypeError, lambda: badarg < t1)
-    #         self.assertRaises(TypeError, lambda: badarg > t1)
-    #         self.assertRaises(TypeError, lambda: badarg >= t1)
+            self.assertRaises(TypeError, lambda: t1 < badarg)
+            self.assertRaises(TypeError, lambda: t1 > badarg)
+            self.assertRaises(TypeError, lambda: t1 >= badarg)
+            self.assertRaises(TypeError, lambda: badarg <= t1)
+            self.assertRaises(TypeError, lambda: badarg < t1)
+            self.assertRaises(TypeError, lambda: badarg > t1)
+            self.assertRaises(TypeError, lambda: badarg >= t1)
 
     def test_mixed_compare(self):
         our = self.theclass(2000, 4, 5)
@@ -1750,53 +1748,52 @@ class TestTime(HarmlessMixedComparison, unittest.TestCase):
                            t.microsecond)
         self.assertEqual(t, t2)
 
-    # TODO: this cause nil pointer deference panic: issue #252
-    # def test_comparing(self):
-    #     args = [1, 2, 3, 4]
-    #     t1 = self.theclass(*args)
-    #     t2 = self.theclass(*args)
-    #     self.assertTrue(t1 == t2)
-    #     self.assertTrue(t1 <= t2)
-    #     self.assertTrue(t1 >= t2)
-    #     self.assertFalse(t1 != t2)
-    #     self.assertFalse(t1 < t2)
-    #     self.assertFalse(t1 > t2)
-    #     self.assertEqual(cmp(t1, t2), 0)
-    #     self.assertEqual(cmp(t2, t1), 0)
+    def test_comparing(self):
+        args = [1, 2, 3, 4]
+        t1 = self.theclass(*args)
+        t2 = self.theclass(*args)
+        self.assertTrue(t1 == t2)
+        self.assertTrue(t1 <= t2)
+        self.assertTrue(t1 >= t2)
+        self.assertFalse(t1 != t2)
+        self.assertFalse(t1 < t2)
+        self.assertFalse(t1 > t2)
+        self.assertEqual(cmp(t1, t2), 0)
+        self.assertEqual(cmp(t2, t1), 0)
 
-    #     for i in range(len(args)):
-    #         newargs = args[:]
-    #         newargs[i] = args[i] + 1
-    #         t2 = self.theclass(*newargs)   # this is larger than t1
-    #         self.assertTrue(t1 < t2)
-    #         self.assertTrue(t2 > t1)
-    #         self.assertTrue(t1 <= t2)
-    #         self.assertTrue(t2 >= t1)
-    #         self.assertTrue(t1 != t2)
-    #         self.assertTrue(t2 != t1)
-    #         self.assertFalse(t1 == t2)
-    #         self.assertFalse(t2 == t1)
-    #         self.assertFalse(t1 > t2)
-    #         self.assertFalse(t2 < t1)
-    #         self.assertFalse(t1 >= t2)
-    #         self.assertFalse(t2 <= t1)
-    #         self.assertEqual(cmp(t1, t2), -1)
-    #         self.assertEqual(cmp(t2, t1), 1)
+        for i in range(len(args)):
+            newargs = args[:]
+            newargs[i] = args[i] + 1
+            t2 = self.theclass(*newargs)   # this is larger than t1
+            self.assertTrue(t1 < t2)
+            self.assertTrue(t2 > t1)
+            self.assertTrue(t1 <= t2)
+            self.assertTrue(t2 >= t1)
+            self.assertTrue(t1 != t2)
+            self.assertTrue(t2 != t1)
+            self.assertFalse(t1 == t2)
+            self.assertFalse(t2 == t1)
+            self.assertFalse(t1 > t2)
+            self.assertFalse(t2 < t1)
+            self.assertFalse(t1 >= t2)
+            self.assertFalse(t2 <= t1)
+            self.assertEqual(cmp(t1, t2), -1)
+            self.assertEqual(cmp(t2, t1), 1)
 
-    #     for badarg in OTHERSTUFF:
-    #         self.assertEqual(t1 == badarg, False)
-    #         self.assertEqual(t1 != badarg, True)
-    #         self.assertEqual(badarg == t1, False)
-    #         self.assertEqual(badarg != t1, True)
+        for badarg in OTHERSTUFF:
+            self.assertEqual(t1 == badarg, False)
+            self.assertEqual(t1 != badarg, True)
+            self.assertEqual(badarg == t1, False)
+            self.assertEqual(badarg != t1, True)
 
-    #         self.assertRaises(TypeError, lambda: t1 <= badarg)
-    #         self.assertRaises(TypeError, lambda: t1 < badarg)
-    #         self.assertRaises(TypeError, lambda: t1 > badarg)
-    #         self.assertRaises(TypeError, lambda: t1 >= badarg)
-    #         self.assertRaises(TypeError, lambda: badarg <= t1)
-    #         self.assertRaises(TypeError, lambda: badarg < t1)
-    #         self.assertRaises(TypeError, lambda: badarg > t1)
-    #         self.assertRaises(TypeError, lambda: badarg >= t1)
+            self.assertRaises(TypeError, lambda: t1 <= badarg)
+            self.assertRaises(TypeError, lambda: t1 < badarg)
+            self.assertRaises(TypeError, lambda: t1 > badarg)
+            self.assertRaises(TypeError, lambda: t1 >= badarg)
+            self.assertRaises(TypeError, lambda: badarg <= t1)
+            self.assertRaises(TypeError, lambda: badarg < t1)
+            self.assertRaises(TypeError, lambda: badarg > t1)
+            self.assertRaises(TypeError, lambda: badarg >= t1)
 
     def test_bad_constructor_arguments(self):
         # bad hours
