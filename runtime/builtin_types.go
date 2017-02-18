@@ -18,6 +18,7 @@ import (
 	"fmt"
 	"math"
 	"math/big"
+	"strings"
 	"unicode"
 )
 
@@ -110,6 +111,7 @@ var builtinTypes = map[*Type]*builtinTypeInfo{
 	EllipsisType:                  {init: initEllipsisType, global: true},
 	enumerateType:                 {init: initEnumerateType, global: true},
 	EnvironmentErrorType:          {global: true},
+	EOFErrorType:                  {global: true},
 	ExceptionType:                 {global: true},
 	FileType:                      {init: initFileType, global: true},
 	FloatType:                     {init: initFloatType, global: true},
@@ -559,6 +561,37 @@ func builtinRange(f *Frame, args Args, kwargs KWArgs) (*Object, *BaseException) 
 	return ListType.Call(f, []*Object{r}, nil)
 }
 
+func builtinRawInput(f *Frame, args Args, kwargs KWArgs) (*Object, *BaseException) {
+	if len(args) > 1 {
+		msg := fmt.Sprintf("[raw_]input expcted at most 1 arguments, got %d", len(args))
+		return nil, f.RaiseType(TypeErrorType, msg)
+	}
+
+	if Stdin == nil {
+		msg := fmt.Sprintf("[raw_]input: lost sys.stdin")
+		return nil, f.RaiseType(RuntimeErrorType, msg)
+	}
+
+	if Stdout == nil {
+		msg := fmt.Sprintf("[raw_]input: lost sys.stdout")
+		return nil, f.RaiseType(RuntimeErrorType, msg)
+	}
+
+	if len(args) == 1 {
+		err := pyPrint(f, args, "", "", Stdout)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	line, err := Stdin.reader.ReadString('\n')
+	if err != nil {
+		return nil, f.RaiseType(EOFErrorType, "EOF when reading a line")
+	}
+	line = strings.TrimRight(line, "\n")
+	return NewStr(line).ToObject(), nil
+}
+
 func builtinRepr(f *Frame, args Args, kwargs KWArgs) (*Object, *BaseException) {
 	if raised := checkFunctionArgs(f, "repr", args, ObjectType); raised != nil {
 		return nil, raised
@@ -693,6 +726,7 @@ func init() {
 		"ord":            newBuiltinFunction("ord", builtinOrd).ToObject(),
 		"print":          newBuiltinFunction("print", builtinPrint).ToObject(),
 		"range":          newBuiltinFunction("range", builtinRange).ToObject(),
+		"raw_input":      newBuiltinFunction("raw_input", builtinRawInput).ToObject(),
 		"repr":           newBuiltinFunction("repr", builtinRepr).ToObject(),
 		"round":          newBuiltinFunction("round", builtinRound).ToObject(),
 		"setattr":        newBuiltinFunction("setattr", builtinSetAttr).ToObject(),

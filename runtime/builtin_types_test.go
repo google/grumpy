@@ -425,6 +425,60 @@ func TestBuiltinSetAttr(t *testing.T) {
 	}
 }
 
+func TestRawInput(t *testing.T) {
+	fun := wrapFuncForTest(func(f *Frame, s string, args ...*Object) (*Object, *BaseException) {
+		// Create a fake Stdin for input test.
+		stdinFile, w, err := os.Pipe()
+		if err != nil {
+			return nil, f.RaiseType(RuntimeErrorType, fmt.Sprintf("failed to open pipe: %v", err))
+		}
+
+		go func() {
+			w.Write([]byte(s))
+			w.Close()
+		}()
+
+		oldStdin := Stdin
+		Stdin = NewFileFromFD(stdinFile.Fd())
+		defer func() {
+			Stdin = oldStdin
+			stdinFile.Close()
+		}()
+
+		var input *Object
+		output, raised := captureStdout(f, func() *BaseException {
+			in, raised := builtinRawInput(f, args, nil)
+			input = in
+			return raised
+		})
+
+		if raised != nil {
+			return nil, raised
+		}
+
+		return newTestTuple(input, output).ToObject(), nil
+	})
+
+	cases := []invokeTestCase{
+		{args: wrapArgs("HelloGrumpy\n", ""), want: newTestTuple("HelloGrumpy", "").ToObject()},
+		{args: wrapArgs("HelloGrumpy\n", "ShouldBeShown\nShouldBeShown\t"), want: newTestTuple("HelloGrumpy", "ShouldBeShown\nShouldBeShown\t").ToObject()},
+		{args: wrapArgs("HelloGrumpy\n", 5, 4), wantExc: mustCreateException(TypeErrorType, "[raw_]input expcted at most 1 arguments, got 2")},
+		{args: wrapArgs("HelloGrumpy\nHelloGrumpy\n", ""), want: newTestTuple("HelloGrumpy", "").ToObject()},
+		{args: wrapArgs("HelloGrumpy\nHelloGrumpy\n", "ShouldBeShown\nShouldBeShown\t"), want: newTestTuple("HelloGrumpy", "ShouldBeShown\nShouldBeShown\t").ToObject()},
+		{args: wrapArgs("HelloGrumpy\nHelloGrumpy\n", 5, 4), wantExc: mustCreateException(TypeErrorType, "[raw_]input expcted at most 1 arguments, got 2")},
+		{args: wrapArgs("", ""), wantExc: mustCreateException(EOFErrorType, "EOF when reading a line")},
+		{args: wrapArgs("", "ShouldBeShown\nShouldBeShown\t"), wantExc: mustCreateException(EOFErrorType, "EOF when reading a line")},
+		{args: wrapArgs("", 5, 4), wantExc: mustCreateException(TypeErrorType, "[raw_]input expcted at most 1 arguments, got 2")},
+	}
+
+	for _, cas := range cases {
+		if err := runInvokeTestCase(fun, &cas); err != "" {
+			t.Error(err)
+		}
+	}
+
+}
+
 func newTestIndexObject(index int) *Object {
 	indexType := newTestClass("Index", []*Type{ObjectType}, newStringDict(map[string]*Object{
 		"__index__": newBuiltinFunction("__index__", func(f *Frame, _ Args, _ KWArgs) (*Object, *BaseException) {

@@ -361,6 +361,6 @@ var (
 	Stdin = NewFileFromFD(os.Stdin.Fd())
 	// Stdout is an alias for sys.stdout.
 	Stdout = NewFileFromFD(os.Stdout.Fd())
-	// Stderr is an aliaas for sys.stderr.
+	// Stderr is an alias for sys.stderr.
 	Stderr = NewFileFromFD(os.Stderr.Fd())
 )
