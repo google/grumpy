@@ -132,34 +132,21 @@ func TestDictDelItemString(t *testing.T) {
 }
 
 func TestDictEqNE(t *testing.T) {
-	fun := newBuiltinFunction("TestDictEqNE", func(f *Frame, args Args, _ KWArgs) (*Object, *BaseException) {
-		if raised := checkMethodArgs(f, "TestDictEqNE", args, DictType, DictType, BoolType); raised != nil {
+	fun := wrapFuncForTest(func(f *Frame, v, w *Object) (*Object, *BaseException) {
+		eq, raised := Eq(f, v, w)
+		if raised != nil {
 			return nil, raised
 		}
-		d1, d2 := args[0], args[1]
-		wantEq := toIntUnsafe(args[2]).IsTrue()
-		if eq, raised := Eq(f, d1, d2); raised != nil {
+		ne, raised := NE(f, v, w)
+		if raised != nil {
 			return nil, raised
-		} else if !eq.isInstance(BoolType) || toIntUnsafe(eq).IsTrue() != wantEq {
-			t.Errorf("Eq(%v, %v) = %v, want %v", d1, d2, eq, GetBool(wantEq))
 		}
-		if eq, raised := Eq(f, d2, d1); raised != nil {
+		valid := GetBool(eq == True.ToObject() && ne == False.ToObject() || eq == False.ToObject() && ne == True.ToObject()).ToObject()
+		if raised := Assert(f, valid, NewStr("invalid values for __eq__ or __ne__").ToObject()); raised != nil {
 			return nil, raised
-		} else if !eq.isInstance(BoolType) || toIntUnsafe(eq).IsTrue() != wantEq {
-			t.Errorf("Eq(%v, %v) = %v, want %v", d2, d1, eq, GetBool(wantEq))
 		}
-		if ne, raised := NE(f, d1, d2); raised != nil {
-			return nil, raised
-		} else if !ne.isInstance(BoolType) || toIntUnsafe(ne).IsTrue() == wantEq {
-			t.Errorf("NE(%v, %v) = %v, want %v", d1, d2, ne, GetBool(!wantEq))
-		}
-		if ne, raised := NE(f, d2, d1); raised != nil {
-			return nil, raised
-		} else if !ne.isInstance(BoolType) || toIntUnsafe(ne).IsTrue() == wantEq {
-			t.Errorf("NE(%v, %v) = %v, want %v", d2, d1, ne, GetBool(!wantEq))
-		}
-		return None, nil
-	}).ToObject()
+		return eq, nil
+	})
 	f := NewRootFrame()
 	large1, large2 := NewDict(), NewDict()
 	largeSize := 100
@@ -177,15 +164,16 @@ func TestDictEqNE(t *testing.T) {
 	}
 	o := newObject(ObjectType)
 	cases := []invokeTestCase{
-		{args: wrapArgs(NewDict(), NewDict(), true), want: None},
-		{args: wrapArgs(NewDict(), newTestDict("foo", true), false), want: None},
-		{args: wrapArgs(newTestDict("foo", "foo"), newTestDict("foo", "foo"), true), want: None},
-		{args: wrapArgs(newTestDict("foo", true), newTestDict("bar", true), false), want: None},
-		{args: wrapArgs(newTestDict("foo", true), newTestDict("foo", newObject(ObjectType)), false), want: None},
-		{args: wrapArgs(newTestDict("foo", true, "bar", false), newTestDict("bar", true), false), want: None},
-		{args: wrapArgs(newTestDict("foo", o, "bar", o), newTestDict("foo", o, "bar", o), true), want: None},
-		{args: wrapArgs(newTestDict(2, None, "foo", o), newTestDict("foo", o, 2, None), true), want: None},
-		{args: wrapArgs(large1, large2, true), want: None},
+		{args: wrapArgs(NewDict(), NewDict()), want: True.ToObject()},
+		{args: wrapArgs(NewDict(), newTestDict("foo", true)), want: False.ToObject()},
+		{args: wrapArgs(newTestDict("foo", "foo"), newTestDict("foo", "foo")), want: True.ToObject()},
+		{args: wrapArgs(newTestDict("foo", true), newTestDict("bar", true)), want: False.ToObject()},
+		{args: wrapArgs(newTestDict("foo", true), newTestDict("foo", newObject(ObjectType))), want: False.ToObject()},
+		{args: wrapArgs(newTestDict("foo", true, "bar", false), newTestDict("bar", true)), want: False.ToObject()},
+		{args: wrapArgs(newTestDict("foo", o, "bar", o), newTestDict("foo", o, "bar", o)), want: True.ToObject()},
+		{args: wrapArgs(newTestDict(2, None, "foo", o), newTestDict("foo", o, 2, None)), want: True.ToObject()},
+		{args: wrapArgs(large1, large2), want: True.ToObject()},
+		{args: wrapArgs(NewDict(), 123), want: False.ToObject()},
 	}
 	for _, cas := range cases {
 		if err := runInvokeTestCase(fun, &cas); err != "" {
