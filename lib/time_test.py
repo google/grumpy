@@ -16,3 +16,7 @@ import time
 
 assert time.time() > 1000000000
 assert time.time() < 3000000000
+
+time_struct = (1999, 9, 19, 0, 0, 0, 6, 262, 0)
+got = time.localtime(time.mktime(time_struct))
+assert got == time_struct, got
