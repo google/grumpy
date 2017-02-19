@@ -286,6 +286,13 @@ func TestBuiltinFuncs(t *testing.T) {
 		{f: "sorted", args: wrapArgs(newTestDict("foo", 1, "bar", 2)), want: newTestList("bar", "foo").ToObject()},
 		{f: "sorted", args: wrapArgs(1), wantExc: mustCreateException(TypeErrorType, "'int' object is not iterable")},
 		{f: "sorted", args: wrapArgs(newTestList("foo", "bar"), 2), wantExc: mustCreateException(TypeErrorType, "'sorted' requires 1 arguments")},
+		{f: "sum", args: wrapArgs(newTestList(1, 2, 3, 4)), want: NewInt(10).ToObject()},
+		{f: "sum", args: wrapArgs(newTestList(1, 2), 3), want: NewFloat(6).ToObject()},
+		{f: "sum", args: wrapArgs(newTestList(2, 1.1)), want: NewFloat(3.1).ToObject()},
+		{f: "sum", args: wrapArgs(newTestList(2, 1.1, 2)), want: NewFloat(5.1).ToObject()},
+		{f: "sum", args: wrapArgs(newTestList(2, 1.1, 2.0)), want: NewFloat(5.1).ToObject()},
+		{f: "sum", args: wrapArgs(newTestList(1), newTestAddObject(3)), want: NewInt(4).ToObject()},
+		{f: "sum", args: wrapArgs(newTestList(newTestAddObject(1)), newTestAddObject(3)), want: NewInt(4).ToObject()},
 		{f: "unichr", args: wrapArgs(0), want: NewUnicode("\x00").ToObject()},
 		{f: "unichr", args: wrapArgs(65), want: NewStr("A").ToObject()},
 		{f: "unichr", args: wrapArgs(0x120000), wantExc: mustCreateException(ValueErrorType, "unichr() arg not in range(0x10ffff)")},
@@ -486,4 +493,13 @@ func newTestIndexObject(index int) *Object {
 		}).ToObject(),
 	}))
 	return newObject(indexType)
+}
+
+func newTestAddObject(x int) *Object {
+	addType := newTestClass("Add", []*Type{ObjectType}, newStringDict(map[string]*Object{
+		"__add__": newBuiltinFunction("__add__", func(f *Frame, _ Args, _ KWArgs) (*Object, *BaseException) {
+			return NewInt(x + 1).ToObject(), nil
+		}).ToObject(),
+	}))
+	return newObject(addType)
 }

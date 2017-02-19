@@ -650,6 +650,85 @@ func builtinSorted(f *Frame, args Args, _ KWArgs) (*Object, *BaseException) {
 	return result, nil
 }
 
+func builtinSum(f *Frame, args Args, _ KWArgs) (*Object, *BaseException) {
+	argc := len(args)
+	expectedTypes := []*Type{ObjectType, ObjectType}
+	if argc == 1 {
+		expectedTypes = expectedTypes[:1]
+	}
+	if raised := checkFunctionArgs(f, "sum", args, expectedTypes...); raised != nil {
+		return nil, raised
+	}
+	iter, raised := Iter(f, args[0])
+	if raised != nil {
+		return nil, raised
+	}
+	var result *Object
+	if argc > 1 {
+		if args[1].typ == StrType {
+			return nil, f.RaiseType(TypeErrorType, "sum() can't sum strings [use ''.join(seq) instead]")
+		}
+		result = args[1]
+	} else {
+		result = NewInt(0).ToObject()
+	}
+	if result.typ == IntType {
+		item, raised := Next(f, iter)
+		for ; raised == nil; item, raised = Next(f, iter) {
+			if item.typ == IntType {
+				result = NewInt(toIntUnsafe(result).Value() + toIntUnsafe(item).Value()).ToObject()
+				continue
+			}
+			result, raised = Add(f, result, item)
+			break
+		}
+		if raised != nil {
+			if raised.isInstance(StopIterationType) {
+				f.RestoreExc(nil, nil)
+				return result, nil
+			}
+			return nil, raised
+		}
+	}
+	if result.typ == FloatType {
+		item, raised := Next(f, iter)
+		for ; raised == nil; item, raised = Next(f, iter) {
+			if item.typ == FloatType {
+				result = NewFloat(toFloatUnsafe(result).Value() + toFloatUnsafe(item).Value()).ToObject()
+				continue
+			}
+			if item.typ == IntType {
+				result = NewFloat(toFloatUnsafe(result).Value() + float64(toIntUnsafe(item).Value())).ToObject()
+				continue
+			}
+			result, raised = Add(f, result, item)
+			break
+		}
+		if raised != nil {
+			if raised.isInstance(StopIterationType) {
+				f.RestoreExc(nil, nil)
+				return result, nil
+			}
+			return nil, raised
+		}
+	}
+	item, raised := Next(f, iter)
+	for ; raised == nil; item, raised = Next(f, iter) {
+		result, raised = Add(f, result, item)
+		if raised != nil {
+			return nil, raised
+		}
+	}
+	if raised != nil {
+		if raised.isInstance(StopIterationType) {
+			f.RestoreExc(nil, nil)
+			return result, nil
+		}
+		return nil, raised
+	}
+	return result, nil
+}
+
 func builtinUniChr(f *Frame, args Args, _ KWArgs) (*Object, *BaseException) {
 	if raised := checkFunctionArgs(f, "unichr", args, IntType); raised != nil {
 		return nil, raised
@@ -731,6 +810,7 @@ func init() {
 		"round":          newBuiltinFunction("round", builtinRound).ToObject(),
 		"setattr":        newBuiltinFunction("setattr", builtinSetAttr).ToObject(),
 		"sorted":         newBuiltinFunction("sorted", builtinSorted).ToObject(),
+		"sum":            newBuiltinFunction("sum", builtinSum).ToObject(),
 		"True":           True.ToObject(),
 		"unichr":         newBuiltinFunction("unichr", builtinUniChr).ToObject(),
 		"zip":            newBuiltinFunction("zip", builtinZip).ToObject(),
