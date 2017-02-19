@@ -20,6 +20,7 @@ import (
 	"math/big"
 	"reflect"
 	"strconv"
+	"sync"
 )
 
 // FloatType is the object representing the Python 'float' type.
@@ -28,12 +29,16 @@ var FloatType = newBasisType("float", reflect.TypeOf(Float{}), toFloatUnsafe, Ob
 // Float represents Python 'float' objects.
 type Float struct {
 	Object
-	value float64
+	value    float64
+	hashOnce sync.Once
+	hash     int
 }
 
 // NewFloat returns a new Float holding the given floating point value.
 func NewFloat(value float64) *Float {
-	return &Float{Object{typ: FloatType}, value}
+	result := Float{Object: Object{typ: FloatType}}
+	result.value = value
+	return &result
 }
 
 func toFloatUnsafe(o *Object) *Float {
@@ -89,6 +94,19 @@ func floatGetNewArgs(f *Frame, args Args, _ KWArgs) (*Object, *BaseException) {
 
 func floatGT(f *Frame, v, w *Object) (*Object, *BaseException) {
 	return floatCompare(toFloatUnsafe(v), w, False, False, True), nil
+}
+
+func floatHash(f *Frame, o *Object) (*Object, *BaseException) {
+	v := toFloatUnsafe(o)
+	v.hashOnce.Do(func() {
+		hash := hashFloat(v.Value())
+		if hash == -1 {
+			hash--
+		}
+		v.hash = hash
+	})
+
+	return NewInt(v.hash).ToObject(), nil
 }
 
 func floatInt(f *Frame, o *Object) (*Object, *BaseException) {
@@ -250,6 +268,7 @@ func initFloatType(dict map[string]*Object) {
 	FloatType.slots.Float = &unaryOpSlot{floatFloat}
 	FloatType.slots.GE = &binaryOpSlot{floatGE}
 	FloatType.slots.GT = &binaryOpSlot{floatGT}
+	FloatType.slots.Hash = &unaryOpSlot{floatHash}
 	FloatType.slots.Int = &unaryOpSlot{floatInt}
 	FloatType.slots.Long = &unaryOpSlot{floatLong}
 	FloatType.slots.LE = &binaryOpSlot{floatLE}
@@ -353,6 +372,39 @@ func floatDivModOp(f *Frame, method string, v, w *Object, fun func(v, w float64)
 		return nil, f.RaiseType(ZeroDivisionErrorType, "float division or modulo by zero")
 	}
 	return NewFloat(x).ToObject(), nil
+}
+
+func hashFloat(v float64) int {
+	if math.IsNaN(v) {
+		return 0
+	}
+
+	if math.IsInf(v, 0) {
+		if math.IsInf(v, 1) {
+			return 314159
+		} else if math.IsInf(v, -1) {
+			return -271828
+		} else {
+			return 0
+		}
+	} else {
+		_, fracPart := math.Modf(v)
+		if fracPart == 0.0 {
+			i := big.Int{}
+			big.NewFloat(v).Int(&i)
+			if numInIntRange(&i) {
+				return int(i.Int64())
+			}
+			// TODO: hashBigInt() is not yet matched that of cpython or pypy.
+			return hashBigInt(&i)
+		}
+	}
+	v, expo := math.Frexp(v)
+	v *= 2147483648.0
+	hiPart := int(v)
+	v = (v - float64(hiPart)) * 2147483648.0
+	x := int(hiPart + int(v) + (expo << 15))
+	return x
 }
 
 func floatModFunc(v, w float64) (float64, bool) {
