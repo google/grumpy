@@ -383,8 +383,7 @@ class StatementVisitor(algorithm.Visitor):
       if alias.name == '*':
         module_name = node.module
 
-        with self.block.alloc_temp() as members, \
-            self._import(module_name, module_name.count('.')) as module:
+        with self._import(module_name, module_name.count('.')) as module:
           self.writer.write_checked_call1(
               'πg.LoadMembers(πF, {})', module.expr)
         return
