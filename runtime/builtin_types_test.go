@@ -85,6 +85,11 @@ func TestBuiltinFuncs(t *testing.T) {
 			return nil, f.RaiseType(RuntimeErrorType, "foo")
 		}).ToObject(),
 	}))
+	addType := newTestClass("Add", []*Type{ObjectType}, newStringDict(map[string]*Object{
+		"__add__": newBuiltinFunction("__add__", func(f *Frame, _ Args, _ KWArgs) (*Object, *BaseException) {
+			return NewInt(1).ToObject(), nil
+		}).ToObject(),
+	}))
 	badIterType := newTestClass("BadIterType", []*Type{ObjectType}, newStringDict(map[string]*Object{
 		"__iter__": newBuiltinFunction("__iter__", func(f *Frame, args Args, kwargs KWArgs) (*Object, *BaseException) {
 			return newObject(badNextType), nil
@@ -291,8 +296,8 @@ func TestBuiltinFuncs(t *testing.T) {
 		{f: "sum", args: wrapArgs(newTestList(2, 1.1)), want: NewFloat(3.1).ToObject()},
 		{f: "sum", args: wrapArgs(newTestList(2, 1.1, 2)), want: NewFloat(5.1).ToObject()},
 		{f: "sum", args: wrapArgs(newTestList(2, 1.1, 2.0)), want: NewFloat(5.1).ToObject()},
-		{f: "sum", args: wrapArgs(newTestList(1), newTestAddObject(3)), want: NewInt(4).ToObject()},
-		{f: "sum", args: wrapArgs(newTestList(newTestAddObject(1)), newTestAddObject(3)), want: NewInt(4).ToObject()},
+		{f: "sum", args: wrapArgs(newTestList(1), newObject(addType)), want: NewInt(1).ToObject()},
+		{f: "sum", args: wrapArgs(newTestList(newObject(addType)), newObject(addType)), want: NewInt(1).ToObject()},
 		{f: "unichr", args: wrapArgs(0), want: NewUnicode("\x00").ToObject()},
 		{f: "unichr", args: wrapArgs(65), want: NewStr("A").ToObject()},
 		{f: "unichr", args: wrapArgs(0x120000), wantExc: mustCreateException(ValueErrorType, "unichr() arg not in range(0x10ffff)")},
@@ -493,13 +498,4 @@ func newTestIndexObject(index int) *Object {
 		}).ToObject(),
 	}))
 	return newObject(indexType)
-}
-
-func newTestAddObject(x int) *Object {
-	addType := newTestClass("Add", []*Type{ObjectType}, newStringDict(map[string]*Object{
-		"__add__": newBuiltinFunction("__add__", func(f *Frame, _ Args, _ KWArgs) (*Object, *BaseException) {
-			return NewInt(x + 1).ToObject(), nil
-		}).ToObject(),
-	}))
-	return newObject(addType)
 }
