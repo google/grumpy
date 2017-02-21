@@ -183,14 +183,14 @@ func ImportNativeModule(f *Frame, name string, members map[string]*Object) (*Obj
 // and populates globals with them, taking __all__ into
 // account.
 func LoadMembers(f *Frame, module *Object) *BaseException {
-	all_attr, raised := GetAttr(f, module, NewStr("__all__"), nil)
+	allAttr, raised := GetAttr(f, module, NewStr("__all__"), nil)
 	if raised != nil && !raised.isInstance(AttributeErrorType) {
 		return raised
 	}
 	f.RestoreExc(nil, nil)
 
 	if raised == nil {
-		raised = loadMembersFromIterable(f, module, all_attr, nil)
+		raised = loadMembersFromIterable(f, module, allAttr, nil)
 		if raised != nil {
 			return raised
 		}
@@ -198,11 +198,11 @@ func LoadMembers(f *Frame, module *Object) *BaseException {
 	}
 
 	// Fall back on __dict__
-	dict_attr, raised := GetAttr(f, module, NewStr("__dict__"), nil)
+	dictAttr, raised := GetAttr(f, module, NewStr("__dict__"), nil)
 	if raised != nil && !raised.isInstance(AttributeErrorType) {
 		return raised
 	}
-	raised = loadMembersFromIterable(f, module, dict_attr, func(key *Object) bool {
+	raised = loadMembersFromIterable(f, module, dictAttr, func(key *Object) bool {
 		return strings.HasPrefix(toStrUnsafe(key).value, "_")
 	})
 	if raised != nil {
@@ -211,24 +211,24 @@ func LoadMembers(f *Frame, module *Object) *BaseException {
 	return nil
 }
 
-func loadMembersFromIterable(f *Frame, module, iterable *Object, filter_f func(*Object) bool) *BaseException {
+func loadMembersFromIterable(f *Frame, module, iterable *Object, filterF func(*Object) bool) *BaseException {
 	iter, raised := Iter(f, iterable)
 	if raised != nil {
 		return raised
 	}
 
-	member_name, raised := Next(f, iter)
-	for ; raised == nil; member_name, raised = Next(f, iter) {
-		member, raised := GetAttr(f, module, toStrUnsafe(member_name), nil)
+	memberName, raised := Next(f, iter)
+	for ; raised == nil; memberName, raised = Next(f, iter) {
+		member, raised := GetAttr(f, module, toStrUnsafe(memberName), nil)
 		if raised != nil {
 			return raised
 		}
-		if filter_f != nil {
-			if filter_f(member_name) {
+		if filterF != nil {
+			if filterF(memberName) {
 				continue
 			}
 		}
-		raised = f.Globals().SetItem(f, member_name, member)
+		raised = f.Globals().SetItem(f, memberName, member)
 		if raised != nil {
 			return raised
 		}
