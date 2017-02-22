@@ -20,7 +20,8 @@ import (
 	"math/big"
 	"reflect"
 	"strconv"
-	"sync"
+	"sync/atomic"
+	"unsafe"
 )
 
 // FloatType is the object representing the Python 'float' type.
@@ -29,16 +30,13 @@ var FloatType = newBasisType("float", reflect.TypeOf(Float{}), toFloatUnsafe, Ob
 // Float represents Python 'float' objects.
 type Float struct {
 	Object
-	value    float64
-	hashOnce sync.Once
-	hash     int
+	value float64
+	hash  int
 }
 
 // NewFloat returns a new Float holding the given floating point value.
 func NewFloat(value float64) *Float {
-	result := Float{Object: Object{typ: FloatType}}
-	result.value = value
-	return &result
+	return &Float{Object: Object{typ: FloatType}, value: value}
 }
 
 func toFloatUnsafe(o *Object) *Float {
@@ -98,15 +96,18 @@ func floatGT(f *Frame, v, w *Object) (*Object, *BaseException) {
 
 func floatHash(f *Frame, o *Object) (*Object, *BaseException) {
 	v := toFloatUnsafe(o)
-	v.hashOnce.Do(func() {
-		hash := hashFloat(v.Value())
-		if hash == -1 {
-			hash--
-		}
-		v.hash = hash
-	})
+	p := (*unsafe.Pointer)(unsafe.Pointer(&v.hash))
+	if lp := atomic.LoadPointer(p); lp != unsafe.Pointer(nil) {
+		return (*Int)(lp).ToObject(), nil
+	}
+	hash := hashFloat(v.Value())
+	if hash == -1 {
+		hash--
+	}
+	h := NewInt(hash)
+	atomic.StorePointer(p, unsafe.Pointer(h))
 
-	return NewInt(v.hash).ToObject(), nil
+	return h.ToObject(), nil
 }
 
 func floatInt(f *Frame, o *Object) (*Object, *BaseException) {
@@ -382,23 +383,24 @@ func hashFloat(v float64) int {
 	if math.IsInf(v, 0) {
 		if math.IsInf(v, 1) {
 			return 314159
-		} else if math.IsInf(v, -1) {
+		}
+		if math.IsInf(v, -1) {
 			return -271828
-		} else {
-			return 0
 		}
-	} else {
-		_, fracPart := math.Modf(v)
-		if fracPart == 0.0 {
-			i := big.Int{}
-			big.NewFloat(v).Int(&i)
-			if numInIntRange(&i) {
-				return int(i.Int64())
-			}
-			// TODO: hashBigInt() is not yet matched that of cpython or pypy.
-			return hashBigInt(&i)
-		}
+		return 0
 	}
+
+	_, fracPart := math.Modf(v)
+	if fracPart == 0.0 {
+		i := big.Int{}
+		big.NewFloat(v).Int(&i)
+		if numInIntRange(&i) {
+			return int(i.Int64())
+		}
+		// TODO: hashBigInt() is not yet matched that of cpython or pypy.
+		return hashBigInt(&i)
+	}
+
 	v, expo := math.Frexp(v)
 	v *= 2147483648.0
 	hiPart := int(v)

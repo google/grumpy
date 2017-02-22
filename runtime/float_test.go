@@ -184,8 +184,7 @@ func TestFloatNew(t *testing.T) {
 	floatNew := mustNotRaise(GetAttr(NewRootFrame(), FloatType.ToObject(), NewStr("__new__"), nil))
 	strictEqType := newTestClassStrictEq("StrictEq", FloatType)
 	newStrictEq := func(v float64) *Object {
-		f := Float{Object: Object{typ: strictEqType}}
-		f.value = v
+		f := Float{Object: Object{typ: strictEqType}, value: v}
 		return f.ToObject()
 	}
 	subType := newTestClass("SubType", []*Type{FloatType}, newStringDict(map[string]*Object{}))
