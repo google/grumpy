@@ -184,10 +184,10 @@ func TestSetIter(t *testing.T) {
 	cases := []invokeTestCase{
 		{args: wrapArgs(NewSet()), want: NewTuple().ToObject()},
 		{args: wrapArgs(newTestSet(1, 2, 3)), want: newTestTuple(1, 2, 3).ToObject()},
-		{args: wrapArgs(newTestSet("foo", 3.14)), want: newTestTuple(3.14, "foo").ToObject()},
+		{args: wrapArgs(newTestSet("foo", 3.14)), want: newTestTuple("foo", 3.14).ToObject()},
 		{args: wrapArgs(newTestFrozenSet()), want: NewTuple().ToObject()},
 		{args: wrapArgs(newTestFrozenSet(1, 2, 3)), want: newTestTuple(1, 2, 3).ToObject()},
-		{args: wrapArgs(newTestFrozenSet("foo", 3.14)), want: newTestTuple(3.14, "foo").ToObject()},
+		{args: wrapArgs(newTestFrozenSet("foo", 3.14)), want: newTestTuple("foo", 3.14).ToObject()},
 	}
 	for _, cas := range cases {
 		if err := runInvokeTestCase(fun, &cas); err != "" {

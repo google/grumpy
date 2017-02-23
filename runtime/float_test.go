@@ -151,6 +151,22 @@ func TestFloatLong(t *testing.T) {
 	}
 }
 
+func TestFloatHash(t *testing.T) {
+	cases := []invokeTestCase{
+		{args: wrapArgs(NewFloat(0.0)), want: NewInt(0).ToObject()},
+		{args: wrapArgs(NewFloat(3.14)), want: NewInt(3146129223).ToObject()},
+		{args: wrapArgs(NewFloat(42.0)), want: NewInt(42).ToObject()},
+		{args: wrapArgs(NewFloat(42.125)), want: NewInt(1413677056).ToObject()},
+		{args: wrapArgs(NewFloat(math.Inf(1))), want: NewInt(314159).ToObject()},
+		{args: wrapArgs(NewFloat(math.Inf(-1))), want: NewInt(-271828).ToObject()},
+		{args: wrapArgs(NewFloat(math.NaN())), want: NewInt(0).ToObject()},
+	}
+	for _, cas := range cases {
+		if err := runInvokeTestCase(wrapFuncForTest(floatHash), &cas); err != "" {
+			t.Error(err)
+		}
+	}
+}
 func TestFloatIsTrue(t *testing.T) {
 	cases := []invokeTestCase{
 		{args: wrapArgs(0.0), want: False.ToObject()},
@@ -167,6 +183,10 @@ func TestFloatIsTrue(t *testing.T) {
 func TestFloatNew(t *testing.T) {
 	floatNew := mustNotRaise(GetAttr(NewRootFrame(), FloatType.ToObject(), NewStr("__new__"), nil))
 	strictEqType := newTestClassStrictEq("StrictEq", FloatType)
+	newStrictEq := func(v float64) *Object {
+		f := Float{Object: Object{typ: strictEqType}, value: v}
+		return f.ToObject()
+	}
 	subType := newTestClass("SubType", []*Type{FloatType}, newStringDict(map[string]*Object{}))
 	subTypeObject := (&Float{Object: Object{typ: subType}, value: 3.14}).ToObject()
 	goodSlotType := newTestClass("GoodSlot", []*Type{ObjectType}, newStringDict(map[string]*Object{
@@ -203,8 +223,8 @@ func TestFloatNew(t *testing.T) {
 		{args: wrapArgs(FloatType, newObject(goodSlotType)), want: NewFloat(3.14).ToObject()},
 		{args: wrapArgs(FloatType, newObject(badSlotType)), wantExc: mustCreateException(TypeErrorType, "__float__ returned non-float (type object)")},
 		{args: wrapArgs(FloatType, newObject(slotSubTypeType)), want: subTypeObject},
-		{args: wrapArgs(strictEqType, 3.14), want: (&Float{Object{typ: strictEqType}, 3.14}).ToObject()},
-		{args: wrapArgs(strictEqType, newObject(goodSlotType)), want: (&Float{Object{typ: strictEqType}, 3.14}).ToObject()},
+		{args: wrapArgs(strictEqType, 3.14), want: newStrictEq(3.14)},
+		{args: wrapArgs(strictEqType, newObject(goodSlotType)), want: newStrictEq(3.14)},
 		{args: wrapArgs(strictEqType, newObject(badSlotType)), wantExc: mustCreateException(TypeErrorType, "__float__ returned non-float (type object)")},
 		{args: wrapArgs(), wantExc: mustCreateException(TypeErrorType, "'__new__' requires 1 arguments")},
 		{args: wrapArgs(IntType), wantExc: mustCreateException(TypeErrorType, "float.__new__(int): int is not a subtype of float")},
