@@ -219,7 +219,6 @@ func TestLoadMembers(t *testing.T) {
 	invalidMemberName := NewInt(1)
 	nonIterableValue := NewInt(1)
 
-
 	allDefinedDict := newTestDict(var1, val1, var2, val2, var3, val3, nameAttr, nameValue, allAttr, allValue)
 	allDefinedModule := &Module{Object: Object{typ: testModuleType, dict: allDefinedDict}}
 	allUndefinedDict := newTestDict(var1, val1, var2, val2, var3, val3, nameAttr, nameValue)
@@ -249,22 +248,22 @@ func TestLoadMembers(t *testing.T) {
 			want: newTestDict(var1, val1, var3, val3).ToObject(),
 		},
 		{
-			args: wrapArgs(allInvalidModule),
+			args:    wrapArgs(allInvalidModule),
 			wantExc: mustCreateException(AttributeErrorType, "attribute name must be string, not 'int'"),
 		},
 		{
-			args: wrapArgs(packageNamesInvalidModule),
+			args:    wrapArgs(packageNamesInvalidModule),
 			wantExc: mustCreateException(AttributeErrorType, "attribute name must be string, not 'int'"),
 		},
 		{
-			args: wrapArgs(allNonIterableModule),
+			args:    wrapArgs(allNonIterableModule),
 			wantExc: mustCreateException(TypeErrorType, "'int' object is not iterable"),
 		},
 	}
 	for _, cas := range cases {
-	  if err := runInvokeTestCase(fun, &cas); err != "" {
-	    t.Error(err)
-	  }
+		if err := runInvokeTestCase(fun, &cas); err != "" {
+			t.Error(err)
+		}
 	}
 }
 
