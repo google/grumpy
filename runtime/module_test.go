@@ -205,7 +205,6 @@ func TestImportNativeModule(t *testing.T) {
 }
 
 func TestLoadMembers(t *testing.T) {
-	f := NewRootFrame()
 	var1 := NewStr("var1").ToObject()
 	var2 := NewStr("_var2").ToObject()
 	var3 := NewStr("var3").ToObject()
@@ -222,32 +221,27 @@ func TestLoadMembers(t *testing.T) {
 	allUndefinedDict := newTestDict(var1, val1, var2, val2, var3, val3, nameAttr, nameValue)
 	fooAllUndefinedModule := &Module{Object: Object{typ: testModuleType, dict: allUndefinedDict}}
 
-	cases := []struct {
-		module      *Module
-		wantGlobals *Dict
-	}{
+	fun := wrapFuncForTest(func(f *Frame, module *Module) (*Dict, *BaseException) {
+		f.globals = NewDict()
+		raised := LoadMembers(f, module.ToObject())
+		if raised != nil {
+			return nil, raised
+		}
+		return f.Globals(), nil
+	})
+	cases := []invokeTestCase{
 		{
-			fooAllDefinedModule,
-			newTestDict(var1, val1, var2, val2),
+			args: wrapArgs(fooAllDefinedModule),
+			want: newTestDict(var1, val1, var2, val2).ToObject(),
 		},
 		{
-			fooAllUndefinedModule,
-			newTestDict(var1, val1, var3, val3),
+			args: wrapArgs(fooAllUndefinedModule),
+			want: newTestDict(var1, val1, var3, val3).ToObject(),
 		},
 	}
 	for _, cas := range cases {
-		f.globals = NewDict()
-		raised := LoadMembers(f, cas.module.ToObject())
-		if raised != nil {
-			t.Errorf("LoadMmembers: raised %v", raised)
-		}
-		ne := mustNotRaise(NE(f, f.Globals().ToObject(), cas.wantGlobals.ToObject()))
-		b, raised := IsTrue(f, ne)
-		if raised != nil {
-			panic(raised)
-		}
-		if b {
-			t.Errorf("LoadMembers: Globals() = %v, want %v", f.Globals(), cas.wantGlobals)
+		if err := runInvokeTestCase(fun, &cas); err != "" {
+			t.Error(err)
 		}
 	}
 }
