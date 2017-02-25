@@ -198,10 +198,7 @@ func LoadMembers(f *Frame, module *Object) *BaseException {
 	}
 
 	// Fall back on __dict__
-	dictAttr, raised := GetAttr(f, module, NewStr("__dict__"), nil)
-	if raised != nil && !raised.isInstance(AttributeErrorType) {
-		return raised
-	}
+	dictAttr := module.dict.ToObject()
 	raised = loadMembersFromIterable(f, module, dictAttr, func(key *Object) bool {
 		return strings.HasPrefix(toStrUnsafe(key).value, "_")
 	})
@@ -212,32 +209,22 @@ func LoadMembers(f *Frame, module *Object) *BaseException {
 }
 
 func loadMembersFromIterable(f *Frame, module, iterable *Object, filterF func(*Object) bool) *BaseException {
-	iter, raised := Iter(f, iterable)
-	if raised != nil {
-		return raised
-	}
-
-	memberName, raised := Next(f, iter)
-	for ; raised == nil; memberName, raised = Next(f, iter) {
+	globals := f.Globals()
+	raised := seqForEach(f, iterable, func(memberName *Object) *BaseException {
 		member, raised := GetAttr(f, module, toStrUnsafe(memberName), nil)
 		if raised != nil {
 			return raised
 		}
-		if filterF != nil {
-			if filterF(memberName) {
-				continue
-			}
+		if filterF != nil && filterF(memberName) {
+			return nil
 		}
-		raised = f.Globals().SetItem(f, memberName, member)
+		raised = globals.SetItem(f, memberName, member)
 		if raised != nil {
 			return raised
 		}
-	}
-	if !raised.isInstance(StopIterationType) {
-		return raised
-	}
-	f.RestoreExc(nil, nil)
-	return nil
+		return nil
+	})
+	return raised
 }
 
 // newModule creates a new Module object with the given fully qualified name
