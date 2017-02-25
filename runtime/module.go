@@ -212,8 +212,8 @@ func loadMembersFromIterable(f *Frame, module, iterable *Object, filterF func(*O
 	globals := f.Globals()
 	raised := seqForEach(f, iterable, func(memberName *Object) *BaseException {
 		if !memberName.isInstance(StrType) {
-			error_message := fmt.Sprintf("attribute name must be string, not '%v'", memberName.typ.Name())
-			return f.RaiseType(AttributeErrorType, error_message)
+			errorMessage := fmt.Sprintf("attribute name must be string, not '%v'", memberName.typ.Name())
+			return f.RaiseType(AttributeErrorType, errorMessage)
 		}
 		member, raised := GetAttr(f, module, toStrUnsafe(memberName), nil)
 		if raised != nil {
