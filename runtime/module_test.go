@@ -205,21 +205,31 @@ func TestImportNativeModule(t *testing.T) {
 }
 
 func TestLoadMembers(t *testing.T) {
-	var1 := NewStr("var1").ToObject()
-	var2 := NewStr("_var2").ToObject()
-	var3 := NewStr("var3").ToObject()
-	nameAttr := NewStr("__name__").ToObject()
+	var1 := NewStr("var1")
+	var2 := NewStr("_var2")
+	var3 := NewStr("var3")
+	nameAttr := NewStr("__name__")
 	allAttr := NewStr("__all__")
-	val1 := NewStr("val1").ToObject()
-	val2 := NewStr("val2").ToObject()
-	val3 := NewStr("val3").ToObject()
-	nameValue := NewStr("foo").ToObject()
-	allValue := newTestList(var1, var2).ToObject()
+	val1 := NewStr("val1")
+	val2 := NewStr("val2")
+	val3 := NewStr("val3")
+	nameValue := NewStr("foo")
+	allValue := newTestList(var1, var2)
+	invalidMembers := newTestList(NewInt(1))
+	invalidMemberName := NewInt(1)
+	nonIterableValue := NewInt(1)
+
 
 	allDefinedDict := newTestDict(var1, val1, var2, val2, var3, val3, nameAttr, nameValue, allAttr, allValue)
-	fooAllDefinedModule := &Module{Object: Object{typ: testModuleType, dict: allDefinedDict}}
+	allDefinedModule := &Module{Object: Object{typ: testModuleType, dict: allDefinedDict}}
 	allUndefinedDict := newTestDict(var1, val1, var2, val2, var3, val3, nameAttr, nameValue)
-	fooAllUndefinedModule := &Module{Object: Object{typ: testModuleType, dict: allUndefinedDict}}
+	allUndefinedModule := &Module{Object: Object{typ: testModuleType, dict: allUndefinedDict}}
+	allInvalidDict := newTestDict(allAttr, invalidMembers)
+	allInvalidModule := &Module{Object: Object{typ: testModuleType, dict: allInvalidDict}}
+	packageNamesInvalidDict := newTestDict(invalidMemberName, val1)
+	packageNamesInvalidModule := &Module{Object: Object{typ: testModuleType, dict: packageNamesInvalidDict}}
+	allNonIterableDict := newTestDict(allAttr, nonIterableValue)
+	allNonIterableModule := &Module{Object: Object{typ: testModuleType, dict: allNonIterableDict}}
 
 	fun := wrapFuncForTest(func(f *Frame, module *Module) (*Dict, *BaseException) {
 		f.globals = NewDict()
@@ -231,18 +241,30 @@ func TestLoadMembers(t *testing.T) {
 	})
 	cases := []invokeTestCase{
 		{
-			args: wrapArgs(fooAllDefinedModule),
+			args: wrapArgs(allDefinedModule),
 			want: newTestDict(var1, val1, var2, val2).ToObject(),
 		},
 		{
-			args: wrapArgs(fooAllUndefinedModule),
+			args: wrapArgs(allUndefinedModule),
 			want: newTestDict(var1, val1, var3, val3).ToObject(),
+		},
+		{
+			args: wrapArgs(allInvalidModule),
+			wantExc: mustCreateException(AttributeErrorType, "attribute name must be string, not 'int'"),
+		},
+		{
+			args: wrapArgs(packageNamesInvalidModule),
+			wantExc: mustCreateException(AttributeErrorType, "attribute name must be string, not 'int'"),
+		},
+		{
+			args: wrapArgs(allNonIterableModule),
+			wantExc: mustCreateException(TypeErrorType, "'int' object is not iterable"),
 		},
 	}
 	for _, cas := range cases {
-		if err := runInvokeTestCase(fun, &cas); err != "" {
-			t.Error(err)
-		}
+	  if err := runInvokeTestCase(fun, &cas); err != "" {
+	    t.Error(err)
+	  }
 	}
 }
 
