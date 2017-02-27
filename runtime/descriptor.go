@@ -103,7 +103,6 @@ func makeStructFieldDescriptor(t *Type, fieldName, propertyName string, writtabl
 	if !ok {
 		logFatal(fmt.Sprintf("no such field %q for basis %s", fieldName, nativeTypeName(t.basis)))
 	}
-	nativeFieldType := getNativeType(field.Type)
 
 	getterFunc := func(f *Frame, args Args, _ KWArgs) (*Object, *BaseException) {
 		var ret *Object
@@ -126,7 +125,7 @@ func makeStructFieldDescriptor(t *Type, fieldName, propertyName string, writtabl
 			if raised = checkFunctionArgs(f, fieldName, args, ObjectType, ObjectType); raised == nil {
 				self := args[0]
 				newvalue := args[1]
-				if !newvalue.isInstance(nativeFieldType) {
+				if !newvalue.isInstance(getNativeType(field.Type)) {
 					format := "descriptor '%s' for '%s' objects doesn't apply to '%s' objects"
 					raised = f.RaiseType(TypeErrorType, fmt.Sprintf(format, propertyName, t.Name(), newvalue.typ.Name()))
 				} else {
