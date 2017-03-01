@@ -351,6 +351,8 @@ assert map(None, (1, 2, 3)) == [1, 2, 3]
 
 # divmod(v, w)
 
+import sys
+
 assert divmod(12, 7) == (1, 5)
 assert divmod(-12, 7) == (-2, 2)
 assert divmod(12, -7) == (-2, -2)
