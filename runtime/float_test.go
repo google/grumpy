@@ -60,6 +60,18 @@ func TestFloatArithmeticOps(t *testing.T) {
 		{Div, True.ToObject(), NewFloat(0).ToObject(), nil, mustCreateException(ZeroDivisionErrorType, "float division or modulo by zero")},
 		{Div, NewFloat(math.Inf(1)).ToObject(), NewFloat(0).ToObject(), nil, mustCreateException(ZeroDivisionErrorType, "float division or modulo by zero")},
 		{Div, NewFloat(1.0).ToObject(), NewLong(bigLongNumber).ToObject(), nil, mustCreateException(OverflowErrorType, "long int too large to convert to float")},
+		{DivMod, NewFloat(12.5).ToObject(), NewFloat(4).ToObject(), NewTuple2(NewFloat(3).ToObject(), NewFloat(0.5).ToObject()).ToObject(), nil},
+		{DivMod, NewFloat(-12.5).ToObject(), NewFloat(4).ToObject(), NewTuple2(NewFloat(-4).ToObject(), NewFloat(3.5).ToObject()).ToObject(), nil},
+		{DivMod, NewFloat(25).ToObject(), NewFloat(5).ToObject(), NewTuple2(NewFloat(5).ToObject(), NewFloat(0).ToObject()).ToObject(), nil},
+		{DivMod, NewFloat(-20.2).ToObject(), NewFloat(40).ToObject(), NewTuple2(NewFloat(-1).ToObject(), NewFloat(19.8).ToObject()).ToObject(), nil},
+		{DivMod, NewFloat(math.Inf(1)).ToObject(), NewFloat(math.Inf(1)).ToObject(), NewTuple2(NewFloat(math.NaN()).ToObject(), NewFloat(math.NaN()).ToObject()).ToObject(), nil},
+		{DivMod, NewFloat(math.Inf(1)).ToObject(), NewFloat(math.Inf(-1)).ToObject(), NewTuple2(NewFloat(math.NaN()).ToObject(), NewFloat(math.NaN()).ToObject()).ToObject(), nil},
+		{DivMod, NewFloat(math.Inf(-1)).ToObject(), NewFloat(-20).ToObject(), NewTuple2(NewFloat(math.Inf(1)).ToObject(), NewFloat(math.NaN()).ToObject()).ToObject(), nil},
+		{DivMod, NewInt(1).ToObject(), NewFloat(math.Inf(1)).ToObject(), NewTuple2(NewFloat(0).ToObject(), NewFloat(1).ToObject()).ToObject(), nil},
+		{DivMod, newObject(ObjectType), NewFloat(1.1).ToObject(), nil, mustCreateException(TypeErrorType, "unsupported operand type(s) for divmod(): 'object' and 'float'")},
+		{DivMod, True.ToObject(), NewFloat(0).ToObject(), nil, mustCreateException(ZeroDivisionErrorType, "float division or modulo by zero")},
+		{DivMod, NewFloat(math.Inf(1)).ToObject(), NewFloat(0).ToObject(), nil, mustCreateException(ZeroDivisionErrorType, "float division or modulo by zero")},
+		{DivMod, NewFloat(1.0).ToObject(), NewLong(bigLongNumber).ToObject(), nil, mustCreateException(OverflowErrorType, "long int too large to convert to float")},
 		{Mod, NewFloat(50.5).ToObject(), NewInt(10).ToObject(), NewFloat(0.5).ToObject(), nil},
 		{Mod, NewFloat(50.5).ToObject(), NewFloat(-10).ToObject(), NewFloat(-9.5).ToObject(), nil},
 		{Mod, NewFloat(-20.2).ToObject(), NewFloat(40).ToObject(), NewFloat(19.8).ToObject(), nil},
@@ -93,12 +105,32 @@ func TestFloatArithmeticOps(t *testing.T) {
 			t.Errorf("%s(%v, %v) raised %v, want %v", getFuncName(cas.fun), cas.v, cas.w, got, cas.wantExc)
 		case checkInvokeResultReturnValueMismatch:
 			// Handle NaN specially, since NaN != NaN.
-			if got == nil || cas.want == nil || !got.isInstance(FloatType) || !cas.want.isInstance(FloatType) ||
-				!math.IsNaN(toFloatUnsafe(got).Value()) || !math.IsNaN(toFloatUnsafe(cas.want).Value()) {
+			if got == nil || cas.want == nil ||
+				!(got.isInstance(FloatType) || got.isInstance(TupleType)) ||
+				!(cas.want.isInstance(FloatType) || cas.want.isInstance(TupleType)) ||
+				(got.isInstance(FloatType) && cas.want.isInstance(FloatType) && !isNaNFloat(got, cas.want)) ||
+				(got.isInstance(TupleType) && cas.want.isInstance(TupleType) && !isNaNTupleFloat(got, cas.want)) {
 				t.Errorf("%s(%v, %v) = %v, want %v", getFuncName(cas.fun), cas.v, cas.w, got, cas.want)
 			}
 		}
 	}
+}
+
+func isNaNFloat(got, want *Object) bool {
+	return math.IsNaN(toFloatUnsafe(got).Value()) && math.IsNaN(toFloatUnsafe(want).Value())
+}
+
+func isNaNTupleFloat(got, want *Object) bool {
+	if toTupleUnsafe(got).Len() != toTupleUnsafe(want).Len() {
+		return false
+	}
+	for i := 0; i < toTupleUnsafe(got).Len(); i++ {
+		if math.IsNaN(toFloatUnsafe(toTupleUnsafe(got).GetItem(i)).Value()) &&
+			math.IsNaN(toFloatUnsafe(toTupleUnsafe(want).GetItem(i)).Value()) {
+			return true
+		}
+	}
+	return false
 }
 
 func TestFloatCompare(t *testing.T) {
