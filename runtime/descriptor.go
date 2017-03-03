@@ -107,38 +107,49 @@ func makeStructFieldDescriptor(t *Type, fieldName, propertyName string, writtabl
 	getterFunc := func(f *Frame, args Args, _ KWArgs) (*Object, *BaseException) {
 		var ret *Object
 		var raised *BaseException
-		if raised = checkFunctionArgs(f, fieldName, args, ObjectType); raised == nil {
-			o := args[0]
-			if !o.isInstance(t) {
-				format := "descriptor '%s' for '%s' objects doesn't apply to '%s' objects"
-				raised = f.RaiseType(TypeErrorType, fmt.Sprintf(format, propertyName, t.Name(), o.typ.Name()))
-			} else {
-				ret, raised = WrapNative(f, t.slots.Basis.Fn(o).FieldByIndex(field.Index))
-			}
+
+		if raised = checkFunctionArgs(f, fieldName, args, ObjectType); raised != nil {
+			return ret, raised
 		}
+
+		self := args[0]
+		if !self.isInstance(t) {
+			format := "descriptor '%s' for '%s' objects doesn't apply to '%s' objects"
+			raised = f.RaiseType(TypeErrorType, fmt.Sprintf(format, propertyName, t.Name(), self.typ.Name()))
+			return ret, raised
+		}
+
+		ret, raised = WrapNative(f, t.slots.Basis.Fn(self).FieldByIndex(field.Index))
 		return ret, raised
 	}
+
 	if writtable {
 		setterFunc := func(f *Frame, args Args, _ KWArgs) (*Object, *BaseException) {
 			ret := None
 			var raised *BaseException
-			if raised = checkFunctionArgs(f, fieldName, args, ObjectType, ObjectType); raised == nil {
-				self := args[0]
-				newvalue := args[1]
-				if !newvalue.isInstance(getNativeType(field.Type)) {
-					format := "descriptor '%s' for '%s' objects doesn't apply to '%s' objects"
-					raised = f.RaiseType(TypeErrorType, fmt.Sprintf(format, propertyName, t.Name(), newvalue.typ.Name()))
-				} else {
-					var converted reflect.Value
-					val := t.slots.Basis.Fn(self).FieldByIndex(field.Index)
-
-					if converted, raised = maybeConvertValue(f, newvalue, val.Type()); raised == nil {
-						val.Set(converted)
-					}
-				}
+			if raised = checkFunctionArgs(f, fieldName, args, ObjectType, ObjectType); raised != nil {
+				return ret, raised
 			}
+
+			self := args[0]
+			newvalue := args[1]
+			if !newvalue.isInstance(getNativeType(field.Type)) {
+				format := "descriptor '%s' for '%s' objects doesn't apply to '%s' objects"
+				raised = f.RaiseType(TypeErrorType, fmt.Sprintf(format, propertyName, t.Name(), newvalue.typ.Name()))
+				return ret, raised
+			}
+
+			var converted reflect.Value
+			val := t.slots.Basis.Fn(self).FieldByIndex(field.Index)
+
+			if converted, raised = maybeConvertValue(f, newvalue, val.Type()); raised != nil {
+				return ret, raised
+			}
+
+			val.Set(converted)
 			return ret, raised
 		}
+
 		return newProperty(
 			newBuiltinFunction("_get"+fieldName, getterFunc).ToObject(),
 			newBuiltinFunction("_set"+fieldName, setterFunc).ToObject(),
