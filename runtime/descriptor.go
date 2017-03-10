@@ -104,6 +104,9 @@ func makeStructFieldDescriptor(t *Type, fieldName, propertyName string, writtabl
 		logFatal(fmt.Sprintf("no such field %q for basis %s", fieldName, nativeTypeName(t.basis)))
 	}
 
+	getter := None
+	setter := None
+
 	getterFunc := func(f *Frame, args Args, _ KWArgs) (*Object, *BaseException) {
 		var ret *Object
 		var raised *BaseException
@@ -123,37 +126,36 @@ func makeStructFieldDescriptor(t *Type, fieldName, propertyName string, writtabl
 		return ret, raised
 	}
 
-	setterFunc := func(f *Frame, args Args, _ KWArgs) (*Object, *BaseException) {
-		ret := None
-		var raised *BaseException
-		if raised = checkFunctionArgs(f, fieldName, args, ObjectType, ObjectType); raised != nil {
-			return ret, raised
-		}
-
-		self := args[0]
-		newvalue := args[1]
-		if !newvalue.isInstance(getNativeType(field.Type)) {
-			format := "descriptor '%s' for '%s' objects doesn't apply to '%s' objects"
-			raised = f.RaiseType(TypeErrorType, fmt.Sprintf(format, propertyName, t.Name(), newvalue.typ.Name()))
-			return ret, raised
-		}
-
-		var converted reflect.Value
-		val := t.slots.Basis.Fn(self).FieldByIndex(field.Index)
-
-		if converted, raised = maybeConvertValue(f, newvalue, val.Type()); raised != nil {
-			return ret, raised
-		}
-
-		val.Set(converted)
-		return ret, raised
-	}
-
-	getter := newBuiltinFunction("_get"+fieldName, getterFunc).ToObject()
-	setter := None
 	if writtable {
+		setterFunc := func(f *Frame, args Args, _ KWArgs) (*Object, *BaseException) {
+			ret := None
+			var raised *BaseException
+			if raised = checkFunctionArgs(f, fieldName, args, ObjectType, ObjectType); raised != nil {
+				return ret, raised
+			}
+
+			self := args[0]
+			newvalue := args[1]
+			if !newvalue.isInstance(getNativeType(field.Type)) {
+				format := "descriptor '%s' for '%s' objects doesn't apply to '%s' objects"
+				raised = f.RaiseType(TypeErrorType, fmt.Sprintf(format, propertyName, t.Name(), newvalue.typ.Name()))
+				return ret, raised
+			}
+
+			var converted reflect.Value
+			val := t.slots.Basis.Fn(self).FieldByIndex(field.Index)
+
+			if converted, raised = maybeConvertValue(f, newvalue, val.Type()); raised != nil {
+				return ret, raised
+			}
+
+			val.Set(converted)
+			return ret, raised
+		}
+
 		setter = newBuiltinFunction("_set"+fieldName, setterFunc).ToObject()
 	}
+	getter = newBuiltinFunction("_get"+fieldName, getterFunc).ToObject()
 
 	return newProperty(getter, setter, None).ToObject()
 }
