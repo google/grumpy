@@ -19,6 +19,13 @@ import (
 	"reflect"
 )
 
+type fieldDescriptorType int
+
+const (
+    FIELDDESCRIPTOR_RO fieldDescriptorType = iota
+    FIELDDESCRIPTOR_RW
+)
+
 // Property represents Python 'property' objects.
 type Property struct {
 	Object
@@ -98,7 +105,7 @@ func propertySet(f *Frame, desc, inst, value *Object) *BaseException {
 
 // makeStructFieldDescriptor creates a descriptor with a getter that returns
 // the field given by fieldName from t's basis structure.
-func makeStructFieldDescriptor(t *Type, fieldName, propertyName string, writtable bool) *Object {
+func makeStructFieldDescriptor(t *Type, fieldName, propertyName string, fieldtype fieldDescriptorType) *Object {
 	field, ok := t.basis.FieldByName(fieldName)
 	if !ok {
 		logFatal(fmt.Sprintf("no such field %q for basis %s", fieldName, nativeTypeName(t.basis)))
@@ -123,7 +130,7 @@ func makeStructFieldDescriptor(t *Type, fieldName, propertyName string, writtabl
 		return WrapNative(f, t.slots.Basis.Fn(self).FieldByIndex(field.Index))
 	}
 
-	if writtable {
+	if fieldtype == FIELDDESCRIPTOR_RW {
 		setterFunc := func(f *Frame, args Args, _ KWArgs) (*Object, *BaseException) {
 			var raised *BaseException
 			if raised = checkFunctionArgs(f, fieldName, args, ObjectType, ObjectType); raised != nil {
