@@ -31,8 +31,7 @@ _ESCAPES = {'\t': r'\t', '\r': r'\r', '\n': r'\n', '"': r'\"', '\\': r'\\'}
 
 
 # This is the max length of a direct allocation tuple supported by the runtime.
-# This should match the number of specializations found in
-# runtime/tuple_direct.go.
+# This should match the number of specializations found in tuple.go.
 MAX_DIRECT_TUPLE = 6
 
 
