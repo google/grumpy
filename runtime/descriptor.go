@@ -112,16 +112,14 @@ func makeStructFieldDescriptor(t *Type, fieldName, propertyName string, fieldTyp
 	}
 
 	getterFunc := func(f *Frame, args Args, _ KWArgs) (*Object, *BaseException) {
-		var raised *BaseException
-		if raised = checkFunctionArgs(f, fieldName, args, ObjectType); raised != nil {
+		if raised := checkFunctionArgs(f, fieldName, args, ObjectType); raised != nil {
 			return nil, raised
 		}
 
 		self := args[0]
 		if !self.isInstance(t) {
 			format := "descriptor '%s' for '%s' objects doesn't apply to '%s' objects"
-			raised = f.RaiseType(TypeErrorType, fmt.Sprintf(format, propertyName, t.Name(), self.typ.Name()))
-			return nil, raised
+			return nil, f.RaiseType(TypeErrorType, fmt.Sprintf(format, propertyName, t.Name(), self.typ.Name()))
 		}
 
 		return WrapNative(f, t.slots.Basis.Fn(self).FieldByIndex(field.Index))
@@ -130,8 +128,7 @@ func makeStructFieldDescriptor(t *Type, fieldName, propertyName string, fieldTyp
 	setter := None
 	if fieldType == fieldDescriptorRW {
 		setterFunc := func(f *Frame, args Args, _ KWArgs) (*Object, *BaseException) {
-			var raised *BaseException
-			if raised = checkFunctionArgs(f, fieldName, args, ObjectType, ObjectType); raised != nil {
+			if raised := checkFunctionArgs(f, fieldName, args, ObjectType, ObjectType); raised != nil {
 				return nil, raised
 			}
 
