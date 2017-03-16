@@ -33,14 +33,10 @@ from grumpy.compiler import util
 parser = argparse.ArgumentParser()
 parser.add_argument('filename', help='Python source filename')
 parser.add_argument('-modname', default='__main__', help='Python module name')
-parser.add_argument('-runtime', default='grumpy',
-                    help='Grumpy runtime package name')
-parser.add_argument('-libroot', default='grumpy/lib',
-                    help='Path where Grumpy standard library packages live')
 
 
 def main(args):
-  for arg in ('filename', 'modname', 'runtime', 'libroot'):
+  for arg in ('filename', 'modname'):
     if not getattr(args, arg, None):
       print >> sys.stderr, '{} arg must not be empty'.format(arg)
       return 1
@@ -61,8 +57,8 @@ def main(args):
     return 2
 
   full_package_name = args.modname.replace('.', '/')
-  mod_block = block.ModuleBlock(full_package_name, args.runtime, args.libroot,
-                                args.filename, py_contents, future_features)
+  mod_block = block.ModuleBlock(full_package_name, args.filename,
+                                py_contents, future_features)
   mod_block.add_native_import('grumpy')
   visitor = stmt.StatementVisitor(mod_block)
   # Indent so that the module body is aligned with the goto labels.

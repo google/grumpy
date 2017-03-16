@@ -60,9 +60,7 @@ class Block(object):
   # Block objects by defining them here.
   _filename = None
   _full_package_name = None
-  _libroot = None
   _buffer = None
-  _runtime = None
   _strings = None
   imports = None
   _future_features = None
@@ -87,14 +85,6 @@ class Block(object):
   def full_package_name(self):
     # pylint: disable=protected-access
     return self._module_block._full_package_name
-
-  @property
-  def runtime(self):
-    return self._module_block._runtime  # pylint: disable=protected-access
-
-  @property
-  def libroot(self):
-    return self._module_block._libroot  # pylint: disable=protected-access
 
   @property
   def filename(self):
@@ -157,12 +147,11 @@ class Block(object):
     Returns:
       A Package representing the import.
     """
-    return self.add_native_import('/'.join([self.libroot, name]))
+    return self.add_native_import('__python__/' + name)
 
   def add_native_import(self, name):
     alias = None
     if name == 'grumpy':
-      name = self.runtime
       alias = 'πg'
     if name in self._module_block.imports:
       return self._module_block.imports[name]
@@ -225,12 +214,9 @@ class ModuleBlock(Block):
     imports: A dict mapping fully qualified Go package names to Package objects.
   """
 
-  def __init__(self, full_package_name, runtime, libroot, filename, src,
-               future_features):
+  def __init__(self, full_package_name, filename, src, future_features):
     Block.__init__(self, None, '<module>')
     self._full_package_name = full_package_name
-    self._runtime = runtime
-    self._libroot = libroot
     self._filename = filename
     self._buffer = source.Buffer(src)
     self._strings = set()

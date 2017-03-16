@@ -79,7 +79,7 @@ THIRD_PARTY_STDLIB_SRCS := $(shell find third_party/pypy -name '*.py') $(shell f
 THIRD_PARTY_STDLIB_PACKAGES := $(foreach x,$(THIRD_PARTY_STDLIB_SRCS),$(patsubst third_party/stdlib/%.py,%,$(patsubst third_party/pypy/%.py,%,$(patsubst third_party/pypy/%/__init__.py,%,$(patsubst third_party/stdlib/%/__init__.py,%,$(x))))))
 STDLIB_SRCS := $(GRUMPY_STDLIB_SRCS) $(THIRD_PARTY_STDLIB_SRCS)
 STDLIB_PACKAGES := $(GRUMPY_STDLIB_PACKAGES) $(THIRD_PARTY_STDLIB_PACKAGES)
-STDLIB := $(patsubst %,$(PKG_DIR)/grumpy/lib/%.a,$(STDLIB_PACKAGES))
+STDLIB := $(patsubst %,$(PKG_DIR)/__python__/%.a,$(STDLIB_PACKAGES))
 STDLIB_TESTS := \
   itertools_test \
   math_test \
@@ -212,7 +212,7 @@ $(PYLINT_BIN):
 	@cd build/third_party/pylint-1.6.4 && $(PYTHON) setup.py install --prefix $(ROOT_DIR)/build
 
 pylint: $(PYLINT_BIN)
-	@$(PYLINT_BIN) compiler/*.py $(addprefix tools/,benchcmp coverparse diffrange grumpc grumprun)
+	@$(PYTHON) $(PYLINT_BIN) compiler/*.py $(addprefix tools/,benchcmp coverparse diffrange grumpc grumprun)
 
 lint: golint pylint
 
@@ -221,19 +221,19 @@ lint: golint pylint
 # ------------------------------------------------------------------------------
 
 define GRUMPY_STDLIB
-build/src/grumpy/lib/$(2)/module.go: $(1) $(COMPILER)
-	@mkdir -p build/src/grumpy/lib/$(2)
+build/src/__python__/$(2)/module.go: $(1) $(COMPILER)
+	@mkdir -p build/src/__python__/$(2)
 	@$(COMPILER_BIN) -modname=$(notdir $(2)) $(1) > $$@
 
-build/src/grumpy/lib/$(2)/module.d: $(1)
-	@mkdir -p build/src/grumpy/lib/$(2)
-	@$(PYTHON) -m modulefinder -p $(ROOT_DIR)/lib:$(ROOT_DIR)/third_party/stdlib:$(ROOT_DIR)/third_party/pypy $$< | awk '{if (($$$$1 == "m" || $$$$1 == "P") && $$$$2 != "__main__" && $$$$2 != "$(2)") {gsub(/\./, "/", $$$$2); print "$(PKG_DIR)/grumpy/lib/$(2).a: $(PKG_DIR)/grumpy/lib/" $$$$2 ".a"}}' > $$@
+build/src/__python__/$(2)/module.d: $(1)
+	@mkdir -p build/src/__python__/$(2)
+	@$(PYTHON) -m modulefinder -p $(ROOT_DIR)/lib:$(ROOT_DIR)/third_party/stdlib:$(ROOT_DIR)/third_party/pypy $$< | awk '{if (($$$$1 == "m" || $$$$1 == "P") && $$$$2 != "__main__" && $$$$2 != "$(2)") {gsub(/\./, "/", $$$$2); print "$(PKG_DIR)/__python__/$(2).a: $(PKG_DIR)/__python__/" $$$$2 ".a"}}' > $$@
 
-$(PKG_DIR)/grumpy/lib/$(2).a: build/src/grumpy/lib/$(2)/module.go $(RUNTIME)
-	@mkdir -p $(PKG_DIR)/grumpy/lib/$(dir $(2))
-	@go tool compile -o $$@ -p grumpy/lib/$(2) -complete -I $(PKG_DIR) -pack $$<
+$(PKG_DIR)/__python__/$(2).a: build/src/__python__/$(2)/module.go $(RUNTIME)
+	@mkdir -p $(PKG_DIR)/__python__/$(dir $(2))
+	@go tool compile -o $$@ -p __python__/$(2) -complete -I $(PKG_DIR) -pack $$<
 
--include build/src/grumpy/lib/$(2)/module.d
+-include build/src/__python__/$(2)/module.d
 
 endef
 
@@ -246,13 +246,13 @@ build/testing/$(patsubst %_test,%_test_,$(notdir $(1))).go:
 	@echo 'import (' >> $$@
 	@echo '	"os"' >> $$@
 	@echo '	"grumpy"' >> $$@
-	@echo '	mod "grumpy/lib/$(1)"' >> $$@
+	@echo '	mod "__python__/$(1)"' >> $$@
 	@echo ')' >> $$@
 	@echo 'func main() {' >> $$@
 	@echo '	os.Exit(grumpy.RunMain(mod.Code))' >> $$@
 	@echo '}' >> $$@
 
-build/testing/$(notdir $(1)): build/testing/$(patsubst %_test,%_test_,$(notdir $(1))).go $(RUNTIME) $(PKG_DIR)/grumpy/lib/$(1).a
+build/testing/$(notdir $(1)): build/testing/$(patsubst %_test,%_test_,$(notdir $(1))).go $(RUNTIME) $(PKG_DIR)/__python__/$(1).a
 	@go build -o $$@ $$<
 
 build/testing/$(notdir $(1)).pass: build/testing/$(notdir $(1))

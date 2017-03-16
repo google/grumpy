@@ -223,8 +223,7 @@ class ExprVisitorTest(unittest.TestCase):
   testUnaryOpPos = _MakeExprTest('+4')
 
 def _MakeModuleBlock():
-  return block.ModuleBlock('__main__', 'grumpy', 'grumpy/lib', '<test>', '',
-                           stmt.FutureFeatures())
+  return block.ModuleBlock('__main__', '<test>', '', stmt.FutureFeatures())
 
 
 def _ParseExpr(expr):

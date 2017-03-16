@@ -37,8 +37,8 @@ class WriterTest(unittest.TestCase):
 
   def testWriteBlock(self):
     writer = util.Writer()
-    mod_block = block.ModuleBlock('__main__', 'grumpy', 'grumpy/lib', '<test>',
-                                  '', stmt.FutureFeatures())
+    mod_block = block.ModuleBlock('__main__', '<test>', '',
+                                  stmt.FutureFeatures())
     writer.write_block(mod_block, 'BODY')
     output = writer.getvalue()
     dispatch = 'switch πF.State() {\n\tcase 0:\n\tdefault: panic'

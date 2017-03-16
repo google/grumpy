@@ -36,7 +36,7 @@ package main
 import (
 \t"os"
 \t"grumpy"
-\t"grumpy/lib/$package"
+\t"__python__/$package"
 )
 func main() {
 \tos.Exit(grumpy.RunMain($alias.Code))

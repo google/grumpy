@@ -601,15 +601,13 @@ class StatementVisitorTest(unittest.TestCase):
 
 
 def _MakeModuleBlock():
-  return block.ModuleBlock('__main__', 'grumpy', 'grumpy/lib', '<test>', '',
-                           stmt.FutureFeatures())
+  return block.ModuleBlock('__main__', '<test>', '', stmt.FutureFeatures())
 
 
 def _ParseAndVisit(source):
   mod = pythonparser.parse(source)
   future_features = stmt.visit_future(mod)
-  b = block.ModuleBlock('__main__', 'grumpy', 'grumpy/lib', '<test>',
-                        source, future_features)
+  b = block.ModuleBlock('__main__', '<test>', source, future_features)
   visitor = stmt.StatementVisitor(b)
   visitor.visit(mod)
   return visitor
