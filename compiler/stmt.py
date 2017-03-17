@@ -140,7 +140,7 @@ class StatementVisitor(algorithm.Visitor):
 
   def __init__(self, block_):
     self.block = block_
-    self.future_features = self.block.future_features or FutureFeatures()
+    self.future_features = self.block.root.future_features or FutureFeatures()
     self.writer = util.Writer()
     self.expr_visitor = expr_visitor.ExprVisitor(self.block, self.writer)
 
@@ -220,7 +220,7 @@ class StatementVisitor(algorithm.Visitor):
           \tπClass := $cls
           \t_ = πClass""")
       self.writer.write_tmpl(tmpl, name=util.go_str(node.name),
-                             filename=util.go_str(self.block.filename),
+                             filename=util.go_str(self.block.root.filename),
                              cls=cls.expr)
       with self.writer.indent_block():
         self.writer.write_temp_decls(body_visitor.block)
@@ -694,7 +694,7 @@ class StatementVisitor(algorithm.Visitor):
     code_objs = []
     for i in xrange(len(parts)):
       package_name = '/'.join(parts[:i + 1])
-      if package_name != self.block.full_package_name:
+      if package_name != self.block.root.full_package_name:
         package = self.block.add_import(package_name)
         code_objs.append('{}.Code'.format(package.alias))
       else:
@@ -816,6 +816,6 @@ class StatementVisitor(algorithm.Visitor):
 
   def _write_py_context(self, lineno):
     if lineno:
-      line = self.block.buffer.source_line(lineno).strip()
+      line = self.block.root.buffer.source_line(lineno).strip()
       self.writer.write('// line {}: {}'.format(lineno, line))
       self.writer.write('πF.SetLineno({})'.format(lineno))

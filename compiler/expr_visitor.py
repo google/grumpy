@@ -458,7 +458,7 @@ class ExprVisitor(algorithm.Visitor):
           '$flags, func(πF *πg.Frame, πArgs []*πg.Object) '
           '(*πg.Object, *πg.BaseException) {',
           result=result.name, name=util.go_str(node.name),
-          filename=util.go_str(self.block.filename), args=func_args.expr,
+          filename=util.go_str(self.block.root.filename), args=func_args.expr,
           flags=' | '.join(flags) if flags else 0)
       with self.writer.indent_block():
         for var in func_block.vars.values():
