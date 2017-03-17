@@ -47,7 +47,7 @@ class ExprVisitor(algorithm.Visitor):
       attr = self.block.alloc_temp()
       self.writer.write_checked_call2(
           attr, 'πg.GetAttr(πF, {}, {}, nil)',
-          obj.expr, self.block.intern(node.attr))
+          obj.expr, self.block.root.intern(node.attr))
     return attr
 
   def visit_BinOp(self, node):
@@ -336,7 +336,7 @@ class ExprVisitor(algorithm.Visitor):
       expr_str = 'πg.NewUnicode({}).ToObject()'.format(
           util.go_str(node.s.encode('utf-8')))
     else:
-      expr_str = '{}.ToObject()'.format(self.block.intern(node.s))
+      expr_str = '{}.ToObject()'.format(self.block.root.intern(node.s))
     return expr.GeneratedLiteral(expr_str)
 
   def visit_Tuple(self, node):

@@ -211,10 +211,10 @@ class StatementVisitor(algorithm.Visitor):
       self.writer.write('{} = πg.NewDict()'.format(cls.name))
       self.writer.write_checked_call2(
           mod_name, 'πF.Globals().GetItem(πF, {}.ToObject())',
-          self.block.intern('__name__'))
+          self.block.root.intern('__name__'))
       self.writer.write_checked_call1(
           '{}.SetItem(πF, {}.ToObject(), {})',
-          cls.expr, self.block.intern('__module__'), mod_name.expr)
+          cls.expr, self.block.root.intern('__module__'), mod_name.expr)
       tmpl = textwrap.dedent("""
           _, πE = πg.NewCode($name, $filename, nil, 0, func(πF *πg.Frame, _ []*πg.Object) (*πg.Object, *πg.BaseException) {
           \tπClass := $cls
@@ -237,8 +237,9 @@ class StatementVisitor(algorithm.Visitor):
           if $meta == nil {
           \t$meta = πg.TypeType.ToObject()
           }""")
-      self.writer.write_tmpl(tmpl, meta=meta.name, cls=cls.expr,
-                             metaclass_str=self.block.intern('__metaclass__'))
+      self.writer.write_tmpl(
+          tmpl, meta=meta.name, cls=cls.expr,
+          metaclass_str=self.block.root.intern('__metaclass__'))
       with self.block.alloc_temp() as type_:
         type_expr = ('{}.Call(πF, []*πg.Object{{πg.NewStr({}).ToObject(), '
                      'πg.NewTuple({}...).ToObject(), {}.ToObject()}}, nil)')
@@ -259,7 +260,8 @@ class StatementVisitor(algorithm.Visitor):
       if isinstance(target, ast.Attribute):
         with self.expr_visitor.visit(target.value) as t:
           self.writer.write_checked_call1(
-              'πg.DelAttr(πF, {}, {})', t.expr, self.block.intern(target.attr))
+              'πg.DelAttr(πF, {}, {})', t.expr,
+              self.block.root.intern(target.attr))
       elif isinstance(target, ast.Name):
         self.block.del_var(self.writer, target.id)
       elif isinstance(target, ast.Subscript):
@@ -401,7 +403,7 @@ class StatementVisitor(algorithm.Visitor):
           with self.block.alloc_temp() as member:
             self.writer.write_checked_call2(
                 member, 'πg.GetAttr(πF, {}, {}, nil)',
-                mod.expr, self.block.intern(name))
+                mod.expr, self.block.root.intern(name))
             self.block.bind_var(
                 self.writer, alias.asname or alias.name, member.expr)
     elif node.module == '__future__':
@@ -598,11 +600,11 @@ class StatementVisitor(algorithm.Visitor):
       # exit := type(mgr).__exit__
       self.writer.write_checked_call2(
           exit_func, 'πg.GetAttr(πF, {}.Type().ToObject(), {}, nil)',
-          mgr.expr, self.block.intern('__exit__'))
+          mgr.expr, self.block.root.intern('__exit__'))
       # value := type(mgr).__enter__(mgr)
       self.writer.write_checked_call2(
           value, 'πg.GetAttr(πF, {}.Type().ToObject(), {}, nil)',
-          mgr.expr, self.block.intern('__enter__'))
+          mgr.expr, self.block.root.intern('__enter__'))
       self.writer.write_checked_call2(
           value, '{}.Call(πF, πg.Args{{{}}}, nil)',
           value.expr, mgr.expr)
@@ -657,7 +659,7 @@ class StatementVisitor(algorithm.Visitor):
       with self.expr_visitor.visit(target.value) as obj:
         self.writer.write_checked_call1(
             'πg.SetAttr(πF, {}, {}, {})', obj.expr,
-            self.block.intern(target.attr), value)
+            self.block.root.intern(target.attr), value)
     elif isinstance(target, ast.Subscript):
       with self.expr_visitor.visit(target.value) as mapping,\
           self.expr_visitor.visit(target.slice) as index:
@@ -695,7 +697,7 @@ class StatementVisitor(algorithm.Visitor):
     for i in xrange(len(parts)):
       package_name = '/'.join(parts[:i + 1])
       if package_name != self.block.root.full_package_name:
-        package = self.block.add_import(package_name)
+        package = self.block.root.add_import(package_name)
         code_objs.append('{}.Code'.format(package.alias))
       else:
         code_objs.append('Code')
@@ -709,7 +711,7 @@ class StatementVisitor(algorithm.Visitor):
     return mod
 
   def _import_native(self, name, values):
-    reflect_package = self.block.add_native_import('reflect')
+    reflect_package = self.block.root.add_native_import('reflect')
     import_name = name[len(_NATIVE_MODULE_PREFIX):]
     # Work-around for importing go module from VCS
     # TODO: support bzr|git|hg|svn from any server
@@ -721,7 +723,7 @@ class StatementVisitor(algorithm.Visitor):
     if not package_name:
       package_name = import_name.replace('.', '/')
 
-    package = self.block.add_native_import(package_name)
+    package = self.block.root.add_native_import(package_name)
     mod = self.block.alloc_temp()
     with self.block.alloc_temp('map[string]*πg.Object') as members:
       self.writer.write_tmpl('$members = map[string]*πg.Object{}',

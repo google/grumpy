@@ -101,29 +101,6 @@ class Block(object):
     """
     pass
 
-  def add_import(self, name):
-    """Register the named Go package for import in this block's ModuleBlock.
-
-    add_import walks the block chain to the root ModuleBlock and adds a Package
-    to its imports dict.
-
-    Args:
-      name: The fully qualified Go package name.
-    Returns:
-      A Package representing the import.
-    """
-    return self.add_native_import('__python__/' + name)
-
-  def add_native_import(self, name):
-    alias = None
-    if name == 'grumpy':
-      alias = 'πg'
-    if name in self.root.imports:
-      return self.root.imports[name]
-    package = Package(name, alias)
-    self.root.imports[name] = package
-    return package
-
   def genlabel(self, is_checkpoint=False):
     self.label_count += 1
     if is_checkpoint:
@@ -159,16 +136,10 @@ class Block(object):
   def top_loop(self):
     return self.loop_stack[-1]
 
-  def intern(self, s):
-    if len(s) > 64 or _non_word_re.search(s):
-      return 'πg.NewStr({})'.format(util.go_str(s))
-    self.root.strings.add(s)
-    return 'ß' + s
-
   def _resolve_global(self, writer, name):
     result = self.alloc_temp()
     writer.write_checked_call2(
-        result, 'πg.ResolveGlobal(πF, {})', self.intern(name))
+        result, 'πg.ResolveGlobal(πF, {})', self.root.intern(name))
     return result
 
 
@@ -200,6 +171,32 @@ class ModuleBlock(Block):
   def resolve_name(self, writer, name):
     return self._resolve_global(writer, name)
 
+  def add_import(self, name):
+    """Register the named Go package for import.
+
+    Args:
+      name: The fully qualified Go package name.
+    Returns:
+      A Package representing the import.
+    """
+    return self.add_native_import('__python__/' + name)
+
+  def add_native_import(self, name):
+    alias = None
+    if name == 'grumpy':
+      alias = 'πg'
+    if name in self.imports:
+      return self.imports[name]
+    package = Package(name, alias)
+    self.imports[name] = package
+    return package
+
+  def intern(self, s):
+    if len(s) > 64 or _non_word_re.search(s):
+      return 'πg.NewStr({})'.format(util.go_str(s))
+    self.strings.add(s)
+    return 'ß' + s
+
 
 class ClassBlock(Block):
   """Python block for a class definition."""
@@ -212,12 +209,13 @@ class ClassBlock(Block):
     if name in self.global_vars:
       return self.root.bind_var(writer, name, value)
     writer.write_checked_call1('πClass.SetItem(πF, {}.ToObject(), {})',
-                               self.intern(name), value)
+                               self.root.intern(name), value)
 
   def del_var(self, writer, name):
     if name in self.global_vars:
       return self.root.del_var(writer, name)
-    writer.write_checked_call1('πg.DelVar(πF, πClass, {})', self.intern(name))
+    writer.write_checked_call1('πg.DelVar(πF, πClass, {})',
+                               self.root.intern(name))
 
   def resolve_name(self, writer, name):
     local = 'nil'
@@ -237,7 +235,7 @@ class ClassBlock(Block):
     result = self.alloc_temp()
     writer.write_checked_call2(
         result, 'πg.ResolveClass(πF, πClass, {}, {})',
-        local, self.intern(name))
+        local, self.root.intern(name))
     return result
 
 
