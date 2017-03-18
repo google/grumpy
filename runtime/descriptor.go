@@ -22,8 +22,8 @@ import (
 type fieldDescriptorType int
 
 const (
-    fieldDescriptorRO fieldDescriptorType = iota
-    fieldDescriptorRW
+	fieldDescriptorRO fieldDescriptorType = iota
+	fieldDescriptorRW
 )
 
 // Property represents Python 'property' objects.
