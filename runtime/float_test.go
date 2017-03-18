@@ -101,6 +101,48 @@ func TestFloatArithmeticOps(t *testing.T) {
 	}
 }
 
+func TestFloatDivMod(t *testing.T) {
+	cases := []invokeTestCase{
+		{args: wrapArgs(12.5, 4.0), want: NewTuple2(NewFloat(3).ToObject(), NewFloat(0.5).ToObject()).ToObject()},
+		{args: wrapArgs(-12.5, 4.0), want: NewTuple2(NewFloat(-4).ToObject(), NewFloat(3.5).ToObject()).ToObject()},
+		{args: wrapArgs(25.0, 5.0), want: NewTuple2(NewFloat(5).ToObject(), NewFloat(0).ToObject()).ToObject()},
+		{args: wrapArgs(-20.2, 40.0), want: NewTuple2(NewFloat(-1).ToObject(), NewFloat(19.8).ToObject()).ToObject()},
+		{args: wrapArgs(math.Inf(1), math.Inf(1)), want: NewTuple2(NewFloat(math.NaN()).ToObject(), NewFloat(math.NaN()).ToObject()).ToObject()},
+		{args: wrapArgs(math.Inf(1), math.Inf(-1)), want: NewTuple2(NewFloat(math.NaN()).ToObject(), NewFloat(math.NaN()).ToObject()).ToObject()},
+		{args: wrapArgs(math.Inf(-1), -20.0), want: NewTuple2(NewFloat(math.Inf(1)).ToObject(), NewFloat(math.NaN()).ToObject()).ToObject()},
+		{args: wrapArgs(1, math.Inf(1)), want: NewTuple2(NewFloat(0).ToObject(), NewFloat(1).ToObject()).ToObject()},
+		{args: wrapArgs(newObject(ObjectType), 1.1), wantExc: mustCreateException(TypeErrorType, "unsupported operand type(s) for divmod(): 'object' and 'float'")},
+		{args: wrapArgs(True.ToObject(), 0.0), wantExc: mustCreateException(ZeroDivisionErrorType, "float division or modulo by zero")},
+		{args: wrapArgs(math.Inf(1), 0.0), wantExc: mustCreateException(ZeroDivisionErrorType, "float division or modulo by zero")},
+		{args: wrapArgs(1.0, bigLongNumber), wantExc: mustCreateException(OverflowErrorType, "long int too large to convert to float")},
+	}
+	for _, cas := range cases {
+		switch got, result := checkInvokeResult(wrapFuncForTest(DivMod), cas.args, cas.want, cas.wantExc); result {
+		case checkInvokeResultExceptionMismatch:
+			t.Errorf("float.__divmod__%v raised %v, want %v", cas.args, got, cas.wantExc)
+		case checkInvokeResultReturnValueMismatch:
+			// Handle NaN specially, since NaN != NaN.
+			if got == nil || cas.want == nil || !got.isInstance(TupleType) || !cas.want.isInstance(TupleType) ||
+				!isNaNTupleFloat(got, cas.want) {
+				t.Errorf("float.__divmod__%v = %v, want %v", cas.args, got, cas.want)
+			}
+		}
+	}
+}
+
+func isNaNTupleFloat(got, want *Object) bool {
+	if toTupleUnsafe(got).Len() != toTupleUnsafe(want).Len() {
+		return false
+	}
+	for i := 0; i < toTupleUnsafe(got).Len(); i++ {
+		if math.IsNaN(toFloatUnsafe(toTupleUnsafe(got).GetItem(i)).Value()) &&
+			math.IsNaN(toFloatUnsafe(toTupleUnsafe(want).GetItem(i)).Value()) {
+			return true
+		}
+	}
+	return false
+}
+
 func TestFloatCompare(t *testing.T) {
 	cases := []invokeTestCase{
 		{args: wrapArgs(1.0, 1.0), want: compareAllResultEq},

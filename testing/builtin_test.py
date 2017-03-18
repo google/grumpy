@@ -348,3 +348,40 @@ a = [1, 2, 3]
 assert map(None, a) == a
 assert map(None, a) is not a
 assert map(None, (1, 2, 3)) == [1, 2, 3]
+
+# divmod(v, w)
+
+import sys
+
+assert divmod(12, 7) == (1, 5)
+assert divmod(-12, 7) == (-2, 2)
+assert divmod(12, -7) == (-2, -2)
+assert divmod(-12, -7) == (1, -5)
+assert divmod(-sys.maxsize - 1, -1) == (sys.maxsize + 1, 0)
+assert isinstance(divmod(12, 7), tuple)
+assert isinstance(divmod(12, 7)[0], int)
+assert isinstance(divmod(12, 7)[1], int)
+
+assert divmod(long(7), long(3)) == (2L, 1L)
+assert divmod(long(3), long(-7)) == (-1L, -4L)
+assert divmod(long(sys.maxsize), long(-sys.maxsize)) == (-1L, 0L)
+assert divmod(long(-sys.maxsize), long(1)) == (-sys.maxsize, 0L)
+assert divmod(long(-sys.maxsize), long(-1)) == (sys.maxsize, 0L)
+assert isinstance(divmod(long(7), long(3)), tuple)
+assert isinstance(divmod(long(7), long(3))[0], long)
+assert isinstance(divmod(long(7), long(3))[1], long)
+
+assert divmod(3.25, 1.0) == (3.0, 0.25)
+assert divmod(-3.25, 1.0) == (-4.0, 0.75)
+assert divmod(3.25, -1.0) == (-4.0, -0.75)
+assert divmod(-3.25, -1.0) == (3.0, -0.25)
+assert isinstance(divmod(3.25, 1.0), tuple)
+assert isinstance(divmod(3.25, 1.0)[0], float)
+assert isinstance(divmod(3.25, 1.0)[1], float)
+
+try:
+  divmod('a', 'b')
+except TypeError as e:
+  assert str(e) == "unsupported operand type(s) for divmod(): 'str' and 'str'"
+else:
+  assert AssertionError

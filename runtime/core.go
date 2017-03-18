@@ -159,6 +159,12 @@ func Div(f *Frame, v, w *Object) (*Object, *BaseException) {
 	return binaryOp(f, v, w, v.typ.slots.Div, v.typ.slots.RDiv, w.typ.slots.RDiv, "/")
 }
 
+// DivMod returns the result (quotient and remainder tuple) of dividing v by w
+// according to the __divmod/rdivmod__ operator.
+func DivMod(f *Frame, v, w *Object) (*Object, *BaseException) {
+	return binaryOp(f, v, w, v.typ.slots.DivMod, v.typ.slots.RDivMod, w.typ.slots.RDivMod, "divmod()")
+}
+
 // Eq returns the equality of v and w according to the __eq__ operator.
 func Eq(f *Frame, v, w *Object) (*Object, *BaseException) {
 	r, raised := compareRich(f, compareOpEq, v, w)

@@ -358,6 +358,13 @@ func builtinDir(f *Frame, args Args, kwargs KWArgs) (*Object, *BaseException) {
 	return l.ToObject(), nil
 }
 
+func builtinDivMod(f *Frame, args Args, kwargs KWArgs) (*Object, *BaseException) {
+	if raised := checkFunctionArgs(f, "divmod", args, ObjectType, ObjectType); raised != nil {
+		return nil, raised
+	}
+	return DivMod(f, args[0], args[1])
+}
+
 func builtinFrame(f *Frame, args Args, _ KWArgs) (*Object, *BaseException) {
 	if raised := checkFunctionArgs(f, "__frame__", args); raised != nil {
 		return nil, raised
@@ -703,6 +710,7 @@ func init() {
 		"cmp":            newBuiltinFunction("cmp", builtinCmp).ToObject(),
 		"delattr":        newBuiltinFunction("delattr", builtinDelAttr).ToObject(),
 		"dir":            newBuiltinFunction("dir", builtinDir).ToObject(),
+		"divmod":         newBuiltinFunction("divmod", builtinDivMod).ToObject(),
 		"Ellipsis":       Ellipsis,
 		"False":          False.ToObject(),
 		"getattr":        newBuiltinFunction("getattr", builtinGetAttr).ToObject(),
