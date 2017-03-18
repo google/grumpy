@@ -127,6 +127,10 @@ func makeStructFieldDescriptor(t *Type, fieldName, propertyName string, fieldTyp
 
 	setter := None
 	if fieldType == fieldDescriptorRW {
+		if field.PkgPath != "" {
+			logFatal(fmt.Sprintf("field '%q' is not public on Golang code. Please fix it.", fieldName))
+		}
+
 		setterFunc := func(f *Frame, args Args, _ KWArgs) (*Object, *BaseException) {
 			if raised := checkFunctionArgs(f, fieldName, args, ObjectType, ObjectType); raised != nil {
 				return nil, raised
