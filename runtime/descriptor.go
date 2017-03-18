@@ -137,16 +137,16 @@ func makeStructFieldDescriptor(t *Type, fieldName, propertyName string, fieldTyp
 			}
 
 			self := args[0]
-			newvalue := args[1]
-			if !newvalue.isInstance(getNativeType(field.Type)) {
+			newValue := args[1]
+			if !newValue.isInstance(getNativeType(field.Type)) {
 				format := "descriptor '%s' for '%s' objects doesn't apply to '%s' objects"
-				return nil, f.RaiseType(TypeErrorType, fmt.Sprintf(format, propertyName, t.Name(), newvalue.typ.Name()))
+				return nil, f.RaiseType(TypeErrorType, fmt.Sprintf(format, propertyName, t.Name(), newValue.typ.Name()))
 			}
 
 			var converted reflect.Value
 			var raised *BaseException
 			val := t.slots.Basis.Fn(self).FieldByIndex(field.Index)
-			if converted, raised = maybeConvertValue(f, newvalue, val.Type()); raised != nil {
+			if converted, raised = maybeConvertValue(f, newValue, val.Type()); raised != nil {
 				return nil, raised
 			}
 
