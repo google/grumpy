@@ -53,6 +53,8 @@ export GOPATH := $(ROOT_DIR)/build
 export PYTHONPATH := $(ROOT_DIR)/$(PY_DIR)
 export PATH := $(ROOT_DIR)/build/bin:$(PATH)
 
+GOPATH_PY_ROOT := $(GOPATH)/src/__python__
+
 PYTHONPARSER_SRCS := $(patsubst third_party/%,$(PY_DIR)/%,$(wildcard third_party/pythonparser/*.py))
 
 COMPILER_BIN := build/bin/grumpc
@@ -73,12 +75,20 @@ RUNTIME_PASS_FILE := build/runtime.pass
 RUNTIME_COVER_FILE := $(PKG_DIR)/grumpy.cover
 RUNNER = $(RUNNER_BIN) $(COMPILER) $(RUNTIME) $(STDLIB)
 
-GRUMPY_STDLIB_SRCS := $(shell find lib -name '*.py')
-GRUMPY_STDLIB_PACKAGES := $(foreach x,$(GRUMPY_STDLIB_SRCS),$(patsubst lib/%.py,%,$(patsubst lib/%/__init__.py,%,$(x))))
-THIRD_PARTY_STDLIB_SRCS := $(shell find third_party/pypy -name '*.py') $(shell find third_party/stdlib -name '*.py')
-THIRD_PARTY_STDLIB_PACKAGES := $(foreach x,$(THIRD_PARTY_STDLIB_SRCS),$(patsubst third_party/stdlib/%.py,%,$(patsubst third_party/pypy/%.py,%,$(patsubst third_party/pypy/%/__init__.py,%,$(patsubst third_party/stdlib/%/__init__.py,%,$(x))))))
-STDLIB_SRCS := $(GRUMPY_STDLIB_SRCS) $(THIRD_PARTY_STDLIB_SRCS)
-STDLIB_PACKAGES := $(GRUMPY_STDLIB_PACKAGES) $(THIRD_PARTY_STDLIB_PACKAGES)
+LIB_SRCS := $(shell find lib -name '*.py')
+LIB_SRCS_STAGED := $(patsubst lib/%,$(GOPATH_PY_ROOT)/%,$(LIB_SRCS))
+LIB_PACKAGES := $(patsubst lib/%.py,%,$(patsubst lib/%/__init__.py,%,$(LIB_SRCS)))
+
+THIRD_PARTY_STDLIB_SRCS := $(shell find third_party/stdlib -name '*.py')
+THIRD_PARTY_STDLIB_SRCS_STAGED := $(patsubst third_party/stdlib/%,$(GOPATH_PY_ROOT)/%,$(THIRD_PARTY_STDLIB_SRCS))
+THIRD_PARTY_STDLIB_PACKAGES := $(patsubst third_party/stdlib/%.py,%,$(patsubst third_party/stdlib/%/__init__.py,%,$(THIRD_PARTY_STDLIB_SRCS)))
+
+THIRD_PARTY_PYPY_SRCS := $(shell find third_party/pypy -name '*.py')
+THIRD_PARTY_PYPY_SRCS_STAGED := $(patsubst third_party/pypy/%,$(GOPATH_PY_ROOT)/%,$(THIRD_PARTY_PYPY_SRCS))
+THIRD_PARTY_PYPY_PACKAGES := $(patsubst third_party/pypy/%.py,%,$(patsubst third_party/pypy/%/__init__.py,%,$(THIRD_PARTY_PYPY_SRCS)))
+
+STDLIB_SRCS_STAGED := $(LIB_SRCS_STAGED) $(THIRD_PARTY_STDLIB_SRCS_STAGED) $(THIRD_PARTY_PYPY_SRCS_STAGED)
+STDLIB_PACKAGES := $(LIB_PACKAGES) $(THIRD_PARTY_STDLIB_PACKAGES) $(THIRD_PARTY_PYPY_PACKAGES)
 STDLIB := $(patsubst %,$(PKG_DIR)/__python__/%.a,$(STDLIB_PACKAGES))
 STDLIB_TESTS := \
   itertools_test \
@@ -220,8 +230,20 @@ lint: golint pylint
 # Standard library
 # ------------------------------------------------------------------------------
 
+$(LIB_SRCS_STAGED): $(GOPATH_PY_ROOT)/%: lib/%
+	@mkdir -p $(@D)
+	@cp -f $< $@
+
+$(THIRD_PARTY_STDLIB_SRCS_STAGED): $(GOPATH_PY_ROOT)/%: third_party/stdlib/%
+	@mkdir -p $(@D)
+	@cp -f $< $@
+
+$(THIRD_PARTY_PYPY_SRCS_STAGED): $(GOPATH_PY_ROOT)/%: third_party/pypy/%
+	@mkdir -p $(@D)
+	@cp -f $< $@
+
 define GRUMPY_STDLIB
-build/src/__python__/$(2)/module.go: $(1) $(COMPILER)
+build/src/__python__/$(2)/module.go: $(1) $(COMPILER) | $(filter-out $(STDLIB_SRCS_STAGED),$(1))
 	@mkdir -p build/src/__python__/$(2)
 	@$(COMPILER_BIN) -modname=$(notdir $(2)) $(1) > $$@
 
@@ -237,7 +259,7 @@ $(PKG_DIR)/__python__/$(2).a: build/src/__python__/$(2)/module.go $(RUNTIME)
 
 endef
 
-$(eval $(foreach x,$(shell seq $(words $(STDLIB_SRCS))),$(call GRUMPY_STDLIB,$(word $(x),$(STDLIB_SRCS)),$(word $(x),$(STDLIB_PACKAGES)))))
+$(eval $(foreach x,$(shell seq $(words $(STDLIB_SRCS_STAGED))),$(call GRUMPY_STDLIB,$(word $(x),$(STDLIB_SRCS_STAGED)),$(word $(x),$(STDLIB_PACKAGES)))))
 
 define GRUMPY_STDLIB_TEST
 build/testing/$(patsubst %_test,%_test_,$(notdir $(1))).go:
