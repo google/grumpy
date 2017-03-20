@@ -360,6 +360,13 @@ func TestNoneRepr(t *testing.T) {
 	}
 }
 
+func TestNotImplementedRepr(t *testing.T) {
+	cas := invokeTestCase{args: wrapArgs(NotImplemented), want: NewStr("NotImplemented").ToObject()}
+	if err := runInvokeMethodTestCase(NotImplementedType, "__repr__", &cas); err != "" {
+		t.Error(err)
+	}
+}
+
 // captureStdout invokes a function closure which writes to stdout and captures
 // its output as string.
 func captureStdout(f *Frame, fn func() *BaseException) (string, *BaseException) {

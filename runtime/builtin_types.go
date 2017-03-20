@@ -58,6 +58,10 @@ func noneRepr(*Frame, *Object) (*Object, *BaseException) {
 	return NewStr("None").ToObject(), nil
 }
 
+func notImplementedRepr(*Frame, *Object) (*Object, *BaseException) {
+	return NewStr("NotImplemented").ToObject(), nil
+}
+
 func initEllipsisType(map[string]*Object) {
 	EllipsisType.flags &= ^(typeFlagInstantiable | typeFlagBasetype)
 	EllipsisType.slots.Repr = &unaryOpSlot{ellipsisRepr}
@@ -70,6 +74,7 @@ func initNoneType(map[string]*Object) {
 
 func initNotImplementedType(map[string]*Object) {
 	NotImplementedType.flags &= ^(typeFlagInstantiable | typeFlagBasetype)
+	NotImplementedType.slots.Repr = &unaryOpSlot{notImplementedRepr}
 }
 
 func initUnboundLocalType(map[string]*Object) {

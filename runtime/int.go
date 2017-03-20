@@ -384,6 +384,7 @@ func initIntType(dict map[string]*Object) {
 	IntType.slots.Div = &binaryOpSlot{intDiv}
 	IntType.slots.DivMod = &binaryOpSlot{intDivMod}
 	IntType.slots.Eq = &binaryOpSlot{intEq}
+	IntType.slots.FloorDiv = &binaryOpSlot{intDiv}
 	IntType.slots.GE = &binaryOpSlot{intGE}
 	IntType.slots.GT = &binaryOpSlot{intGT}
 	IntType.slots.Float = &unaryOpSlot{intFloat}
@@ -412,6 +413,7 @@ func initIntType(dict map[string]*Object) {
 	IntType.slots.RDiv = &binaryOpSlot{intRDiv}
 	IntType.slots.RDivMod = &binaryOpSlot{intRDivMod}
 	IntType.slots.Repr = &unaryOpSlot{intRepr}
+	IntType.slots.RFloorDiv = &binaryOpSlot{intRDiv}
 	IntType.slots.RMod = &binaryOpSlot{intRMod}
 	IntType.slots.RMul = &binaryOpSlot{intRMul}
 	IntType.slots.ROr = &binaryOpSlot{intOr}
