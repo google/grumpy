@@ -19,11 +19,14 @@
 from __future__ import unicode_literals
 
 import codecs
+import collections
 import contextlib
 import cStringIO
 import string
 import StringIO
 import textwrap
+
+from pythonparser import algorithm
 
 
 _SIMPLE_CHARS = set(string.digits + string.letters + string.punctuation + " ")
@@ -34,13 +37,96 @@ _ESCAPES = {'\t': r'\t', '\r': r'\r', '\n': r'\n', '"': r'\"', '\\': r'\\'}
 # This should match the number of specializations found in tuple.go.
 MAX_DIRECT_TUPLE = 6
 
+_NATIVE_MODULE_PREFIX = '__go__.'
 
-class ParseError(Exception):
+
+class CompileError(Exception):
 
   def __init__(self, node, msg):
     if hasattr(node, 'lineno'):
       msg = 'line {}: {}'.format(node.lineno, msg)
-    super(ParseError, self).__init__(msg)
+    super(CompileError, self).__init__(msg)
+
+
+class ParseError(CompileError):
+  pass
+
+
+class ImportError(CompileError):  # pylint: disable=redefined-builtin
+  pass
+
+
+class Import(object):
+  """Represents a single module import and all its associated bindings.
+
+  Each import pertains to a single module that is imported. Thus one import
+  statement may produce multiple Import objects. E.g. "import foo, bar" makes
+  an Import object for module foo and another one for module bar.
+  """
+
+  Binding = collections.namedtuple('Binding', ('bind_type', 'alias', 'value'))
+
+  MODULE = "<BindType 'module'>"
+  MEMBER = "<BindType 'member'>"
+
+  ROOT = "<BindValue 'root'>"
+  LEAF = "<BindValue 'leaf'>"
+
+  def __init__(self, name, is_native=False):
+    self.name = name
+    self.is_native = is_native
+    self.bindings = []
+
+  def add_binding(self, bind_type, alias, value):
+    self.bindings.append(Import.Binding(bind_type, alias, value))
+
+
+class ImportVisitor(algorithm.Visitor):
+  """Visits import nodes and produces corresponding Import objects."""
+
+  # pylint: disable=invalid-name,missing-docstring,no-init
+
+  def visit_Import(self, node):
+    imports = []
+    for alias in node.names:
+      if alias.name.startswith(_NATIVE_MODULE_PREFIX):
+        raise ImportError(
+            node, 'for native imports use "from __go__.xyz import ..." syntax')
+      imp = Import(alias.name)
+      if alias.asname:
+        imp.add_binding(Import.MODULE, alias.asname, Import.LEAF)
+      else:
+        imp.add_binding(Import.MODULE, alias.name.split('.')[-1], Import.ROOT)
+      imports.append(imp)
+    return imports
+
+  def visit_ImportFrom(self, node):
+    if any(a.name == '*' for a in node.names):
+      msg = 'wildcard member import is not implemented: from %s import *' % (
+          node.module)
+      raise ImportError(node, msg)
+
+    if node.module == '__future__':
+      return []
+
+    if node.module.startswith(_NATIVE_MODULE_PREFIX):
+      imp = Import(node.module[len(_NATIVE_MODULE_PREFIX):], is_native=True)
+      for alias in node.names:
+        asname = alias.asname or alias.name
+        imp.add_binding(Import.MEMBER, asname, alias.name)
+      return [imp]
+
+    # NOTE: Assume that the names being imported are all modules within a
+    # package. E.g. "from a.b import c" is importing the module c from package
+    # a.b, not some member of module b. We cannot distinguish between these
+    # two cases at compile time and the Google style guide forbids the latter
+    # so we support that use case only.
+    imports = []
+    for alias in node.names:
+      imp = Import('{}.{}'.format(node.module, alias.name))
+      imp.add_binding(Import.MODULE, alias.asname or alias.name, Import.LEAF)
+      imports.append(imp)
+    return imports
 
 
 class Writer(object):

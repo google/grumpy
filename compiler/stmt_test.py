@@ -313,7 +313,7 @@ class StatementVisitorTest(unittest.TestCase):
 
   def testImportNativeModuleRaises(self):
     regexp = r'for native imports use "from __go__\.xyz import \.\.\." syntax'
-    self.assertRaisesRegexp(util.ParseError, regexp, _ParseAndVisit,
+    self.assertRaisesRegexp(util.ImportError, regexp, _ParseAndVisit,
                             'import __go__.foo')
 
   def testImportNativeType(self):
@@ -368,11 +368,11 @@ class StatementVisitorTest(unittest.TestCase):
 
   def testImportWildcardMemberRaises(self):
     regexp = r'wildcard member import is not implemented: from foo import *'
-    self.assertRaisesRegexp(util.ParseError, regexp, _ParseAndVisit,
+    self.assertRaisesRegexp(util.ImportError, regexp, _ParseAndVisit,
                             'from foo import *')
     regexp = (r'wildcard member import is not '
               r'implemented: from __go__.foo import *')
-    self.assertRaisesRegexp(util.ParseError, regexp, _ParseAndVisit,
+    self.assertRaisesRegexp(util.ImportError, regexp, _ParseAndVisit,
                             'from __go__.foo import *')
 
   def testVisitFuture(self):

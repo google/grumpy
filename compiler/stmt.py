@@ -30,7 +30,6 @@ from grumpy.compiler import expr_visitor
 from grumpy.compiler import util
 
 
-_NATIVE_MODULE_PREFIX = '__go__.'
 _NATIVE_TYPE_PREFIX = 'type_'
 
 # Partial list of known vcs for go module import
@@ -371,58 +370,39 @@ class StatementVisitor(algorithm.Visitor):
 
   def visit_Import(self, node):
     self._write_py_context(node.lineno)
-    for alias in node.names:
-      if alias.name.startswith(_NATIVE_MODULE_PREFIX):
-        raise util.ParseError(
-            node, 'for native imports use "from __go__.xyz import ..." syntax')
-      with self._import(alias.name, 0) as mod:
-        asname = alias.asname or alias.name.split('.')[0]
-        self.block.bind_var(self.writer, asname, mod.expr)
+    for imp in util.ImportVisitor().visit(node):
+      self._import_and_bind(imp)
 
   def visit_ImportFrom(self, node):
-    # Wildcard imports are not yet supported.
-    for alias in node.names:
-      if alias.name == '*':
-        msg = 'wildcard member import is not implemented: from %s import %s' % (
-            node.module, alias.name)
-        raise util.ParseError(node, msg)
     self._write_py_context(node.lineno)
-    if node.module.startswith(_NATIVE_MODULE_PREFIX):
-      values = [alias.name for alias in node.names]
-      with self._import_native(node.module, values) as mod:
-        for alias in node.names:
-          # Strip the 'type_' prefix when populating the module. This means
-          # that, e.g. 'from __go__.foo import type_Bar' will populate foo with
-          # a member called Bar, not type_Bar (although the symbol in the
-          # importing module will still be type_Bar unless aliased). This bends
-          # the semantics of import but makes native module contents more
-          # sensible.
-          name = alias.name
-          if name.startswith(_NATIVE_TYPE_PREFIX):
-            name = name[len(_NATIVE_TYPE_PREFIX):]
-          with self.block.alloc_temp() as member:
-            self.writer.write_checked_call2(
-                member, 'πg.GetAttr(πF, {}, {}, nil)',
-                mod.expr, self.block.root.intern(name))
-            self.block.bind_var(
-                self.writer, alias.asname or alias.name, member.expr)
-    elif node.module == '__future__':
-      # At this stage all future imports are done in an initial pass (see
-      # visit() above), so if they are encountered here after the last valid
-      # __future__ then it's a syntax error.
-      if node.lineno > self.future_features.future_lineno:
-        raise util.ParseError(node, late_future)
-    else:
-      # NOTE: Assume that the names being imported are all modules within a
-      # package. E.g. "from a.b import c" is importing the module c from package
-      # a.b, not some member of module b. We cannot distinguish between these
-      # two cases at compile time and the Google style guide forbids the latter
-      # so we support that use case only.
-      for alias in node.names:
-        name = '{}.{}'.format(node.module, alias.name)
-        with self._import(name, name.count('.')) as mod:
-          asname = alias.asname or alias.name
-          self.block.bind_var(self.writer, asname, mod.expr)
+    for imp in util.ImportVisitor().visit(node):
+      if imp.is_native:
+        values = [b.value for b in imp.bindings]
+        with self._import_native(imp.name, values) as mod:
+          for binding in imp.bindings:
+            # Strip the 'type_' prefix when populating the module. This means
+            # that, e.g. 'from __go__.foo import type_Bar' will populate foo
+            # with a member called Bar, not type_Bar (although the symbol in
+            # the importing module will still be type_Bar unless aliased). This
+            # bends the semantics of import but makes native module contents
+            # more sensible.
+            name = binding.value
+            if name.startswith(_NATIVE_TYPE_PREFIX):
+              name = name[len(_NATIVE_TYPE_PREFIX):]
+            with self.block.alloc_temp() as member:
+              self.writer.write_checked_call2(
+                  member, 'πg.GetAttr(πF, {}, {}, nil)',
+                  mod.expr, self.block.root.intern(name))
+              self.block.bind_var(
+                  self.writer, binding.alias, member.expr)
+      elif node.module == '__future__':
+        # At this stage all future imports are done in an initial pass (see
+        # visit() above), so if they are encountered here after the last valid
+        # __future__ then it's a syntax error.
+        if node.lineno > self.future_features.future_lineno:
+          raise util.ImportError(node, late_future)
+      else:
+        self._import_and_bind(imp)
 
   def visit_Module(self, node):
     self._visit_each(node.body)
@@ -681,18 +661,14 @@ class StatementVisitor(algorithm.Visitor):
     tmpl = 'πg.TieTarget{Target: &$temp}'
     return string.Template(tmpl).substitute(temp=temp.name)
 
-  def _import(self, name, index):
-    """Returns an expression for a Module object returned from ImportModule.
+  def _import_and_bind(self, imp):
+    """Generates code that imports a module and binds it to a variable.
 
     Args:
-      name: The fully qualified Python module name, e.g. foo.bar.
-      index: The element in the list of modules that this expression should
-          select. E.g. for 'foo.bar', 0 corresponds to the package foo and 1
-          corresponds to the module bar.
-    Returns:
-      A Go expression evaluating to an *Object (upcast from a *Module.)
+      imp: Import object representing an import of the form "import x.y.z" or
+          "from x.y import z". Expects only a single binding.
     """
-    parts = name.split('.')
+    parts = imp.name.split('.')
     code_objs = []
     for i in xrange(len(parts)):
       package_name = '/'.join(parts[:i + 1])
@@ -701,27 +677,33 @@ class StatementVisitor(algorithm.Visitor):
         code_objs.append('{}.Code'.format(package.alias))
       else:
         code_objs.append('Code')
-    mod = self.block.alloc_temp()
-    with self.block.alloc_temp('[]*πg.Object') as mod_slice:
+    with self.block.alloc_temp() as mod, \
+        self.block.alloc_temp('[]*πg.Object') as mod_slice:
       handles_expr = '[]*πg.Code{' + ', '.join(code_objs) + '}'
       self.writer.write_checked_call2(
           mod_slice, 'πg.ImportModule(πF, {}, {})',
-          util.go_str(name), handles_expr)
+          util.go_str(imp.name), handles_expr)
+      # This method only handles simple module imports (i.e. not member
+      # imports) which always have a single binding.
+      binding = imp.bindings[0]
+      if binding.value == util.Import.ROOT:
+        index = 0
+      else:
+        index = len(parts) - 1
       self.writer.write('{} = {}[{}]'.format(mod.name, mod_slice.expr, index))
-    return mod
+      self.block.bind_var(self.writer, binding.alias, mod.expr)
 
   def _import_native(self, name, values):
     reflect_package = self.block.root.add_native_import('reflect')
-    import_name = name[len(_NATIVE_MODULE_PREFIX):]
     # Work-around for importing go module from VCS
     # TODO: support bzr|git|hg|svn from any server
     package_name = None
     for x in _KNOWN_VCS:
-      if import_name.startswith(x):
-        package_name = x + import_name[len(x):].replace('.', '/')
+      if name.startswith(x):
+        package_name = x + name[len(x):].replace('.', '/')
         break
     if not package_name:
-      package_name = import_name.replace('.', '/')
+      package_name = name.replace('.', '/')
 
     package = self.block.root.add_native_import(package_name)
     mod = self.block.alloc_temp()

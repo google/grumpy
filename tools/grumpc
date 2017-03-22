@@ -52,7 +52,7 @@ def main(args):
   # Do a pass for compiler directives from `from __future__ import *` statements
   try:
     future_features = stmt.visit_future(mod)
-  except util.ParseError as e:
+  except util.CompileError as e:
     print >> sys.stderr, str(e)
     return 2
 
