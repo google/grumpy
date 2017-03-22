@@ -366,14 +366,12 @@ class StatementVisitorTest(unittest.TestCase):
       self.assertRaisesRegexp(util.ParseError, want_regexp,
                               stmt.import_from_future, node)
 
-  def testImportWildcardMemberRaises(self):
-    regexp = r'wildcard member import is not implemented: from foo import *'
-    self.assertRaisesRegexp(util.ParseError, regexp, _ParseAndVisit,
-                            'from foo import *')
-    regexp = (r'wildcard member import is not '
-              r'implemented: from __go__.foo import *')
-    self.assertRaisesRegexp(util.ParseError, regexp, _ParseAndVisit,
-                            'from __go__.foo import *')
+  def testImportWildcard(self):
+    result = _GrumpRun(textwrap.dedent("""\
+        from time import *
+        print sleep"""))
+    self.assertEqual(0, result[0])
+    self.assertIn('<function sleep at', result[1])
 
   def testVisitFuture(self):
     testcases = [

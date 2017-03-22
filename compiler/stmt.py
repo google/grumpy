@@ -378,13 +378,15 @@ class StatementVisitor(algorithm.Visitor):
         self.block.bind_var(self.writer, asname, mod.expr)
 
   def visit_ImportFrom(self, node):
-    # Wildcard imports are not yet supported.
+    self._write_py_context(node.lineno)
     for alias in node.names:
       if alias.name == '*':
-        msg = 'wildcard member import is not implemented: from %s import %s' % (
-            node.module, alias.name)
-        raise util.ParseError(node, msg)
-    self._write_py_context(node.lineno)
+        module_name = node.module
+
+        with self._import(module_name, module_name.count('.')) as module:
+          self.writer.write_checked_call1(
+              'πg.LoadMembers(πF, {})', module.expr)
+        return
     if node.module.startswith(_NATIVE_MODULE_PREFIX):
       values = [alias.name for alias in node.names]
       with self._import_native(node.module, values) as mod:

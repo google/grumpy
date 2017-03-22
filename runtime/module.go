@@ -179,6 +179,58 @@ func ImportNativeModule(f *Frame, name string, members map[string]*Object) (*Obj
 	return prev, nil
 }
 
+// LoadMembers scans over all the members in module
+// and populates globals with them, taking __all__ into
+// account.
+func LoadMembers(f *Frame, module *Object) *BaseException {
+	allAttr, raised := GetAttr(f, module, NewStr("__all__"), nil)
+	if raised != nil && !raised.isInstance(AttributeErrorType) {
+		return raised
+	}
+	f.RestoreExc(nil, nil)
+
+	if raised == nil {
+		raised = loadMembersFromIterable(f, module, allAttr, nil)
+		if raised != nil {
+			return raised
+		}
+		return nil
+	}
+
+	// Fall back on __dict__
+	dictAttr := module.dict.ToObject()
+	raised = loadMembersFromIterable(f, module, dictAttr, func(key *Object) bool {
+		return strings.HasPrefix(toStrUnsafe(key).value, "_")
+	})
+	if raised != nil {
+		return raised
+	}
+	return nil
+}
+
+func loadMembersFromIterable(f *Frame, module, iterable *Object, filterF func(*Object) bool) *BaseException {
+	globals := f.Globals()
+	raised := seqForEach(f, iterable, func(memberName *Object) *BaseException {
+		if !memberName.isInstance(StrType) {
+			errorMessage := fmt.Sprintf("attribute name must be string, not '%v'", memberName.typ.Name())
+			return f.RaiseType(AttributeErrorType, errorMessage)
+		}
+		member, raised := GetAttr(f, module, toStrUnsafe(memberName), nil)
+		if raised != nil {
+			return raised
+		}
+		if filterF != nil && filterF(memberName) {
+			return nil
+		}
+		raised = globals.SetItem(f, memberName, member)
+		if raised != nil {
+			return raised
+		}
+		return nil
+	})
+	return raised
+}
+
 // newModule creates a new Module object with the given fully qualified name
 // (e.g a.b.c) and its corresponding Python filename.
 func newModule(name, filename string) *Module {
