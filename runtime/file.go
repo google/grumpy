@@ -127,7 +127,7 @@ func fileInit(f *Frame, o *Object, args Args, _ KWArgs) (*Object, *BaseException
 		flag = os.O_RDONLY
 	case "r+", "r+b":
 		flag = os.O_RDWR
-	// difference between r+ and a+ is that a+ automatically creates file
+	// Difference between r+ and a+ is that a+ automatically creates file.
 	case "a+":
 		flag = os.O_RDWR | os.O_CREATE | os.O_APPEND
 	case "w+":
