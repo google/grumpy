@@ -313,7 +313,7 @@ func TestFileWrite(t *testing.T) {
 		{args: wrapArgs("append.txt", "a", "\nbar"), want: NewStr("append.txt\nbar").ToObject()},
 
 		{args: wrapArgs("rplus.txt", "r+", "fooey"), want: NewStr("fooey.txt").ToObject()},
-		{args: wrapArgs("noexistplus1.txt", "r+", "pooey"), want: mustCreateException(IOErrorType, "open nonexistent-file: no such file or directory")},
+		{args: wrapArgs("noexistplus1.txt", "r+", "pooey"), wantExc: mustCreateException(IOErrorType, "open nonexistent-file: no such file or directory")},
 
 		{args: wrapArgs("aplus.txt", "a+", "\napper"), want: NewStr("aplus.txt\napper").ToObject()},
 		{args: wrapArgs("noexistplus3.txt", "a+", "snappbacktoreality"), want: NewStr("snappbacktoreality").ToObject()},
