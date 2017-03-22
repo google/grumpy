@@ -86,8 +86,10 @@ class ImportVisitor(algorithm.Visitor):
 
   # pylint: disable=invalid-name,missing-docstring,no-init
 
+  def __init__(self):
+    self.imports = []
+
   def visit_Import(self, node):
-    imports = []
     for alias in node.names:
       if alias.name.startswith(_NATIVE_MODULE_PREFIX):
         raise ImportError(
@@ -97,8 +99,7 @@ class ImportVisitor(algorithm.Visitor):
         imp.add_binding(Import.MODULE, alias.asname, Import.LEAF)
       else:
         imp.add_binding(Import.MODULE, alias.name.split('.')[-1], Import.ROOT)
-      imports.append(imp)
-    return imports
+      self.imports.append(imp)
 
   def visit_ImportFrom(self, node):
     if any(a.name == '*' for a in node.names):
@@ -107,26 +108,25 @@ class ImportVisitor(algorithm.Visitor):
       raise ImportError(node, msg)
 
     if node.module == '__future__':
-      return []
+      return
 
     if node.module.startswith(_NATIVE_MODULE_PREFIX):
       imp = Import(node.module[len(_NATIVE_MODULE_PREFIX):], is_native=True)
       for alias in node.names:
         asname = alias.asname or alias.name
         imp.add_binding(Import.MEMBER, asname, alias.name)
-      return [imp]
+      self.imports.append(imp)
+      return
 
     # NOTE: Assume that the names being imported are all modules within a
     # package. E.g. "from a.b import c" is importing the module c from package
     # a.b, not some member of module b. We cannot distinguish between these
     # two cases at compile time and the Google style guide forbids the latter
     # so we support that use case only.
-    imports = []
     for alias in node.names:
       imp = Import('{}.{}'.format(node.module, alias.name))
       imp.add_binding(Import.MODULE, alias.asname or alias.name, Import.LEAF)
-      imports.append(imp)
-    return imports
+      self.imports.append(imp)
 
 
 class Writer(object):

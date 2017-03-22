@@ -277,17 +277,17 @@ class sha384(sha512):
         return new
 
 def test():
-    import _sha512
+#    import _sha512
 
     a_str = "just a test string"
 
-    assert _sha512.sha512().hexdigest() == sha512().hexdigest()
-    assert _sha512.sha512(a_str).hexdigest() == sha512(a_str).hexdigest()
-    assert _sha512.sha512(a_str*7).hexdigest() == sha512(a_str*7).hexdigest()
+    assert sha512().hexdigest() == sha512().hexdigest()
+    assert sha512(a_str).hexdigest() == sha512(a_str).hexdigest()
+    assert sha512(a_str*7).hexdigest() == sha512(a_str*7).hexdigest()
 
     s = sha512(a_str)
     s.update(a_str)
-    assert _sha512.sha512(a_str+a_str).hexdigest() == s.hexdigest()
+    assert sha512(a_str+a_str).hexdigest() == s.hexdigest()
 
 if __name__ == "__main__":
     test()

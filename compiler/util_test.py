@@ -96,7 +96,9 @@ class ImportVisitorTest(unittest.TestCase):
         imp, self._visit_import('from __go__.fmt import Printf as foo'))
 
   def _visit_import(self, source):
-    return util.ImportVisitor().visit(pythonparser.parse(source).body[0])
+    visitor = util.ImportVisitor()
+    visitor.visit(pythonparser.parse(source).body[0])
+    return visitor.imports
 
   def _assert_imports_equal(self, want, got):
     if isinstance(want, util.Import):

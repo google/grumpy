@@ -120,7 +120,7 @@ ACCEPT_PY_PASS_FILES := $(patsubst %,build/%_py.pass,$(filter-out %/native_test,
 BENCHMARKS := $(patsubst %.py,%,$(wildcard benchmarks/*.py))
 BENCHMARK_BINS := $(patsubst %,build/%_benchmark,$(BENCHMARKS))
 
-TOOL_BINS = $(patsubst %,build/bin/%,benchcmp coverparse diffrange)
+TOOL_BINS = $(patsubst %,build/bin/%,benchcmp coverparse diffrange pydeps)
 
 GOLINT_BIN = build/bin/golint
 PYLINT_BIN = build/bin/pylint
@@ -222,7 +222,7 @@ $(PYLINT_BIN):
 	@cd build/third_party/pylint-1.6.4 && $(PYTHON) setup.py install --prefix $(ROOT_DIR)/build
 
 pylint: $(PYLINT_BIN)
-	@$(PYTHON) $(PYLINT_BIN) compiler/*.py $(addprefix tools/,benchcmp coverparse diffrange grumpc grumprun)
+	@$(PYTHON) $(PYLINT_BIN) compiler/*.py $(addprefix tools/,benchcmp coverparse diffrange grumpc grumprun pydeps)
 
 lint: golint pylint
 
@@ -247,9 +247,9 @@ build/src/__python__/$(2)/module.go: $(1) $(COMPILER) | $(filter-out $(STDLIB_SR
 	@mkdir -p build/src/__python__/$(2)
 	@$(COMPILER_BIN) -modname=$(notdir $(2)) $(1) > $$@
 
-build/src/__python__/$(2)/module.d: $(1)
+build/src/__python__/$(2)/module.d: $(1) build/bin/pydeps $(PYTHONPARSER_SRCS) $(COMPILER)
 	@mkdir -p build/src/__python__/$(2)
-	@$(PYTHON) -m modulefinder -p $(ROOT_DIR)/lib:$(ROOT_DIR)/third_party/stdlib:$(ROOT_DIR)/third_party/pypy $$< | awk '{if (($$$$1 == "m" || $$$$1 == "P") && $$$$2 != "__main__" && $$$$2 != "$(2)") {gsub(/\./, "/", $$$$2); print "$(PKG_DIR)/__python__/$(2).a: $(PKG_DIR)/__python__/" $$$$2 ".a"}}' > $$@
+	@build/bin/pydeps $$< | awk '{gsub(/\./, "/", $$$$0); print "$(PKG_DIR)/__python__/$(2).a: $(PKG_DIR)/__python__/" $$$$0 ".a"}' > $$@
 
 $(PKG_DIR)/__python__/$(2).a: build/src/__python__/$(2)/module.go $(RUNTIME)
 	@mkdir -p $(PKG_DIR)/__python__/$(dir $(2))

@@ -370,12 +370,16 @@ class StatementVisitor(algorithm.Visitor):
 
   def visit_Import(self, node):
     self._write_py_context(node.lineno)
-    for imp in util.ImportVisitor().visit(node):
+    visitor = util.ImportVisitor()
+    visitor.visit(node)
+    for imp in visitor.imports:
       self._import_and_bind(imp)
 
   def visit_ImportFrom(self, node):
     self._write_py_context(node.lineno)
-    for imp in util.ImportVisitor().visit(node):
+    visitor = util.ImportVisitor()
+    visitor.visit(node)
+    for imp in visitor.imports:
       if imp.is_native:
         values = [b.value for b in imp.bindings]
         with self._import_native(imp.name, values) as mod:
