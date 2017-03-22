@@ -127,7 +127,12 @@ func fileInit(f *Frame, o *Object, args Args, _ KWArgs) (*Object, *BaseException
 		flag = os.O_RDONLY
 	case "r+", "r+b":
 		flag = os.O_RDWR
-	case "w", "wb":
+	// difference between r+ and a+ is that a+ automatically creates file
+	case "a+":
+		 flag = os.O_RDWR | os.O_CREATE | os.O_APPEND
+	case "w+":
+		 flag = os.O_RDWR | os.O_CREATE
+    case "w", "wb":
 		flag = os.O_WRONLY | os.O_CREATE | os.O_TRUNC
 	default:
 		return nil, f.RaiseType(ValueErrorType, fmt.Sprintf("invalid mode string: %q", mode))
