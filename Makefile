@@ -164,7 +164,7 @@ $(COMPILER_PASS_FILES): %.pass: %.py $(COMPILER)
 $(COMPILER_D_FILES): $(PY_DIR)/%.d: $(PY_DIR)/%.py $(COMPILER_SRCS) $(PYTHONPARSER_SRCS)
 	@$(PYTHON) -m modulefinder $< | awk '{if (match($$2, /^grumpy\>/)) { print "$(PY_DIR)/$*.pass: " substr($$3, length("$(ROOT_DIR)/") + 1) }}' > $@
 
--include $(COMPILER_D_FILES)
+include $(COMPILER_D_FILES)
 
 # Does not depend on stdlibs since it makes minimal use of them.
 $(COMPILER_EXPR_VISITOR_PASS_FILES): $(PY_DIR)/grumpy/compiler/expr_visitor_test.%.pass: $(PY_DIR)/grumpy/compiler/expr_visitor_test.py $(RUNNER_BIN) $(COMPILER) $(RUNTIME)
@@ -243,19 +243,19 @@ $(THIRD_PARTY_PYPY_SRCS_STAGED): $(GOPATH_PY_ROOT)/%: third_party/pypy/%
 	@cp -f $< $@
 
 define GRUMPY_STDLIB
-build/src/__python__/$(2)/module.go: $(1) $(COMPILER) | $(filter-out $(STDLIB_SRCS_STAGED),$(1))
+build/src/__python__/$(2)/module.go: $(1) $(COMPILER) | $(STDLIB_SRCS_STAGED)
 	@mkdir -p build/src/__python__/$(2)
-	@$(COMPILER_BIN) -modname=$(notdir $(2)) $(1) > $$@
+	@$(COMPILER_BIN) -modname=$(shell echo "$(2)" | tr / .) $(1) > $$@
 
-build/src/__python__/$(2)/module.d: $(1) build/bin/pydeps $(PYTHONPARSER_SRCS) $(COMPILER)
+build/src/__python__/$(2)/module.d: $(1) build/bin/pydeps $(PYTHONPARSER_SRCS) $(COMPILER) | $(STDLIB_SRCS_STAGED)
 	@mkdir -p build/src/__python__/$(2)
-	@build/bin/pydeps $$< | awk '{gsub(/\./, "/", $$$$0); print "$(PKG_DIR)/__python__/$(2).a: $(PKG_DIR)/__python__/" $$$$0 ".a"}' > $$@
+	@build/bin/pydeps -modname=$(shell echo "$(2)" | tr / .) $$< | awk '{gsub(/\./, "/", $$$$0); print "$(PKG_DIR)/__python__/$(2).a: $(PKG_DIR)/__python__/" $$$$0 ".a"}' > $$@
 
 $(PKG_DIR)/__python__/$(2).a: build/src/__python__/$(2)/module.go $(RUNTIME)
 	@mkdir -p $(PKG_DIR)/__python__/$(dir $(2))
 	@go tool compile -o $$@ -p __python__/$(2) -complete -I $(PKG_DIR) -pack $$<
 
--include build/src/__python__/$(2)/module.d
+include build/src/__python__/$(2)/module.d
 
 endef
 

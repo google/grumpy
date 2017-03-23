@@ -18,6 +18,9 @@
 
 from __future__ import unicode_literals
 
+import os
+import shutil
+import tempfile
 import unittest
 
 import pythonparser
@@ -27,24 +30,116 @@ from grumpy.compiler import util
 from grumpy.compiler import stmt
 
 
+class MockPath(object):
+
+  def resolve_import(self, modname):
+    return modname, modname.replace('.', os.sep)
+
+
+class _MaterializedPathTree(object):
+  """Context manager that materializes a tree of files and cleans them up."""
+
+  def __init__(self, spec):
+    self.spec = spec
+    self.rootdir = None
+    self.pydir = None
+
+  def __enter__(self):
+    self.rootdir = tempfile.mkdtemp()
+    self.pydir = os.path.join(self.rootdir, 'src', '__python__')
+    self._materialize(self.rootdir, {'src/': {'__python__/': self.spec}})
+    return self
+
+  def __exit__(self, *args):
+    shutil.rmtree(self.rootdir)
+
+  def _materialize(self, dirname, spec):
+    for name, sub_spec in spec.iteritems():
+      if name.endswith('/'):
+        subdir = os.path.join(dirname, name[:-1])
+        os.mkdir(subdir)
+        self._materialize(subdir, sub_spec)
+      else:
+        with open(os.path.join(dirname, name), 'w'):
+          pass
+
+
+class PathTest(unittest.TestCase):
+
+  def testResolveImportEmptyPath(self):
+    path = util.Path(None, 'foo', 'foo.py')
+    self.assertEqual(path.resolve_import('bar'), (None, None))
+
+  def testResolveImportTopLevelModule(self):
+    with _MaterializedPathTree({'bar.py': None}) as tree:
+      path = util.Path(tree.rootdir, 'foo', 'foo.py')
+      want = ('bar', os.path.join(tree.pydir, 'bar.py'))
+      self.assertEqual(path.resolve_import('bar'), want)
+
+  def testResolveImportTopLevelPackage(self):
+    with _MaterializedPathTree({'bar/': {'__init__.py': None}}) as tree:
+      path = util.Path(tree.rootdir, 'foo', 'foo.py')
+      want = ('bar', os.path.join(tree.pydir, 'bar', '__init__.py'))
+      self.assertEqual(path.resolve_import('bar'), want)
+
+  def testResolveImportPackageModuleAbsolute(self):
+    spec = {
+        'bar/': {
+            '__init__.py': None,
+            'baz.py': None,
+        }
+    }
+    with _MaterializedPathTree(spec) as tree:
+      path = util.Path(tree.rootdir, 'foo', 'foo.py')
+      want = ('bar.baz', os.path.join(tree.pydir, 'bar', 'baz.py'))
+      self.assertEqual(path.resolve_import('bar.baz'), want)
+
+  def testResolveImportPackageModuleRelative(self):
+    spec = {
+        'bar/': {
+            '__init__.py': None,
+            'baz.py': None,
+        }
+    }
+    with _MaterializedPathTree(spec) as tree:
+      bar_script = os.path.join(tree.pydir, 'bar', '__init__.py')
+      path = util.Path(tree.rootdir, 'bar', bar_script)
+      want = ('bar.baz', os.path.join(tree.pydir, 'bar', 'baz.py'))
+      self.assertEqual(path.resolve_import('baz'), want)
+
+  def testResolveImportPackageModuleRelativeFromSubModule(self):
+    spec = {
+        'bar/': {
+            '__init__.py': None,
+            'baz.py': None,
+            'foo.py': None,
+        }
+    }
+    with _MaterializedPathTree(spec) as tree:
+      foo_script = os.path.join(tree.pydir, 'bar', 'foo.py')
+      path = util.Path(tree.rootdir, 'bar.foo', foo_script)
+      want = ('bar.baz', os.path.join(tree.pydir, 'bar', 'baz.py'))
+      self.assertEqual(path.resolve_import('baz'), want)
+
+
 class ImportVisitorTest(unittest.TestCase):
 
   def testImport(self):
     imp = util.Import('foo')
-    imp.add_binding(util.Import.MODULE, 'foo', util.Import.ROOT)
+    imp.add_binding(util.Import.MODULE, 'foo', 0)
     self._assert_imports_equal(imp, self._visit_import('import foo'))
 
   def testImportMultiple(self):
     imp1 = util.Import('foo')
-    imp1.add_binding(util.Import.MODULE, 'foo', util.Import.ROOT)
+    imp1.add_binding(util.Import.MODULE, 'foo', 0)
     imp2 = util.Import('bar')
-    imp2.add_binding(util.Import.MODULE, 'bar', util.Import.ROOT)
+    imp2.add_binding(util.Import.MODULE, 'bar', 0)
     self._assert_imports_equal(
         [imp1, imp2], self._visit_import('import foo, bar'))
 
   def testImportAs(self):
     imp = util.Import('foo')
-    imp.add_binding(util.Import.MODULE, 'bar', util.Import.LEAF)
+    imp.add_binding(util.Import.MODULE, 'bar', 0)
     self._assert_imports_equal(imp, self._visit_import('import foo as bar'))
 
   def testImportNativeRaises(self):
@@ -52,20 +147,20 @@ class ImportVisitorTest(unittest.TestCase):
 
   def testImportFrom(self):
     imp = util.Import('foo.bar')
-    imp.add_binding(util.Import.MODULE, 'bar', util.Import.LEAF)
+    imp.add_binding(util.Import.MODULE, 'bar', 1)
     self._assert_imports_equal(imp, self._visit_import('from foo import bar'))
 
   def testImportFromMultiple(self):
     imp1 = util.Import('foo.bar')
-    imp1.add_binding(util.Import.MODULE, 'bar', util.Import.LEAF)
+    imp1.add_binding(util.Import.MODULE, 'bar', 1)
     imp2 = util.Import('foo.baz')
-    imp2.add_binding(util.Import.MODULE, 'baz', util.Import.LEAF)
+    imp2.add_binding(util.Import.MODULE, 'baz', 1)
     self._assert_imports_equal(
         [imp1, imp2], self._visit_import('from foo import bar, baz'))
 
   def testImportFromAs(self):
     imp = util.Import('foo.bar')
-    imp.add_binding(util.Import.MODULE, 'baz', util.Import.LEAF)
+    imp.add_binding(util.Import.MODULE, 'baz', 1)
     self._assert_imports_equal(
         imp, self._visit_import('from foo import bar as baz'))
 
@@ -96,7 +191,7 @@ class ImportVisitorTest(unittest.TestCase):
         imp, self._visit_import('from __go__.fmt import Printf as foo'))
 
   def _visit_import(self, source):
-    visitor = util.ImportVisitor()
+    visitor = util.ImportVisitor(MockPath())
     visitor.visit(pythonparser.parse(source).body[0])
     return visitor.imports
 
@@ -119,7 +214,7 @@ class WriterTest(unittest.TestCase):
 
   def testWriteBlock(self):
     writer = util.Writer()
-    mod_block = block.ModuleBlock('__main__', '<test>', '',
+    mod_block = block.ModuleBlock(MockPath(), '__main__', '<test>', '',
                                   stmt.FutureFeatures())
     writer.write_block(mod_block, 'BODY')
     output = writer.getvalue()

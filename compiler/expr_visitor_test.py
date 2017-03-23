@@ -29,6 +29,7 @@ from grumpy.compiler import expr_visitor
 from grumpy.compiler import shard_test
 from grumpy.compiler import stmt
 from grumpy.compiler import util
+from grumpy.compiler import util_test
 
 
 def _MakeExprTest(expr):
@@ -223,7 +224,8 @@ class ExprVisitorTest(unittest.TestCase):
   testUnaryOpPos = _MakeExprTest('+4')
 
 def _MakeModuleBlock():
-  return block.ModuleBlock('__main__', '<test>', '', stmt.FutureFeatures())
+  return block.ModuleBlock(util_test.MockPath(), '__main__', '<test>',
+                           '', stmt.FutureFeatures())
 
 
 def _ParseExpr(expr):

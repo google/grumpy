@@ -150,8 +150,9 @@ class ModuleBlock(Block):
     imports: A dict mapping fully qualified Go package names to Package objects.
   """
 
-  def __init__(self, full_package_name, filename, src, future_features):
+  def __init__(self, path, full_package_name, filename, src, future_features):
     Block.__init__(self, None, '<module>')
+    self.path = path
     self.full_package_name = full_package_name
     self.filename = filename
     self.buffer = source.Buffer(src)

@@ -17,6 +17,7 @@
 """Outputs names of modules imported by a script."""
 
 import argparse
+import os
 import sys
 
 import pythonparser
@@ -25,10 +26,17 @@ from grumpy.compiler import util
 
 
 parser = argparse.ArgumentParser()
-parser.add_argument('script')
+parser.add_argument('script', help='Python source filename')
+parser.add_argument('-modname', default='__main__', help='Python module name')
 
 
 def main(args):
+  gopath = os.getenv('GOPATH', None)
+  if not gopath:
+    print >> sys.stderr, 'GOPATH not set'
+    return 1
+  path = util.Path(gopath, args.script, args.modname)
+
   with open(args.script) as py_file:
     py_contents = py_file.read()
   try:
@@ -37,10 +45,11 @@ def main(args):
     print >> sys.stderr, '{}: line {}: invalid syntax: {}'.format(
         e.filename, e.lineno, e.text)
     return 2
-  visitor = util.ImportVisitor()
+
+  visitor = util.ImportVisitor(path)
   try:
     visitor.visit(mod)
-  except util.ParseError as e:
+  except util.CompileError as e:
     print >> sys.stderr, str(e)
     return 2
   imports = set()

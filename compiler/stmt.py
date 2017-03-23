@@ -370,14 +370,14 @@ class StatementVisitor(algorithm.Visitor):
 
   def visit_Import(self, node):
     self._write_py_context(node.lineno)
-    visitor = util.ImportVisitor()
+    visitor = util.ImportVisitor(self.block.root.path)
     visitor.visit(node)
     for imp in visitor.imports:
       self._import_and_bind(imp)
 
   def visit_ImportFrom(self, node):
     self._write_py_context(node.lineno)
-    visitor = util.ImportVisitor()
+    visitor = util.ImportVisitor(self.block.root.path)
     visitor.visit(node)
     for imp in visitor.imports:
       if imp.is_native:
@@ -690,11 +690,8 @@ class StatementVisitor(algorithm.Visitor):
       # This method only handles simple module imports (i.e. not member
       # imports) which always have a single binding.
       binding = imp.bindings[0]
-      if binding.value == util.Import.ROOT:
-        index = 0
-      else:
-        index = len(parts) - 1
-      self.writer.write('{} = {}[{}]'.format(mod.name, mod_slice.expr, index))
+      self.writer.write('{} = {}[{}]'.format(
+          mod.name, mod_slice.expr, binding.value))
       self.block.bind_var(self.writer, binding.alias, mod.expr)
 
   def _import_native(self, name, values):

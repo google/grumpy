@@ -20,6 +20,7 @@
 from __future__ import unicode_literals
 
 import argparse
+import os
 import sys
 import textwrap
 
@@ -31,16 +32,23 @@ from grumpy.compiler import util
 
 
 parser = argparse.ArgumentParser()
-parser.add_argument('filename', help='Python source filename')
+parser.add_argument('script', help='Python source filename')
 parser.add_argument('-modname', default='__main__', help='Python module name')
 
 
 def main(args):
-  for arg in ('filename', 'modname'):
+  for arg in ('script', 'modname'):
     if not getattr(args, arg, None):
       print >> sys.stderr, '{} arg must not be empty'.format(arg)
       return 1
-  with open(args.filename) as py_file:
+
+  gopath = os.getenv('GOPATH', None)
+  if not gopath:
+    print >> sys.stderr, 'GOPATH not set'
+    return 1
+  path = util.Path(gopath, args.script, args.modname)
+
+  with open(args.script) as py_file:
     py_contents = py_file.read()
   try:
     mod = pythonparser.parse(py_contents)
@@ -57,7 +65,7 @@ def main(args):
     return 2
 
   full_package_name = args.modname.replace('.', '/')
-  mod_block = block.ModuleBlock(full_package_name, args.filename,
+  mod_block = block.ModuleBlock(path, full_package_name, args.script,
                                 py_contents, future_features)
   mod_block.add_native_import('grumpy')
   visitor = stmt.StatementVisitor(mod_block)
@@ -94,14 +102,14 @@ def main(args):
   if has_main:
     writer.write_tmpl(textwrap.dedent("""\
       func main() {
-      \tCode = πg.NewCode("<module>", $filename, nil, 0, initModule)
+      \tCode = πg.NewCode("<module>", $script, nil, 0, initModule)
       \tπ_os.Exit(πg.RunMain(Code))
-      }"""), filename=util.go_str(args.filename))
+      }"""), script=util.go_str(args.script))
   else:
     writer.write_tmpl(textwrap.dedent("""\
       func init() {
-      \tCode = πg.NewCode("<module>", $filename, nil, 0, initModule)
-      }"""), filename=util.go_str(args.filename))
+      \tCode = πg.NewCode("<module>", $script, nil, 0, initModule)
+      }"""), script=util.go_str(args.script))
   return 0
 
 

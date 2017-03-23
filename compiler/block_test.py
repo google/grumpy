@@ -26,6 +26,7 @@ import pythonparser
 from grumpy.compiler import block
 from grumpy.compiler import stmt
 from grumpy.compiler import util
+from grumpy.compiler import util_test
 
 class PackageTest(unittest.TestCase):
 
@@ -246,7 +247,8 @@ class FunctionBlockVisitorTest(unittest.TestCase):
 
 
 def _MakeModuleBlock():
-  return block.ModuleBlock('__main__', '<test>', '', stmt.FutureFeatures())
+  return block.ModuleBlock(util_test.MockPath(), '__main__', '<test>', '',
+                           stmt.FutureFeatures())
 
 
 def _ParseStmt(stmt_str):
