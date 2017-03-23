@@ -390,7 +390,7 @@ class ExprVisitor(algorithm.Visitor):
       ast.Add: 'πg.Add(πF, {lhs}, {rhs})',
       ast.Div: 'πg.Div(πF, {lhs}, {rhs})',
       # TODO: Support "from __future__ import division".
-      ast.FloorDiv: 'πg.Div(πF, {lhs}, {rhs})',
+      ast.FloorDiv: 'πg.FloorDiv(πF, {lhs}, {rhs})',
       ast.LShift: 'πg.LShift(πF, {lhs}, {rhs})',
       ast.Mod: 'πg.Mod(πF, {lhs}, {rhs})',
       ast.Mult: 'πg.Mul(πF, {lhs}, {rhs})',
