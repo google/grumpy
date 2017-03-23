@@ -344,6 +344,7 @@ func initLongType(dict map[string]*Object) {
 	LongType.slots.DivMod = longDivAndModOpSlot(longDivAndMod)
 	LongType.slots.Eq = longBinaryBoolOpSlot(longEq)
 	LongType.slots.Float = &unaryOpSlot{longFloat}
+	LongType.slots.FloorDiv = longDivModOpSlot(longDiv)
 	LongType.slots.GE = longBinaryBoolOpSlot(longGE)
 	LongType.slots.GT = longBinaryBoolOpSlot(longGT)
 	LongType.slots.Hash = &unaryOpSlot{longHash}
@@ -372,6 +373,7 @@ func initLongType(dict map[string]*Object) {
 	LongType.slots.RDiv = longRDivModOpSlot(longDiv)
 	LongType.slots.RDivMod = longRDivAndModOpSlot(longDivAndMod)
 	LongType.slots.Repr = &unaryOpSlot{longRepr}
+	LongType.slots.RFloorDiv = longRDivModOpSlot(longDiv)
 	LongType.slots.RMod = longRDivModOpSlot(longMod)
 	LongType.slots.RMul = longRBinaryOpSlot(longMul)
 	LongType.slots.ROr = longRBinaryOpSlot(longOr)

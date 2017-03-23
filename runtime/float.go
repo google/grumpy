@@ -89,6 +89,15 @@ func floatFloat(f *Frame, o *Object) (*Object, *BaseException) {
 	return o, nil
 }
 
+func floatFloorDiv(f *Frame, v, w *Object) (*Object, *BaseException) {
+	return floatDivModOp(f, "__floordiv__", v, w, func(v, w float64) (float64, bool) {
+		if w == 0.0 {
+			return 0, false
+		}
+		return math.Floor(v / w), true
+	})
+}
+
 func floatGE(f *Frame, v, w *Object) (*Object, *BaseException) {
 	return floatCompare(toFloatUnsafe(v), w, False, True, True), nil
 }
@@ -258,6 +267,15 @@ func floatRepr(f *Frame, o *Object) (*Object, *BaseException) {
 	return NewStr(strconv.FormatFloat(toFloatUnsafe(o).Value(), 'g', -1, 64)).ToObject(), nil
 }
 
+func floatRFloorDiv(f *Frame, v, w *Object) (*Object, *BaseException) {
+	return floatDivModOp(f, "__rfloordiv__", v, w, func(v, w float64) (float64, bool) {
+		if v == 0.0 {
+			return 0, false
+		}
+		return math.Floor(w / v), true
+	})
+}
+
 func floatRMod(f *Frame, v, w *Object) (*Object, *BaseException) {
 	return floatDivModOp(f, "__rmod__", v, w, func(v, w float64) (float64, bool) {
 		return floatModFunc(w, v)
@@ -288,6 +306,7 @@ func initFloatType(dict map[string]*Object) {
 	FloatType.slots.DivMod = &binaryOpSlot{floatDivMod}
 	FloatType.slots.Eq = &binaryOpSlot{floatEq}
 	FloatType.slots.Float = &unaryOpSlot{floatFloat}
+	FloatType.slots.FloorDiv = &binaryOpSlot{floatFloorDiv}
 	FloatType.slots.GE = &binaryOpSlot{floatGE}
 	FloatType.slots.GT = &binaryOpSlot{floatGT}
 	FloatType.slots.Hash = &unaryOpSlot{floatHash}
@@ -308,6 +327,7 @@ func initFloatType(dict map[string]*Object) {
 	FloatType.slots.RDiv = &binaryOpSlot{floatRDiv}
 	FloatType.slots.RDivMod = &binaryOpSlot{floatRDivMod}
 	FloatType.slots.Repr = &unaryOpSlot{floatRepr}
+	FloatType.slots.RFloorDiv = &binaryOpSlot{floatRFloorDiv}
 	FloatType.slots.RMod = &binaryOpSlot{floatRMod}
 	FloatType.slots.RMul = &binaryOpSlot{floatRMul}
 	FloatType.slots.RPow = &binaryOpSlot{floatRPow}

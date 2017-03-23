@@ -177,6 +177,11 @@ func Eq(f *Frame, v, w *Object) (*Object, *BaseException) {
 	return GetBool(compareDefault(f, v, w) == 0).ToObject(), nil
 }
 
+// FloorDiv returns the equality of v and w according to the __floordiv/rfloordiv__ operator.
+func FloorDiv(f *Frame, v, w *Object) (*Object, *BaseException) {
+	return binaryOp(f, v, w, v.typ.slots.FloorDiv, v.typ.slots.RFloorDiv, w.typ.slots.RFloorDiv, "//")
+}
+
 // FormatException returns a single-line exception string for the given
 // exception object, e.g. "NameError: name 'x' is not defined\n".
 func FormatException(f *Frame, e *BaseException) (string, *BaseException) {
