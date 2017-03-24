@@ -22,6 +22,7 @@ import sys
 
 import pythonparser
 
+from grumpy.compiler import imputil
 from grumpy.compiler import util
 
 
@@ -35,7 +36,7 @@ def main(args):
   if not gopath:
     print >> sys.stderr, 'GOPATH not set'
     return 1
-  path = util.Path(gopath, args.modname, args.script)
+  path = imputil.Path(gopath, args.modname, args.script)
 
   with open(args.script) as py_file:
     py_contents = py_file.read()
@@ -46,7 +47,7 @@ def main(args):
         e.filename, e.lineno, e.text)
     return 2
 
-  visitor = util.ImportVisitor(path)
+  visitor = imputil.ImportVisitor(path)
   try:
     visitor.visit(mod)
   except util.CompileError as e:

@@ -27,6 +27,7 @@ import textwrap
 import pythonparser
 
 from grumpy.compiler import block
+from grumpy.compiler import imputil
 from grumpy.compiler import stmt
 from grumpy.compiler import util
 
@@ -46,7 +47,7 @@ def main(args):
   if not gopath:
     print >> sys.stderr, 'GOPATH not set'
     return 1
-  path = util.Path(gopath, args.modname, args.script)
+  path = imputil.Path(gopath, args.modname, args.script)
 
   with open(args.script) as py_file:
     py_contents = py_file.read()

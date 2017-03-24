@@ -27,10 +27,10 @@ import pythonparser
 from pythonparser import ast
 
 from grumpy.compiler import block
+from grumpy.compiler import imputil_test
 from grumpy.compiler import shard_test
 from grumpy.compiler import stmt
 from grumpy.compiler import util
-from grumpy.compiler import util_test
 
 
 class StatementVisitorTest(unittest.TestCase):
@@ -607,15 +607,15 @@ class StatementVisitorTest(unittest.TestCase):
 
 
 def _MakeModuleBlock():
-  return block.ModuleBlock(util_test.MockPath(), '__main__', '<test>',
-                           '', stmt.FutureFeatures())
+  return block.ModuleBlock(imputil_test.MockPath(), '__main__',
+                           '<test>', '', stmt.FutureFeatures())
 
 
 def _ParseAndVisit(source):
   mod = pythonparser.parse(source)
   future_features = stmt.visit_future(mod)
-  b = block.ModuleBlock(util_test.MockPath(), '__main__', '<test>',
-                        source, future_features)
+  b = block.ModuleBlock(imputil_test.MockPath(), '__main__',
+                        '<test>', source, future_features)
   visitor = stmt.StatementVisitor(b)
   visitor.visit(mod)
   return visitor

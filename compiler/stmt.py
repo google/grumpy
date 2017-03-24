@@ -27,6 +27,7 @@ from pythonparser import ast
 from grumpy.compiler import block
 from grumpy.compiler import expr
 from grumpy.compiler import expr_visitor
+from grumpy.compiler import imputil
 from grumpy.compiler import util
 
 
@@ -370,14 +371,14 @@ class StatementVisitor(algorithm.Visitor):
 
   def visit_Import(self, node):
     self._write_py_context(node.lineno)
-    visitor = util.ImportVisitor(self.block.root.path)
+    visitor = imputil.ImportVisitor(self.block.root.path)
     visitor.visit(node)
     for imp in visitor.imports:
       self._import_and_bind(imp)
 
   def visit_ImportFrom(self, node):
     self._write_py_context(node.lineno)
-    visitor = util.ImportVisitor(self.block.root.path)
+    visitor = imputil.ImportVisitor(self.block.root.path)
     visitor.visit(node)
     for imp in visitor.imports:
       if imp.is_native:
@@ -694,7 +695,7 @@ class StatementVisitor(algorithm.Visitor):
       for binding in imp.bindings:
         self.writer.write('{} = {}[{}]'.format(
             mod.name, mod_slice.expr, imp.name.count('.')))
-        if binding.bind_type == util.Import.MODULE:
+        if binding.bind_type == imputil.Import.MODULE:
           self.block.bind_var(self.writer, binding.alias, mod.expr)
         else:
           # Binding a member of the imported module.
