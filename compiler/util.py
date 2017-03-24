@@ -170,16 +170,22 @@ class ImportVisitor(algorithm.Visitor):
       self.imports.append(imp)
       return
 
-    # NOTE: Assume that the names being imported are all modules within a
-    # package. E.g. "from a.b import c" is importing the module c from package
-    # a.b, not some member of module b. We cannot distinguish between these
-    # two cases at compile time and the Google style guide forbids the latter
-    # so we support that use case only.
+    member_imp = None
     for alias in node.names:
-      imp = self._resolve_import(node, '{}.{}'.format(node.module, alias.name))
-      imp.add_binding(Import.MODULE, alias.asname or alias.name,
-                      imp.name.count('.'))
-      self.imports.append(imp)
+      asname = alias.asname or alias.name
+      full_name, _ = self.path.resolve_import(
+          '{}.{}'.format(node.module, alias.name))
+      if full_name:
+        # Imported name is a submodule within a package, so bind that module.
+        imp = Import(full_name)
+        imp.add_binding(Import.MODULE, asname, imp.name.count('.'))
+        self.imports.append(imp)
+      else:
+        # A member (not a submodule) is being imported, so bind it.
+        if not member_imp:
+          member_imp = self._resolve_import(node, node.module)
+          self.imports.append(member_imp)
+        member_imp.add_binding(Import.MEMBER, asname, alias.name)
 
   def _resolve_import(self, node, name):
     full_name, _ = self.path.resolve_import(name)

@@ -297,6 +297,11 @@ class StatementVisitorTest(unittest.TestCase):
         import sys
         print type(sys.modules)""")))
 
+  def testImportMember(self):
+    self.assertEqual((0, "<type 'dict'>\n"), _GrumpRun(textwrap.dedent("""\
+        from sys import modules
+        print type(modules)""")))
+
   def testImportConflictingPackage(self):
     self.assertEqual((0, ''), _GrumpRun(textwrap.dedent("""\
         import time
@@ -307,7 +312,7 @@ class StatementVisitorTest(unittest.TestCase):
         from __go__.time import Nanosecond, Second
         print Nanosecond, Second""")))
 
-  def testImportGrump(self):
+  def testImportGrumpy(self):
     self.assertEqual((0, ''), _GrumpRun(textwrap.dedent("""\
         from __go__.grumpy import Assert
         Assert(__frame__(), True, 'bad')""")))

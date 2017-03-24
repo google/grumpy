@@ -32,7 +32,12 @@ from grumpy.compiler import stmt
 
 class MockPath(object):
 
+  def __init__(self, nonexistent_modules=()):
+    self.nonexistent_modules = nonexistent_modules
+
   def resolve_import(self, modname):
+    if modname in self.nonexistent_modules:
+      return None, None
     return modname, modname.replace('.', os.sep)
 
 
@@ -150,6 +155,13 @@ class ImportVisitorTest(unittest.TestCase):
     imp.add_binding(util.Import.MODULE, 'bar', 1)
     self._assert_imports_equal(imp, self._visit_import('from foo import bar'))
 
+  def testImportFromMember(self):
+    imp = util.Import('foo')
+    imp.add_binding(util.Import.MEMBER, 'bar', 'bar')
+    path = MockPath(nonexistent_modules=('foo.bar',))
+    self._assert_imports_equal(
+        imp, self._visit_import('from foo import bar', path=path))
+
   def testImportFromMultiple(self):
     imp1 = util.Import('foo.bar')
     imp1.add_binding(util.Import.MODULE, 'bar', 1)
@@ -158,11 +170,27 @@ class ImportVisitorTest(unittest.TestCase):
     self._assert_imports_equal(
         [imp1, imp2], self._visit_import('from foo import bar, baz'))
 
+  def testImportFromMixedMembers(self):
+    imp1 = util.Import('foo')
+    imp1.add_binding(util.Import.MEMBER, 'bar', 'bar')
+    imp2 = util.Import('foo.baz')
+    imp2.add_binding(util.Import.MODULE, 'baz', 1)
+    path = MockPath(nonexistent_modules=('foo.bar',))
+    self._assert_imports_equal(
+        [imp1, imp2], self._visit_import('from foo import bar, baz', path=path))
+
   def testImportFromAs(self):
     imp = util.Import('foo.bar')
     imp.add_binding(util.Import.MODULE, 'baz', 1)
     self._assert_imports_equal(
         imp, self._visit_import('from foo import bar as baz'))
+
+  def testImportFromAsMembers(self):
+    imp = util.Import('foo')
+    imp.add_binding(util.Import.MEMBER, 'baz', 'bar')
+    path = MockPath(nonexistent_modules=('foo.bar',))
+    self._assert_imports_equal(
+        imp, self._visit_import('from foo import bar as baz', path=path))
 
   def testImportFromWildcardRaises(self):
     self.assertRaises(util.ImportError, self._visit_import, 'from foo import *')
@@ -190,8 +218,10 @@ class ImportVisitorTest(unittest.TestCase):
     self._assert_imports_equal(
         imp, self._visit_import('from __go__.fmt import Printf as foo'))
 
-  def _visit_import(self, source):
-    visitor = util.ImportVisitor(MockPath())
+  def _visit_import(self, source, path=None):
+    if not path:
+      path = MockPath()
+    visitor = util.ImportVisitor(path)
     visitor.visit(pythonparser.parse(source).body[0])
     return visitor.imports
 

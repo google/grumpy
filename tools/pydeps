@@ -35,7 +35,7 @@ def main(args):
   if not gopath:
     print >> sys.stderr, 'GOPATH not set'
     return 1
-  path = util.Path(gopath, args.script, args.modname)
+  path = util.Path(gopath, args.modname, args.script)
 
   with open(args.script) as py_file:
     py_contents = py_file.read()

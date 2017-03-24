@@ -672,6 +672,8 @@ class StatementVisitor(algorithm.Visitor):
       imp: Import object representing an import of the form "import x.y.z" or
           "from x.y import z". Expects only a single binding.
     """
+    # Acquire handles to the Code objects in each Go package and call
+    # ImportModule to initialize all modules.
     parts = imp.name.split('.')
     code_objs = []
     for i in xrange(len(parts)):
@@ -687,12 +689,20 @@ class StatementVisitor(algorithm.Visitor):
       self.writer.write_checked_call2(
           mod_slice, 'πg.ImportModule(πF, {}, {})',
           util.go_str(imp.name), handles_expr)
-      # This method only handles simple module imports (i.e. not member
-      # imports) which always have a single binding.
-      binding = imp.bindings[0]
-      self.writer.write('{} = {}[{}]'.format(
-          mod.name, mod_slice.expr, binding.value))
-      self.block.bind_var(self.writer, binding.alias, mod.expr)
+
+      # Bind the imported modules or members to variables in the current scope.
+      for binding in imp.bindings:
+        self.writer.write('{} = {}[{}]'.format(
+            mod.name, mod_slice.expr, imp.name.count('.')))
+        if binding.bind_type == util.Import.MODULE:
+          self.block.bind_var(self.writer, binding.alias, mod.expr)
+        else:
+          # Binding a member of the imported module.
+          with self.block.alloc_temp() as member:
+            self.writer.write_checked_call2(
+                member, 'πg.GetAttr(πF, {}, {}, nil)',
+                mod.expr, self.block.root.intern(binding.value))
+            self.block.bind_var(self.writer, binding.alias, member.expr)
 
   def _import_native(self, name, values):
     reflect_package = self.block.root.add_native_import('reflect')
