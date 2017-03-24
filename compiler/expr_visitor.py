@@ -24,7 +24,6 @@ import textwrap
 from pythonparser import algorithm
 from pythonparser import ast
 
-from grumpy.compiler import block
 from grumpy.compiler import expr
 from grumpy.compiler import util
 
@@ -34,9 +33,10 @@ class ExprVisitor(algorithm.Visitor):
 
   # pylint: disable=invalid-name,missing-docstring
 
-  def __init__(self, block_, writer):
-    self.block = block_
-    self.writer = writer
+  def __init__(self, stmt_visitor):
+    self.stmt_visitor = stmt_visitor
+    self.block = stmt_visitor.block
+    self.writer = stmt_visitor.writer
 
   def generic_visit(self, node):
     msg = 'expression node not yet implemented: ' + type(node).__name__
@@ -231,7 +231,7 @@ class ExprVisitor(algorithm.Visitor):
 
     args = ast.arguments(args=[], vararg=None, kwarg=None, defaults=[])
     node = ast.FunctionDef(name='<generator>', args=args, body=[body])
-    gen_func = self.visit_function_inline(node)
+    gen_func = self.stmt_visitor.visit_function_inline(node)
     result = self.block.alloc_temp()
     self.writer.write_checked_call2(
         result, '{}.Call(πF, nil, nil)', gen_func.expr)
@@ -266,7 +266,7 @@ class ExprVisitor(algorithm.Visitor):
     ret = ast.Return(value=node.body, loc=node.loc)
     func_node = ast.FunctionDef(
         name='<lambda>', args=node.args, body=[ret])
-    return self.visit_function_inline(func_node)
+    return self.stmt_visitor.visit_function_inline(func_node)
 
   def visit_List(self, node):
     with self._visit_seq_elts(node.elts) as elems:
@@ -413,70 +413,6 @@ class ExprVisitor(algorithm.Visitor):
       ast.UAdd: 'πg.Pos(πF, {operand})',
       ast.USub: 'πg.Neg(πF, {operand})',
   }
-
-  def visit_function_inline(self, node):
-    """Returns an GeneratedExpr for a function with the given body."""
-    # First pass collects the names of locals used in this function. Do this in
-    # a separate pass so that we know whether to resolve a name as a local or a
-    # global during the second pass.
-    func_visitor = block.FunctionBlockVisitor(node)
-    for child in node.body:
-      func_visitor.visit(child)
-    func_block = block.FunctionBlock(self.block, node.name, func_visitor.vars,
-                                     func_visitor.is_generator)
-    # TODO: Find a better way to reduce coupling between ExprVisitor and
-    # StatementVisitor.
-    from grumpy.compiler import stmt  # pylint: disable=g-import-not-at-top
-    visitor = stmt.StatementVisitor(func_block)
-    # Indent so that the function body is aligned with the goto labels.
-    with visitor.writer.indent_block():
-      visitor._visit_each(node.body)  # pylint: disable=protected-access
-
-    result = self.block.alloc_temp()
-    with self.block.alloc_temp('[]πg.Param') as func_args:
-      args = node.args
-      argc = len(args.args)
-      self.writer.write('{} = make([]πg.Param, {})'.format(
-          func_args.expr, argc))
-      # The list of defaults only contains args for which a default value is
-      # specified so pad it with None to make it the same length as args.
-      defaults = [None] * (argc - len(args.defaults)) + args.defaults
-      for i, (a, d) in enumerate(zip(args.args, defaults)):
-        with self.visit(d) if d else expr.nil_expr as default:
-          tmpl = '$args[$i] = πg.Param{Name: $name, Def: $default}'
-          self.writer.write_tmpl(tmpl, args=func_args.expr, i=i,
-                                 name=util.go_str(a.arg), default=default.expr)
-      flags = []
-      if args.vararg:
-        flags.append('πg.CodeFlagVarArg')
-      if args.kwarg:
-        flags.append('πg.CodeFlagKWArg')
-      # The function object gets written to a temporary writer because we need
-      # it as an expression that we subsequently bind to some variable.
-      self.writer.write_tmpl(
-          '$result = πg.NewFunction(πg.NewCode($name, $filename, $args, '
-          '$flags, func(πF *πg.Frame, πArgs []*πg.Object) '
-          '(*πg.Object, *πg.BaseException) {',
-          result=result.name, name=util.go_str(node.name),
-          filename=util.go_str(self.block.root.filename), args=func_args.expr,
-          flags=' | '.join(flags) if flags else 0)
-      with self.writer.indent_block():
-        for var in func_block.vars.values():
-          if var.type != block.Var.TYPE_GLOBAL:
-            fmt = 'var {0} *πg.Object = {1}; _ = {0}'
-            self.writer.write(fmt.format(
-                util.adjust_local_name(var.name), var.init_expr))
-        self.writer.write_temp_decls(func_block)
-        if func_block.is_generator:
-          self.writer.write('return πg.NewGenerator(πF, func(πSent *πg.Object) '
-                            '(*πg.Object, *πg.BaseException) {')
-          with self.writer.indent_block():
-            self.writer.write_block(func_block, visitor.writer.getvalue())
-          self.writer.write('}).ToObject(), nil')
-        else:
-          self.writer.write_block(func_block, visitor.writer.getvalue())
-      self.writer.write('}), πF.Globals()).ToObject()')
-    return result
 
   def _visit_seq_elts(self, elts):
     result = self.block.alloc_temp('[]*πg.Object')

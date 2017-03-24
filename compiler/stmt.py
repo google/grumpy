@@ -142,17 +142,20 @@ class StatementVisitor(algorithm.Visitor):
     self.block = block_
     self.future_features = self.block.root.future_features or FutureFeatures()
     self.writer = util.Writer()
-    self.expr_visitor = expr_visitor.ExprVisitor(self.block, self.writer)
+    self.expr_visitor = expr_visitor.ExprVisitor(self)
 
   def generic_visit(self, node):
     msg = 'node not yet implemented: {}'.format(type(node).__name__)
     raise util.ParseError(node, msg)
 
+  def visit_expr(self, node):
+    return self.expr_visitor.visit(node)
+
   def visit_Assert(self, node):
     self._write_py_context(node.lineno)
     # TODO: Only evaluate msg if cond is false.
-    with self.expr_visitor.visit(node.msg) if node.msg else _nil_expr as msg,\
-        self.expr_visitor.visit(node.test) as cond:
+    with self.visit_expr(node.msg) if node.msg else _nil_expr as msg,\
+        self.visit_expr(node.test) as cond:
       self.writer.write_checked_call1(
           'πg.Assert(πF, {}, {})', cond.expr, msg.expr)
 
@@ -162,8 +165,8 @@ class StatementVisitor(algorithm.Visitor):
       fmt = 'augmented assignment op not implemented: {}'
       raise util.ParseError(node, fmt.format(op_type.__name__))
     self._write_py_context(node.lineno)
-    with self.expr_visitor.visit(node.target) as target,\
-        self.expr_visitor.visit(node.value) as value,\
+    with self.visit_expr(node.target) as target,\
+        self.visit_expr(node.value) as value,\
         self.block.alloc_temp() as temp:
       self.writer.write_checked_call2(
           temp, StatementVisitor._AUG_ASSIGN_TEMPLATES[op_type],
@@ -172,7 +175,7 @@ class StatementVisitor(algorithm.Visitor):
 
   def visit_Assign(self, node):
     self._write_py_context(node.lineno)
-    with self.expr_visitor.visit(node.value) as value:
+    with self.visit_expr(node.value) as value:
       for target in node.targets:
         self._tie_target(target, value.expr)
 
@@ -206,7 +209,7 @@ class StatementVisitor(algorithm.Visitor):
       self.writer.write('{} = make([]*πg.Object, {})'.format(
           bases.expr, len(node.bases)))
       for i, b in enumerate(node.bases):
-        with self.expr_visitor.visit(b) as b:
+        with self.visit_expr(b) as b:
           self.writer.write('{}[{}] = {}'.format(bases.expr, i, b.expr))
       self.writer.write('{} = πg.NewDict()'.format(cls.name))
       self.writer.write_checked_call2(
@@ -258,15 +261,15 @@ class StatementVisitor(algorithm.Visitor):
     self._write_py_context(node.lineno)
     for target in node.targets:
       if isinstance(target, ast.Attribute):
-        with self.expr_visitor.visit(target.value) as t:
+        with self.visit_expr(target.value) as t:
           self.writer.write_checked_call1(
               'πg.DelAttr(πF, {}, {})', t.expr,
               self.block.root.intern(target.attr))
       elif isinstance(target, ast.Name):
         self.block.del_var(self.writer, target.id)
       elif isinstance(target, ast.Subscript):
-        with self.expr_visitor.visit(target.value) as t,\
-            self.expr_visitor.visit(target.slice) as index:
+        with self.visit_expr(target.value) as t,\
+            self.visit_expr(target.slice) as index:
           self.writer.write_checked_call1('πg.DelItem(πF, {}, {})',
                                           t.expr, index.expr)
       else:
@@ -275,13 +278,13 @@ class StatementVisitor(algorithm.Visitor):
 
   def visit_Expr(self, node):
     self._write_py_context(node.lineno)
-    self.expr_visitor.visit(node.value).free()
+    self.visit_expr(node.value).free()
 
   def visit_For(self, node):
     loop = self.block.push_loop()
     orelse_label = self.block.genlabel() if node.orelse else loop.end_label
     self._write_py_context(node.lineno)
-    with self.expr_visitor.visit(node.iter) as iter_expr, \
+    with self.visit_expr(node.iter) as iter_expr, \
         self.block.alloc_temp() as i, \
         self.block.alloc_temp() as n:
       self.writer.write_checked_call2(i, 'πg.Iter(πF, {})', iter_expr.expr)
@@ -315,7 +318,7 @@ class StatementVisitor(algorithm.Visitor):
 
   def visit_FunctionDef(self, node):
     self._write_py_context(node.lineno + len(node.decorator_list))
-    func = self.expr_visitor.visit_function_inline(node)
+    func = self.visit_function_inline(node)
     self.block.bind_var(self.writer, node.name, func.expr)
     while node.decorator_list:
       decorator = node.decorator_list.pop()
@@ -339,7 +342,7 @@ class StatementVisitor(algorithm.Visitor):
     orelse = [node]
     while len(orelse) == 1 and isinstance(orelse[0], ast.If):
       ifnode = orelse[0]
-      with self.expr_visitor.visit(ifnode.test) as cond:
+      with self.visit_expr(ifnode.test) as cond:
         label = self.block.genlabel()
         # We goto the body of the if statement instead of executing it inline
         # because the body itself may be a goto target and Go does not support
@@ -423,15 +426,15 @@ class StatementVisitor(algorithm.Visitor):
       self.writer.write('{} = make([]*πg.Object, {})'.format(
           args.expr, len(node.values)))
       for i, v in enumerate(node.values):
-        with self.expr_visitor.visit(v) as arg:
+        with self.visit_expr(v) as arg:
           self.writer.write('{}[{}] = {}'.format(args.expr, i, arg.expr))
       self.writer.write_checked_call1('πg.Print(πF, {}, {})', args.expr,
                                       'true' if node.nl else 'false')
 
   def visit_Raise(self, node):
-    with self.expr_visitor.visit(node.exc) if node.exc else _nil_expr as t,\
-        self.expr_visitor.visit(node.inst) if node.inst else _nil_expr as inst,\
-        self.expr_visitor.visit(node.tback) if node.tback else _nil_expr as tb:
+    with self.visit_expr(node.exc) if node.exc else _nil_expr as t,\
+        self.visit_expr(node.inst) if node.inst else _nil_expr as inst,\
+        self.visit_expr(node.tback) if node.tback else _nil_expr as tb:
       if node.inst:
         assert node.exc, 'raise had inst but no type'
       if node.tback:
@@ -447,7 +450,7 @@ class StatementVisitor(algorithm.Visitor):
     if self.block.is_generator and node.value:
       raise util.ParseError(node, 'returning a value in a generator function')
     if node.value:
-      with self.expr_visitor.visit(node.value) as value:
+      with self.visit_expr(node.value) as value:
         self.writer.write('return {}, nil'.format(value.expr))
     else:
       self.writer.write('return nil, nil')
@@ -537,7 +540,7 @@ class StatementVisitor(algorithm.Visitor):
     self._write_py_context(node.lineno)
     self.writer.write_label(loop.start_label)
     orelse_label = self.block.genlabel() if node.orelse else loop.end_label
-    with self.expr_visitor.visit(node.test) as cond,\
+    with self.visit_expr(node.test) as cond,\
         self.block.alloc_temp('bool') as is_true:
       self.writer.write_checked_call2(is_true, 'πg.IsTrue(πF, {})', cond.expr)
       self.writer.write_tmpl(textwrap.dedent("""\
@@ -554,25 +557,12 @@ class StatementVisitor(algorithm.Visitor):
     self.writer.write_label(loop.end_label)
     self.block.pop_loop()
 
-  _AUG_ASSIGN_TEMPLATES = {
-      ast.Add: 'πg.IAdd(πF, {lhs}, {rhs})',
-      ast.BitAnd: 'πg.IAnd(πF, {lhs}, {rhs})',
-      ast.Div: 'πg.IDiv(πF, {lhs}, {rhs})',
-      ast.LShift: 'πg.ILShift(πF, {lhs}, {rhs})',
-      ast.Mod: 'πg.IMod(πF, {lhs}, {rhs})',
-      ast.Mult: 'πg.IMul(πF, {lhs}, {rhs})',
-      ast.BitOr: 'πg.IOr(πF, {lhs}, {rhs})',
-      ast.RShift: 'πg.IRShift(πF, {lhs}, {rhs})',
-      ast.Sub: 'πg.ISub(πF, {lhs}, {rhs})',
-      ast.BitXor: 'πg.IXor(πF, {lhs}, {rhs})',
-  }
-
   def visit_With(self, node):
     assert len(node.items) == 1, 'multiple items in a with not yet supported'
     item = node.items[0]
     self._write_py_context(node.loc.line())
     # mgr := EXPR
-    with self.expr_visitor.visit(item.context_expr) as mgr,\
+    with self.visit_expr(item.context_expr) as mgr,\
         self.block.alloc_temp() as exit_func,\
         self.block.alloc_temp() as value:
       # The code here has a subtle twist: It gets the exit function attribute
@@ -637,17 +627,91 @@ class StatementVisitor(algorithm.Visitor):
             \tcontinue
             }"""), exc=exc.expr, swallow_exc=swallow_exc_bool.expr)
 
+  def visit_function_inline(self, node):
+    """Returns an GeneratedExpr for a function with the given body."""
+    # First pass collects the names of locals used in this function. Do this in
+    # a separate pass so that we know whether to resolve a name as a local or a
+    # global during the second pass.
+    func_visitor = block.FunctionBlockVisitor(node)
+    for child in node.body:
+      func_visitor.visit(child)
+    func_block = block.FunctionBlock(self.block, node.name, func_visitor.vars,
+                                     func_visitor.is_generator)
+    visitor = StatementVisitor(func_block)
+    # Indent so that the function body is aligned with the goto labels.
+    with visitor.writer.indent_block():
+      visitor._visit_each(node.body)  # pylint: disable=protected-access
+
+    result = self.block.alloc_temp()
+    with self.block.alloc_temp('[]πg.Param') as func_args:
+      args = node.args
+      argc = len(args.args)
+      self.writer.write('{} = make([]πg.Param, {})'.format(
+          func_args.expr, argc))
+      # The list of defaults only contains args for which a default value is
+      # specified so pad it with None to make it the same length as args.
+      defaults = [None] * (argc - len(args.defaults)) + args.defaults
+      for i, (a, d) in enumerate(zip(args.args, defaults)):
+        with self.visit_expr(d) if d else expr.nil_expr as default:
+          tmpl = '$args[$i] = πg.Param{Name: $name, Def: $default}'
+          self.writer.write_tmpl(tmpl, args=func_args.expr, i=i,
+                                 name=util.go_str(a.arg), default=default.expr)
+      flags = []
+      if args.vararg:
+        flags.append('πg.CodeFlagVarArg')
+      if args.kwarg:
+        flags.append('πg.CodeFlagKWArg')
+      # The function object gets written to a temporary writer because we need
+      # it as an expression that we subsequently bind to some variable.
+      self.writer.write_tmpl(
+          '$result = πg.NewFunction(πg.NewCode($name, $filename, $args, '
+          '$flags, func(πF *πg.Frame, πArgs []*πg.Object) '
+          '(*πg.Object, *πg.BaseException) {',
+          result=result.name, name=util.go_str(node.name),
+          filename=util.go_str(self.block.root.filename), args=func_args.expr,
+          flags=' | '.join(flags) if flags else 0)
+      with self.writer.indent_block():
+        for var in func_block.vars.values():
+          if var.type != block.Var.TYPE_GLOBAL:
+            fmt = 'var {0} *πg.Object = {1}; _ = {0}'
+            self.writer.write(fmt.format(
+                util.adjust_local_name(var.name), var.init_expr))
+        self.writer.write_temp_decls(func_block)
+        if func_block.is_generator:
+          self.writer.write('return πg.NewGenerator(πF, func(πSent *πg.Object) '
+                            '(*πg.Object, *πg.BaseException) {')
+          with self.writer.indent_block():
+            self.writer.write_block(func_block, visitor.writer.getvalue())
+          self.writer.write('}).ToObject(), nil')
+        else:
+          self.writer.write_block(func_block, visitor.writer.getvalue())
+      self.writer.write('}), πF.Globals()).ToObject()')
+    return result
+
+  _AUG_ASSIGN_TEMPLATES = {
+      ast.Add: 'πg.IAdd(πF, {lhs}, {rhs})',
+      ast.BitAnd: 'πg.IAnd(πF, {lhs}, {rhs})',
+      ast.Div: 'πg.IDiv(πF, {lhs}, {rhs})',
+      ast.LShift: 'πg.ILShift(πF, {lhs}, {rhs})',
+      ast.Mod: 'πg.IMod(πF, {lhs}, {rhs})',
+      ast.Mult: 'πg.IMul(πF, {lhs}, {rhs})',
+      ast.BitOr: 'πg.IOr(πF, {lhs}, {rhs})',
+      ast.RShift: 'πg.IRShift(πF, {lhs}, {rhs})',
+      ast.Sub: 'πg.ISub(πF, {lhs}, {rhs})',
+      ast.BitXor: 'πg.IXor(πF, {lhs}, {rhs})',
+  }
+
   def _assign_target(self, target, value):
     if isinstance(target, ast.Name):
       self.block.bind_var(self.writer, target.id, value)
     elif isinstance(target, ast.Attribute):
-      with self.expr_visitor.visit(target.value) as obj:
+      with self.visit_expr(target.value) as obj:
         self.writer.write_checked_call1(
             'πg.SetAttr(πF, {}, {}, {})', obj.expr,
             self.block.root.intern(target.attr), value)
     elif isinstance(target, ast.Subscript):
-      with self.expr_visitor.visit(target.value) as mapping,\
-          self.expr_visitor.visit(target.slice) as index:
+      with self.visit_expr(target.value) as mapping,\
+          self.visit_expr(target.slice) as index:
         self.writer.write_checked_call1('πg.SetItem(πF, {}, {}, {})',
                                         mapping.expr, index.expr, value)
     else:
@@ -789,7 +853,7 @@ class StatementVisitor(algorithm.Visitor):
     for i, except_node in enumerate(handlers):
       handler_labels.append(self.block.genlabel())
       if except_node.type:
-        with self.expr_visitor.visit(except_node.type) as type_,\
+        with self.visit_expr(except_node.type) as type_,\
             self.block.alloc_temp('bool') as is_inst:
           self.writer.write_checked_call2(
               is_inst, 'πg.IsInstance(πF, {}.ToObject(), {})', exc, type_.expr)

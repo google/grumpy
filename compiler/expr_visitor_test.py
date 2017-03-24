@@ -25,11 +25,9 @@ import unittest
 import pythonparser
 
 from grumpy.compiler import block
-from grumpy.compiler import expr_visitor
 from grumpy.compiler import imputil_test
 from grumpy.compiler import shard_test
 from grumpy.compiler import stmt
-from grumpy.compiler import util
 
 
 def _MakeExprTest(expr):
@@ -233,10 +231,9 @@ def _ParseExpr(expr):
 
 
 def _ParseAndVisitExpr(expr):
-  writer = util.Writer()
-  visitor = expr_visitor.ExprVisitor(_MakeModuleBlock(), writer)
-  visitor.visit(_ParseExpr(expr))
-  return writer.getvalue()
+  visitor = stmt.StatementVisitor(_MakeModuleBlock())
+  visitor.visit_expr(_ParseExpr(expr))
+  return visitor.writer.getvalue()
 
 
 def _GrumpRun(cmd):
