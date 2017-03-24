@@ -51,6 +51,13 @@ class ImportError(CompileError):  # pylint: disable=redefined-builtin
   pass
 
 
+class LateFutureError(ImportError):
+
+  def __init__(self, node):
+    msg = 'from __future__ imports must occur at the beginning of the file'
+    super(LateFutureError, self).__init__(node, msg)
+
+
 class Writer(object):
   """Utility class for writing blocks of Go code to a file-like object."""
 

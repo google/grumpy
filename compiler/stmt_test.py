@@ -27,6 +27,7 @@ import pythonparser
 from pythonparser import ast
 
 from grumpy.compiler import block
+from grumpy.compiler import imputil
 from grumpy.compiler import imputil_test
 from grumpy.compiler import shard_test
 from grumpy.compiler import stmt
@@ -335,17 +336,18 @@ class StatementVisitorTest(unittest.TestCase):
 
   def testImportFromFuture(self):
     testcases = [
-        ('from __future__ import print_function', stmt.FUTURE_PRINT_FUNCTION),
+        ('from __future__ import print_function',
+         imputil.FUTURE_PRINT_FUNCTION),
         ('from __future__ import generators', 0),
         ('from __future__ import generators, print_function',
-         stmt.FUTURE_PRINT_FUNCTION),
+         imputil.FUTURE_PRINT_FUNCTION),
     ]
 
     for i, tc in enumerate(testcases):
       source, want_flags = tc
       mod = pythonparser.parse(textwrap.dedent(source))
       node = mod.body[0]
-      got = stmt.import_from_future(node)
+      got = imputil.import_from_future(node)
       msg = '#{}: want {}, got {}'.format(i, want_flags, got)
       self.assertEqual(want_flags, got, msg=msg)
 
@@ -370,7 +372,7 @@ class StatementVisitorTest(unittest.TestCase):
       mod = pythonparser.parse(source)
       node = mod.body[0]
       self.assertRaisesRegexp(util.ParseError, want_regexp,
-                              stmt.import_from_future, node)
+                              imputil.import_from_future, node)
 
   def testImportWildcardMemberRaises(self):
     regexp = r'wildcard member import is not implemented: from foo import *'
@@ -380,49 +382,6 @@ class StatementVisitorTest(unittest.TestCase):
               r'implemented: from __go__.foo import *')
     self.assertRaisesRegexp(util.ImportError, regexp, _ParseAndVisit,
                             'from __go__.foo import *')
-
-  def testVisitFuture(self):
-    testcases = [
-        ('from __future__ import print_function',
-         stmt.FUTURE_PRINT_FUNCTION, 1),
-        ("""\
-        "module docstring"
-
-        from __future__ import print_function
-        """, stmt.FUTURE_PRINT_FUNCTION, 3),
-        ("""\
-        "module docstring"
-
-        from __future__ import print_function, with_statement
-        from __future__ import nested_scopes
-        """, stmt.FUTURE_PRINT_FUNCTION, 4),
-    ]
-
-    for tc in testcases:
-      source, flags, lineno = tc
-      mod = pythonparser.parse(textwrap.dedent(source))
-      future_features = stmt.visit_future(mod)
-      self.assertEqual(future_features.parser_flags, flags)
-      self.assertEqual(future_features.future_lineno, lineno)
-
-  def testVisitFutureParseError(self):
-    testcases = [
-        # future after normal imports
-        """\
-        import os
-        from __future__ import print_function
-        """,
-        # future after non-docstring expression
-        """
-        asd = 123
-        from __future__ import print_function
-        """
-    ]
-
-    for source in testcases:
-      mod = pythonparser.parse(textwrap.dedent(source))
-      self.assertRaisesRegexp(util.ParseError, stmt.late_future,
-                              stmt.visit_future, mod)
 
   def testFutureFeaturePrintFunction(self):
     want = "abc\n123\nabc 123\nabcx123\nabc 123 "
@@ -608,12 +567,12 @@ class StatementVisitorTest(unittest.TestCase):
 
 def _MakeModuleBlock():
   return block.ModuleBlock(imputil_test.MockPath(), '__main__',
-                           '<test>', '', stmt.FutureFeatures())
+                           '<test>', '', imputil.FutureFeatures())
 
 
 def _ParseAndVisit(source):
   mod = pythonparser.parse(source)
-  future_features = stmt.visit_future(mod)
+  future_features = imputil.visit_future(mod)
   b = block.ModuleBlock(imputil_test.MockPath(), '__main__',
                         '<test>', source, future_features)
   visitor = stmt.StatementVisitor(b)

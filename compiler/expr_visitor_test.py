@@ -25,6 +25,7 @@ import unittest
 import pythonparser
 
 from grumpy.compiler import block
+from grumpy.compiler import imputil
 from grumpy.compiler import imputil_test
 from grumpy.compiler import shard_test
 from grumpy.compiler import stmt
@@ -223,7 +224,7 @@ class ExprVisitorTest(unittest.TestCase):
 
 def _MakeModuleBlock():
   return block.ModuleBlock(imputil_test.MockPath(), '__main__',
-                           '<test>', '', stmt.FutureFeatures())
+                           '<test>', '', imputil.FutureFeatures())
 
 
 def _ParseExpr(expr):
