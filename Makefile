@@ -164,7 +164,7 @@ $(COMPILER_PASS_FILES): %.pass: %.py $(COMPILER)
 $(COMPILER_D_FILES): $(PY_DIR)/%.d: $(PY_DIR)/%.py $(COMPILER_SRCS) $(PYTHONPARSER_SRCS)
 	@$(PYTHON) -m modulefinder $< | awk '{if (match($$2, /^grumpy\>/)) { print "$(PY_DIR)/$*.pass: " substr($$3, length("$(ROOT_DIR)/") + 1) }}' > $@
 
-include $(COMPILER_D_FILES)
+-include $(COMPILER_D_FILES)
 
 # Does not depend on stdlibs since it makes minimal use of them.
 $(COMPILER_EXPR_VISITOR_PASS_FILES): $(PY_DIR)/grumpy/compiler/expr_visitor_test.%.pass: $(PY_DIR)/grumpy/compiler/expr_visitor_test.py $(RUNNER_BIN) $(COMPILER) $(RUNTIME)
@@ -255,7 +255,7 @@ $(PKG_DIR)/__python__/$(2).a: build/src/__python__/$(2)/module.go $(RUNTIME)
 	@mkdir -p $(PKG_DIR)/__python__/$(dir $(2))
 	@go tool compile -o $$@ -p __python__/$(2) -complete -I $(PKG_DIR) -pack $$<
 
-include build/src/__python__/$(2)/module.d
+-include build/src/__python__/$(2)/module.d
 
 endef
 
