@@ -87,8 +87,12 @@ THIRD_PARTY_PYPY_SRCS := $(shell find third_party/pypy -name '*.py')
 THIRD_PARTY_PYPY_SRCS_STAGED := $(patsubst third_party/pypy/%,$(GOPATH_PY_ROOT)/%,$(THIRD_PARTY_PYPY_SRCS))
 THIRD_PARTY_PYPY_PACKAGES := $(patsubst third_party/pypy/%.py,%,$(patsubst third_party/pypy/%/__init__.py,%,$(THIRD_PARTY_PYPY_SRCS)))
 
-STDLIB_SRCS_STAGED := $(LIB_SRCS_STAGED) $(THIRD_PARTY_STDLIB_SRCS_STAGED) $(THIRD_PARTY_PYPY_SRCS_STAGED)
-STDLIB_PACKAGES := $(LIB_PACKAGES) $(THIRD_PARTY_STDLIB_PACKAGES) $(THIRD_PARTY_PYPY_PACKAGES)
+THIRD_PARTY_OUROBOROS_SRCS := $(shell find third_party/ouroboros -name '*.py')
+THIRD_PARTY_OUROBOROS_SRCS_STAGED := $(patsubst third_party/ouroboros/%,$(GOPATH_PY_ROOT)/%,$(THIRD_PARTY_OUROBOROS_SRCS))
+THIRD_PARTY_OUROBOROS_PACKAGES := $(patsubst third_party/ouroboros/%.py,%,$(patsubst third_party/ouroboros/%/__init__.py,%,$(THIRD_PARTY_OUROBOROS_SRCS)))
+
+STDLIB_SRCS_STAGED := $(LIB_SRCS_STAGED) $(THIRD_PARTY_STDLIB_SRCS_STAGED) $(THIRD_PARTY_PYPY_SRCS_STAGED) $(THIRD_PARTY_OUROBOROS_SRCS_STAGED)
+STDLIB_PACKAGES := $(LIB_PACKAGES) $(THIRD_PARTY_STDLIB_PACKAGES) $(THIRD_PARTY_PYPY_PACKAGES) $(THIRD_PARTY_OUROBOROS_PACKAGES)
 STDLIB := $(patsubst %,$(PKG_DIR)/__python__/%.a,$(STDLIB_PACKAGES))
 STDLIB_TESTS := \
   itertools_test \
@@ -239,6 +243,10 @@ $(THIRD_PARTY_STDLIB_SRCS_STAGED): $(GOPATH_PY_ROOT)/%: third_party/stdlib/%
 	@cp -f $< $@
 
 $(THIRD_PARTY_PYPY_SRCS_STAGED): $(GOPATH_PY_ROOT)/%: third_party/pypy/%
+	@mkdir -p $(@D)
+	@cp -f $< $@
+
+$(THIRD_PARTY_OUROBOROS_SRCS_STAGED): $(GOPATH_PY_ROOT)/%: third_party/ouroboros/%
 	@mkdir -p $(@D)
 	@cp -f $< $@
 

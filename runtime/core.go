@@ -297,6 +297,12 @@ func IDiv(f *Frame, v, w *Object) (*Object, *BaseException) {
 	return inplaceOp(f, v, w, v.typ.slots.IDiv, Div)
 }
 
+// IFloorDiv returns the result of v.__ifloordiv__ if defined, otherwise falls back to
+// floordiv.
+func IFloorDiv(f *Frame, v, w *Object) (*Object, *BaseException) {
+	return inplaceOp(f, v, w, v.typ.slots.IFloorDiv, FloorDiv)
+}
+
 // ILShift returns the result of v.__ilshift__ if defined, otherwise falls back
 // to lshift.
 func ILShift(f *Frame, v, w *Object) (*Object, *BaseException) {
@@ -328,6 +334,11 @@ func Invert(f *Frame, o *Object) (*Object, *BaseException) {
 // IOr returns the result of v.__ior__ if defined, otherwise falls back to Or.
 func IOr(f *Frame, v, w *Object) (*Object, *BaseException) {
 	return inplaceOp(f, v, w, v.typ.slots.IOr, Or)
+}
+
+// IPow returns the result of v.__pow__ if defined, otherwise falls back to IPow.
+func IPow(f *Frame, v, w *Object) (*Object, *BaseException) {
+	return inplaceOp(f, v, w, v.typ.slots.IPow, Pow)
 }
 
 // IRShift returns the result of v.__irshift__ if defined, otherwise falls back
