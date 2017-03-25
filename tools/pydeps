@@ -53,11 +53,16 @@ def main(args):
   except util.CompileError as e:
     print >> sys.stderr, str(e)
     return 2
-  imports = set()
+  imports = set([args.modname])
   for imp in visitor.imports:
-    if not imp.is_native and imp.name not in imports:
-      imports.add(imp.name)
-      print imp.name
+    if not imp.is_native:
+      parts = imp.name.split('.')
+      # Iterate over all packages and the leaf module.
+      for i in xrange(len(parts)):
+        name = '.'.join(parts[:i+1])
+        if name not in imports:
+          imports.add(name)
+          print name
 
 
 if __name__ == '__main__':
