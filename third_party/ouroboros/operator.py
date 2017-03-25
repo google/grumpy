@@ -129,6 +129,8 @@ def sub(a, b):
 
 def truediv(a, b):
     "Same as a / b."
+    if type(a) == int or type(a) == long:
+        a = float(a)
     return a / b
 
 def xor(a, b):
@@ -348,6 +350,8 @@ def isub(a, b):
 
 def itruediv(a, b):
     "Same as a /= b."
+    if type(a) == int or type(a) == long:
+        a = float(a)
     a /= b
     return a
 
