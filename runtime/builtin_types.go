@@ -674,6 +674,35 @@ func builtinSorted(f *Frame, args Args, _ KWArgs) (*Object, *BaseException) {
 	return result, nil
 }
 
+func builtinSum(f *Frame, args Args, _ KWArgs) (*Object, *BaseException) {
+	argc := len(args)
+	expectedTypes := []*Type{ObjectType, ObjectType}
+	if argc == 1 {
+		expectedTypes = expectedTypes[:1]
+	}
+	if raised := checkFunctionArgs(f, "sum", args, expectedTypes...); raised != nil {
+		return nil, raised
+	}
+	var result *Object
+	if argc > 1 {
+		if args[1].typ == StrType {
+			return nil, f.RaiseType(TypeErrorType, "sum() can't sum strings [use ''.join(seq) instead]")
+		}
+		result = args[1]
+	} else {
+		result = NewInt(0).ToObject()
+	}
+	raised := seqForEach(f, args[0], func(o *Object) (raised *BaseException) {
+		result, raised = Add(f, result, o)
+		return raised
+	})
+
+	if raised != nil {
+		return nil, raised
+	}
+	return result, nil
+}
+
 func builtinUniChr(f *Frame, args Args, _ KWArgs) (*Object, *BaseException) {
 	if raised := checkFunctionArgs(f, "unichr", args, IntType); raised != nil {
 		return nil, raised
@@ -756,6 +785,7 @@ func init() {
 		"round":          newBuiltinFunction("round", builtinRound).ToObject(),
 		"setattr":        newBuiltinFunction("setattr", builtinSetAttr).ToObject(),
 		"sorted":         newBuiltinFunction("sorted", builtinSorted).ToObject(),
+		"sum":            newBuiltinFunction("sum", builtinSum).ToObject(),
 		"True":           True.ToObject(),
 		"unichr":         newBuiltinFunction("unichr", builtinUniChr).ToObject(),
 		"zip":            newBuiltinFunction("zip", builtinZip).ToObject(),
