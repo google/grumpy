@@ -75,20 +75,12 @@ RUNTIME_PASS_FILE := build/runtime.pass
 RUNTIME_COVER_FILE := $(PKG_DIR)/grumpy.cover
 RUNNER = $(RUNNER_BIN) $(COMPILER) $(RUNTIME) $(STDLIB)
 
-LIB_SRCS := $(shell find lib -name '*.py')
-LIB_SRCS_STAGED := $(patsubst lib/%,$(GOPATH_PY_ROOT)/%,$(LIB_SRCS))
-LIB_PACKAGES := $(patsubst lib/%.py,%,$(patsubst lib/%/__init__.py,%,$(LIB_SRCS)))
+LIB_SRCS := $(patsubst lib/%,$(GOPATH_PY_ROOT)/%,$(shell find lib -name '*.py'))
+THIRD_PARTY_STDLIB_SRCS := $(patsubst third_party/stdlib/%,$(GOPATH_PY_ROOT)/%,$(shell find third_party/stdlib -name '*.py'))
+THIRD_PARTY_PYPY_SRCS := $(patsubst third_party/pypy/%,$(GOPATH_PY_ROOT)/%,$(shell find third_party/pypy -name '*.py'))
+STDLIB_SRCS := $(LIB_SRCS) $(THIRD_PARTY_STDLIB_SRCS) $(THIRD_PARTY_PYPY_SRCS)
 
-THIRD_PARTY_STDLIB_SRCS := $(shell find third_party/stdlib -name '*.py')
-THIRD_PARTY_STDLIB_SRCS_STAGED := $(patsubst third_party/stdlib/%,$(GOPATH_PY_ROOT)/%,$(THIRD_PARTY_STDLIB_SRCS))
-THIRD_PARTY_STDLIB_PACKAGES := $(patsubst third_party/stdlib/%.py,%,$(patsubst third_party/stdlib/%/__init__.py,%,$(THIRD_PARTY_STDLIB_SRCS)))
-
-THIRD_PARTY_PYPY_SRCS := $(shell find third_party/pypy -name '*.py')
-THIRD_PARTY_PYPY_SRCS_STAGED := $(patsubst third_party/pypy/%,$(GOPATH_PY_ROOT)/%,$(THIRD_PARTY_PYPY_SRCS))
-THIRD_PARTY_PYPY_PACKAGES := $(patsubst third_party/pypy/%.py,%,$(patsubst third_party/pypy/%/__init__.py,%,$(THIRD_PARTY_PYPY_SRCS)))
-
-STDLIB_SRCS_STAGED := $(LIB_SRCS_STAGED) $(THIRD_PARTY_STDLIB_SRCS_STAGED) $(THIRD_PARTY_PYPY_SRCS_STAGED)
-STDLIB_PACKAGES := $(LIB_PACKAGES) $(THIRD_PARTY_STDLIB_PACKAGES) $(THIRD_PARTY_PYPY_PACKAGES)
+STDLIB_PACKAGES := $(patsubst $(GOPATH_PY_ROOT)/%.py,%,$(patsubst $(GOPATH_PY_ROOT)/%/__init__.py,%,$(STDLIB_SRCS)))
 STDLIB := $(patsubst %,$(PKG_DIR)/__python__/%.a,$(STDLIB_PACKAGES))
 STDLIB_TESTS := \
   itertools_test \
@@ -120,12 +112,12 @@ ACCEPT_PY_PASS_FILES := $(patsubst %,build/%_py.pass,$(filter-out %/native_test,
 BENCHMARKS := $(patsubst %.py,%,$(wildcard benchmarks/*.py))
 BENCHMARK_BINS := $(patsubst %,build/%_benchmark,$(BENCHMARKS))
 
-TOOL_BINS = $(patsubst %,build/bin/%,benchcmp coverparse diffrange pydeps)
+TOOL_BINS = $(patsubst %,build/bin/%,benchcmp coverparse diffrange genmake pydeps)
 
 GOLINT_BIN = build/bin/golint
 PYLINT_BIN = build/bin/pylint
 
-all: $(COMPILER) $(RUNTIME) $(STDLIB) $(TOOL_BINS)
+all: $(COMPILER) $(RUNTIME) $(TOOL_BINS)
 
 benchmarks: $(BENCHMARK_BINS)
 
@@ -222,7 +214,7 @@ $(PYLINT_BIN):
 	@cd build/third_party/pylint-1.6.4 && $(PYTHON) setup.py install --prefix $(ROOT_DIR)/build
 
 pylint: $(PYLINT_BIN)
-	@$(PYTHON) $(PYLINT_BIN) compiler/*.py $(addprefix tools/,benchcmp coverparse diffrange grumpc grumprun pydeps)
+	@$(PYTHON) $(PYLINT_BIN) compiler/*.py $(addprefix tools/,benchcmp coverparse diffrange genmake grumpc grumprun pydeps)
 
 lint: golint pylint
 
@@ -230,36 +222,26 @@ lint: golint pylint
 # Standard library
 # ------------------------------------------------------------------------------
 
-$(LIB_SRCS_STAGED): $(GOPATH_PY_ROOT)/%: lib/%
+$(LIB_SRCS): $(GOPATH_PY_ROOT)/%: lib/%
 	@mkdir -p $(@D)
 	@cp -f $< $@
 
-$(THIRD_PARTY_STDLIB_SRCS_STAGED): $(GOPATH_PY_ROOT)/%: third_party/stdlib/%
+$(THIRD_PARTY_STDLIB_SRCS): $(GOPATH_PY_ROOT)/%: third_party/stdlib/%
 	@mkdir -p $(@D)
 	@cp -f $< $@
 
-$(THIRD_PARTY_PYPY_SRCS_STAGED): $(GOPATH_PY_ROOT)/%: third_party/pypy/%
+$(THIRD_PARTY_PYPY_SRCS): $(GOPATH_PY_ROOT)/%: third_party/pypy/%
 	@mkdir -p $(@D)
 	@cp -f $< $@
 
-define GRUMPY_STDLIB
-build/src/__python__/$(2)/module.go: $(1) $(COMPILER) | $(STDLIB_SRCS_STAGED)
-	@mkdir -p build/src/__python__/$(2)
-	@$(COMPILER_BIN) -modname=$(shell echo "$(2)" | tr / .) $(1) > $$@
+build/stdlib.mk: build/bin/genmake | $(STDLIB_SRCS)
+	@genmake build > $@
 
-build/src/__python__/$(2)/module.d: $(1) build/bin/pydeps $(PYTHONPARSER_SRCS) $(COMPILER) | $(STDLIB_SRCS_STAGED)
-	@mkdir -p build/src/__python__/$(2)
-	@build/bin/pydeps -modname=$(shell echo "$(2)" | tr / .) $$< | awk '{gsub(/\./, "/", $$$$0); print "$(PKG_DIR)/__python__/$(2).a: $(PKG_DIR)/__python__/" $$$$0 ".a"}' > $$@
+-include build/stdlib.mk
 
-$(PKG_DIR)/__python__/$(2).a: build/src/__python__/$(2)/module.go $(RUNTIME)
-	@mkdir -p $(PKG_DIR)/__python__/$(dir $(2))
-	@go tool compile -o $$@ -p __python__/$(2) -complete -I $(PKG_DIR) -pack $$<
-
--include build/src/__python__/$(2)/module.d
-
-endef
-
-$(eval $(foreach x,$(shell seq $(words $(STDLIB_SRCS_STAGED))),$(call GRUMPY_STDLIB,$(word $(x),$(STDLIB_SRCS_STAGED)),$(word $(x),$(STDLIB_PACKAGES)))))
+$(patsubst %,build/src/__python__/%/module.go,$(STDLIB_PACKAGES)): $(COMPILER)
+$(patsubst %,build/src/__python__/%/module.d,$(STDLIB_PACKAGES)): build/bin/pydeps $(PYTHONPARSER_SRCS) $(COMPILER)
+$(patsubst %,$(PKG_DIR)/__python__/%.a,$(STDLIB_PACKAGES)): $(RUNTIME)
 
 define GRUMPY_STDLIB_TEST
 build/testing/$(patsubst %_test,%_test_,$(notdir $(1))).go:
