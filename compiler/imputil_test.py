@@ -21,6 +21,7 @@ from __future__ import unicode_literals
 import os
 import shutil
 import tempfile
+import textwrap
 import unittest
 
 import pythonparser
@@ -229,3 +230,48 @@ class ImportVisitorTest(unittest.TestCase):
       want = [want]
     self.assertEqual([imp.__dict__ for imp in want],
                      [imp.__dict__ for imp in got])
+
+
+class VisitFutureTest(unittest.TestCase):
+
+  def testVisitFuture(self):
+    testcases = [
+        ('from __future__ import print_function',
+         imputil.FUTURE_PRINT_FUNCTION, 1),
+        ("""\
+        "module docstring"
+
+        from __future__ import print_function
+        """, imputil.FUTURE_PRINT_FUNCTION, 3),
+        ("""\
+        "module docstring"
+
+        from __future__ import print_function, with_statement
+        from __future__ import nested_scopes
+        """, imputil.FUTURE_PRINT_FUNCTION, 4),
+    ]
+
+    for tc in testcases:
+      source, flags, lineno = tc
+      mod = pythonparser.parse(textwrap.dedent(source))
+      future_features = imputil.visit_future(mod)
+      self.assertEqual(future_features.parser_flags, flags)
+      self.assertEqual(future_features.future_lineno, lineno)
+
+  def testVisitFutureLate(self):
+    testcases = [
+        # future after normal imports
+        """\
+        import os
+        from __future__ import print_function
+        """,
+        # future after non-docstring expression
+        """
+        asd = 123
+        from __future__ import print_function
+        """
+    ]
+
+    for source in testcases:
+      mod = pythonparser.parse(textwrap.dedent(source))
+      self.assertRaises(util.LateFutureError, imputil.visit_future, mod)
