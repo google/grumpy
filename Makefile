@@ -78,7 +78,9 @@ RUNNER = $(RUNNER_BIN) $(COMPILER) $(RUNTIME) $(STDLIB)
 LIB_SRCS := $(patsubst lib/%,$(GOPATH_PY_ROOT)/%,$(shell find lib -name '*.py'))
 THIRD_PARTY_STDLIB_SRCS := $(patsubst third_party/stdlib/%,$(GOPATH_PY_ROOT)/%,$(shell find third_party/stdlib -name '*.py'))
 THIRD_PARTY_PYPY_SRCS := $(patsubst third_party/pypy/%,$(GOPATH_PY_ROOT)/%,$(shell find third_party/pypy -name '*.py'))
-STDLIB_SRCS := $(LIB_SRCS) $(THIRD_PARTY_STDLIB_SRCS) $(THIRD_PARTY_PYPY_SRCS)
+THIRD_PARTY_OUROBOROS_SRCS := $(patsubst third_party/ouroboros/%,$(GOPATH_PY_ROOT)/%,$(shell find third_party/ouroboros -name '*.py'))
+STDLIB_SRCS := $(LIB_SRCS) $(THIRD_PARTY_STDLIB_SRCS) $(THIRD_PARTY_PYPY_SRCS) $(THIRD_PARTY_OUROBOROS_SRCS)
+
 
 STDLIB_PACKAGES := $(patsubst $(GOPATH_PY_ROOT)/%.py,%,$(patsubst $(GOPATH_PY_ROOT)/%/__init__.py,%,$(STDLIB_SRCS)))
 STDLIB := $(patsubst %,$(PKG_DIR)/__python__/%.a,$(STDLIB_PACKAGES))
@@ -99,6 +101,7 @@ STDLIB_TESTS := \
   test/test_md5 \
   test/test_bisect \
   test/test_datetime \
+  test/test_operator \
   threading_test \
   time_test \
   types_test \
@@ -231,6 +234,11 @@ $(THIRD_PARTY_STDLIB_SRCS): $(GOPATH_PY_ROOT)/%: third_party/stdlib/%
 	@cp -f $< $@
 
 $(THIRD_PARTY_PYPY_SRCS): $(GOPATH_PY_ROOT)/%: third_party/pypy/%
+	@mkdir -p $(@D)
+	@cp -f $< $@
+
+
+$(THIRD_PARTY_OUROBOROS_SRCS): $(GOPATH_PY_ROOT)/%: third_party/ouroboros/%
 	@mkdir -p $(@D)
 	@cp -f $< $@
 

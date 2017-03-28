@@ -105,10 +105,11 @@ class StatementVisitorTest(unittest.TestCase):
         foo &= 3
         print foo""")))
 
-  def testAugAssignUnsupportedOp(self):
-    expected = 'augmented assignment op not implemented'
-    self.assertRaisesRegexp(util.ParseError, expected,
-                            _ParseAndVisit, 'foo **= bar')
+  def testAugAssignPow(self):
+    self.assertEqual((0, '64\n'), _GrumpRun(textwrap.dedent("""\
+        foo = 8
+        foo **= 2
+        print foo""")))
 
   def testClassDef(self):
     self.assertEqual((0, "<type 'type'>\n"), _GrumpRun(textwrap.dedent("""\
