@@ -111,11 +111,6 @@ class StatementVisitorTest(unittest.TestCase):
         foo **= 2
         print foo""")))
 
-#  def testAugAssignUnsupportedOp(self):
-#    expected = 'augmented assignment op not implemented'
-#    self.assertRaisesRegexp(util.ParseError, expected,
-#                            _ParseAndVisit, 'foo **= bar')
-
   def testClassDef(self):
     self.assertEqual((0, "<type 'type'>\n"), _GrumpRun(textwrap.dedent("""\
         class Foo(object):
