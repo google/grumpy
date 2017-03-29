@@ -277,7 +277,7 @@ class MakeFutureFeaturesTest(unittest.TestCase):
 
 class ParseFutureFeaturesTest(unittest.TestCase):
 
-  def testVisitFuture(self):
+  def testFutureFeatures(self):
     print_function_features = imputil.FutureFeatures()
     print_function_features.print_function = True
     testcases = [
@@ -302,21 +302,24 @@ class ParseFutureFeaturesTest(unittest.TestCase):
       _, got = imputil.parse_future_features(mod)
       self.assertEqual(want.__dict__, got.__dict__)
 
-  def testVisitFutureLate(self):
-    testcases = [
-        # future after normal imports
-        """\
-        import os
-        from __future__ import print_function
-        """,
-        # future after non-docstring expression
-        """
-        asd = 123
-        from __future__ import print_function
-        """
-    ]
+  def testFutureAfterAssignRaises(self):
+    source = 'foo = 123\nfrom __future__ import print_function'
+    mod = pythonparser.parse(source)
+    self.assertRaises(util.LateFutureError, imputil.parse_future_features, mod)
 
-    for source in testcases:
-      mod = pythonparser.parse(textwrap.dedent(source))
-      self.assertRaises(util.LateFutureError,
-                        imputil.parse_future_features, mod)
+  def testFutureAfterImportRaises(self):
+    source = 'import os\nfrom __future__ import print_function'
+    mod = pythonparser.parse(source)
+    self.assertRaises(util.LateFutureError, imputil.parse_future_features, mod)
+
+  def testUnimplementedFutureRaises(self):
+    mod = pythonparser.parse('from __future__ import division')
+    msg = 'future feature division not yet implemented by grumpy'
+    self.assertRaisesRegexp(util.ParseError, msg,
+                            imputil.parse_future_features, mod)
+
+  def testUndefinedFutureRaises(self):
+    mod = pythonparser.parse('from __future__ import foo')
+    self.assertRaisesRegexp(
+        util.ParseError, 'future feature foo is not defined',
+        imputil.parse_future_features, mod)
