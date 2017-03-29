@@ -18,6 +18,7 @@ import (
 	"fmt"
 	"math"
 	"math/big"
+	//	"strconv"
 	"strings"
 	"unicode"
 )
@@ -631,15 +632,36 @@ func builtinRound(f *Frame, args Args, _ KWArgs) (*Object, *BaseException) {
 			return nil, raised
 		}
 	}
-	// TODO: implement this.
-	if ndigits != 0 {
-		return nil, f.RaiseType(NotImplementedErrorType, "round with ndigits is not implemented in grumpy")
-	}
 	number, isFloat := floatCoerce(args[0])
+
 	if !isFloat {
 		return nil, f.RaiseType(TypeErrorType, "a float is required")
 	}
-	return NewFloat(math.Floor(number + 0.5)).ToObject(), nil
+
+	if math.IsNaN(number) || math.IsInf(number, 0) || number == 0.0 {
+		return NewFloat(number).ToObject(), nil
+	}
+
+	var result float64
+	if ndigits >= 0 {
+		result = round(number, ndigits)
+		if math.Abs(result-number) == 0.5 {
+			if number > 0.0 {
+				result = number + 0.5
+			} else {
+				result = number - 0.5
+			}
+		}
+	} else {
+		pow := math.Pow(10.0, float64(-ndigits))
+		y := number / pow
+		result = round(y, 0)
+		if math.Abs(y-result) == 0.5 {
+			result = y + math.Copysign(0.5, y)
+		}
+		result *= pow
+	}
+	return NewFloat(result).ToObject(), nil
 }
 
 func builtinSetAttr(f *Frame, args Args, _ KWArgs) (*Object, *BaseException) {
@@ -862,6 +884,15 @@ func initIters(f *Frame, items []*Object) ([]*Object, *BaseException) {
 		iters[i] = iter
 	}
 	return iters, nil
+}
+
+func round(x float64, ndigits int) float64 {
+	pow := 1.0
+	for i := 0; i < ndigits; i++ {
+		pow *= 10
+	}
+	rounded := math.Floor(x*pow+0.5) / pow
+	return rounded
 }
 
 // zipLongest return the list of aggregates elements from each of the
