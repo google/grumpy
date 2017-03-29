@@ -47,7 +47,6 @@ def main(args):
   if not gopath:
     print >> sys.stderr, 'GOPATH not set'
     return 1
-  path = imputil.Path(gopath, args.modname, args.script)
 
   with open(args.script) as py_file:
     py_contents = py_file.read()
@@ -60,16 +59,17 @@ def main(args):
 
   # Do a pass for compiler directives from `from __future__ import *` statements
   try:
-    future_features = imputil.visit_future(mod)
+    future_node, future_features = imputil.parse_future_features(mod)
   except util.CompileError as e:
     print >> sys.stderr, str(e)
     return 2
 
+  path = imputil.Path(gopath, args.modname, args.script)
   full_package_name = args.modname.replace('.', '/')
   mod_block = block.ModuleBlock(path, full_package_name, args.script,
                                 py_contents, future_features)
   mod_block.add_native_import('grumpy')
-  visitor = stmt.StatementVisitor(mod_block)
+  visitor = stmt.StatementVisitor(mod_block, future_node)
   # Indent so that the module body is aligned with the goto labels.
   with visitor.writer.indent_block():
     try:

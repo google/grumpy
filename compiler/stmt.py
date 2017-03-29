@@ -49,10 +49,9 @@ class StatementVisitor(algorithm.Visitor):
 
   # pylint: disable=invalid-name,missing-docstring
 
-  def __init__(self, block_):
+  def __init__(self, block_, future_node=None):
     self.block = block_
-    self.future_features = (self.block.root.future_features or
-                            imputil.FutureFeatures())
+    self.future_node = future_node
     self.writer = util.Writer()
     self.expr_visitor = expr_visitor.ExprVisitor(self)
 
@@ -108,7 +107,7 @@ class StatementVisitor(algorithm.Visitor):
                    if v.type == block.Var.TYPE_GLOBAL}
     # Visit all the statements inside body of the class definition.
     body_visitor = StatementVisitor(block.ClassBlock(
-        self.block, node.name, global_vars))
+        self.block, node.name, global_vars), self.future_node)
     # Indent so that the function body is aligned with the goto labels.
     with body_visitor.writer.indent_block():
       body_visitor._visit_each(node.body)  # pylint: disable=protected-access
@@ -293,7 +292,7 @@ class StatementVisitor(algorithm.Visitor):
 
   def visit_ImportFrom(self, node):
     self._write_py_context(node.lineno)
-    visitor = imputil.ImportVisitor(self.block.root.path)
+    visitor = imputil.ImportVisitor(self.block.root.path, self.future_node)
     visitor.visit(node)
     for imp in visitor.imports:
       if imp.is_native:
@@ -315,13 +314,7 @@ class StatementVisitor(algorithm.Visitor):
                   mod.expr, self.block.root.intern(name))
               self.block.bind_var(
                   self.writer, binding.alias, member.expr)
-      elif node.module == '__future__':
-        # At this stage all future imports are done in an initial pass (see
-        # visit() above), so if they are encountered here after the last valid
-        # __future__ then it's a syntax error.
-        if node.lineno > self.future_features.future_lineno:
-          raise util.LateFutureError(node)
-      else:
+      elif node.module != '__future__':
         self._import_and_bind(imp)
 
   def visit_Module(self, node):
@@ -331,7 +324,7 @@ class StatementVisitor(algorithm.Visitor):
     self._write_py_context(node.lineno)
 
   def visit_Print(self, node):
-    if self.future_features.parser_flags & imputil.FUTURE_PRINT_FUNCTION:
+    if self.block.root.future_features.print_function:
       raise util.ParseError(node, 'syntax error (print is not a keyword)')
     self._write_py_context(node.lineno)
     with self.block.alloc_temp('[]*πg.Object') as args:
@@ -549,7 +542,7 @@ class StatementVisitor(algorithm.Visitor):
       func_visitor.visit(child)
     func_block = block.FunctionBlock(self.block, node.name, func_visitor.vars,
                                      func_visitor.is_generator)
-    visitor = StatementVisitor(func_block)
+    visitor = StatementVisitor(func_block, self.future_node)
     # Indent so that the function body is aligned with the goto labels.
     with visitor.writer.indent_block():
       visitor._visit_each(node.body)  # pylint: disable=protected-access

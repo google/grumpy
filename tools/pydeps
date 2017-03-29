@@ -47,7 +47,13 @@ def main(args):
         e.filename, e.lineno, e.text)
     return 2
 
-  visitor = imputil.ImportVisitor(path)
+  try:
+    future_node, _ = imputil.parse_future_features(mod)
+  except util.CompileError as e:
+    print >> sys.stderr, str(e)
+    return 2
+
+  visitor = imputil.ImportVisitor(path, future_node)
   try:
     visitor.visit(mod)
   except util.CompileError as e:

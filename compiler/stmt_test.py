@@ -335,46 +335,6 @@ class StatementVisitorTest(unittest.TestCase):
         print '123'
         print 'foo', 'bar'""")))
 
-  def testImportFromFuture(self):
-    testcases = [
-        ('from __future__ import print_function',
-         imputil.FUTURE_PRINT_FUNCTION),
-        ('from __future__ import generators', 0),
-        ('from __future__ import generators, print_function',
-         imputil.FUTURE_PRINT_FUNCTION),
-    ]
-
-    for i, tc in enumerate(testcases):
-      source, want_flags = tc
-      mod = pythonparser.parse(textwrap.dedent(source))
-      node = mod.body[0]
-      got = imputil.import_from_future(node)
-      msg = '#{}: want {}, got {}'.format(i, want_flags, got)
-      self.assertEqual(want_flags, got, msg=msg)
-
-  def testImportFromFutureParseError(self):
-    testcases = [
-        # NOTE: move this group to testImportFromFuture as they are implemented
-        # by grumpy
-        ('from __future__ import absolute_import',
-         r'future feature \w+ not yet implemented'),
-        ('from __future__ import division',
-         r'future feature \w+ not yet implemented'),
-        ('from __future__ import unicode_literals',
-         r'future feature \w+ not yet implemented'),
-
-        ('from __future__ import braces', 'not a chance'),
-        ('from __future__ import nonexistant_feature',
-         r'future feature \w+ is not defined'),
-    ]
-
-    for tc in testcases:
-      source, want_regexp = tc
-      mod = pythonparser.parse(source)
-      node = mod.body[0]
-      self.assertRaisesRegexp(util.ParseError, want_regexp,
-                              imputil.import_from_future, node)
-
   def testImportWildcardMemberRaises(self):
     regexp = r'wildcard member import is not implemented: from foo import *'
     self.assertRaisesRegexp(util.ImportError, regexp, _ParseAndVisit,
@@ -573,7 +533,7 @@ def _MakeModuleBlock():
 
 def _ParseAndVisit(source):
   mod = pythonparser.parse(source)
-  future_features = imputil.visit_future(mod)
+  _, future_features = imputil.parse_future_features(mod)
   b = block.ModuleBlock(imputil_test.MockPath(), '__main__',
                         '<test>', source, future_features)
   visitor = stmt.StatementVisitor(b)
