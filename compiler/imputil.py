@@ -109,8 +109,9 @@ class ImportVisitor(algorithm.Visitor):
 
   # pylint: disable=invalid-name,missing-docstring,no-init
 
-  def __init__(self, path):
+  def __init__(self, path, future_node=None):
     self.path = path
+    self.future_node = future_node
     self.imports = []
 
   def visit_Import(self, node):
@@ -134,6 +135,8 @@ class ImportVisitor(algorithm.Visitor):
       raise util.ImportError(node, msg)
 
     if node.module == '__future__':
+      if node != self.future_node:
+        raise util.LateFutureError(node)
       return
 
     if node.module.startswith(_NATIVE_MODULE_PREFIX):
@@ -168,88 +171,60 @@ class ImportVisitor(algorithm.Visitor):
     return Import(full_name)
 
 
-# Parser flags, set on 'from __future__ import *', see parser_flags on
-# StatementVisitor below. Note these have the same values as CPython.
-FUTURE_DIVISION = 0x2000
-FUTURE_ABSOLUTE_IMPORT = 0x4000
-FUTURE_PRINT_FUNCTION = 0x10000
-FUTURE_UNICODE_LITERALS = 0x20000
+_FUTURE_FEATURES = (
+    'absolute_import',
+    'division',
+    'print_function',
+    'unicode_literals',
+)
 
-# Names for future features in 'from __future__ import *'. Map from name in the
-# import statement to a tuple of the flag for parser, and whether we've (grumpy)
-# implemented the feature yet.
-future_features = {
-    "division": (FUTURE_DIVISION, False),
-    "absolute_import": (FUTURE_ABSOLUTE_IMPORT, False),
-    "print_function": (FUTURE_PRINT_FUNCTION, True),
-    "unicode_literals": (FUTURE_UNICODE_LITERALS, False),
-}
+_IMPLEMENTED_FUTURE_FEATURES = ('print_function',)
 
 # These future features are already in the language proper as of 2.6, so
 # importing them via __future__ has no effect.
-redundant_future_features = ["generators", "with_statement", "nested_scopes"]
-
-
-def import_from_future(node):
-  """Processes a future import statement, returning set of flags it defines."""
-  assert isinstance(node, ast.ImportFrom)
-  assert node.module == '__future__'
-  flags = 0
-  for alias in node.names:
-    name = alias.name
-    if name in future_features:
-      flag, implemented = future_features[name]
-      if not implemented:
-        msg = 'future feature {} not yet implemented by grumpy'.format(name)
-        raise util.ParseError(node, msg)
-      flags |= flag
-    elif name == 'braces':
-      raise util.ParseError(node, 'not a chance')
-    elif name not in redundant_future_features:
-      msg = 'future feature {} is not defined'.format(name)
-      raise util.ParseError(node, msg)
-  return flags
+_REDUNDANT_FUTURE_FEATURES = ('generators', 'with_statement', 'nested_scopes')
 
 
 class FutureFeatures(object):
+
   def __init__(self):
-    self.parser_flags = 0
-    self.future_lineno = 0
+    for name in _FUTURE_FEATURES:
+      setattr(self, name, False)
 
 
-def visit_future(node):
-  """Accumulates a set of compiler flags for the compiler __future__ imports.
+def _make_future_features(node):
+  """Processes a future import statement, returning set of flags it defines."""
+  assert isinstance(node, ast.ImportFrom)
+  assert node.module == '__future__'
+  features = FutureFeatures()
+  for alias in node.names:
+    name = alias.name
+    if name in _FUTURE_FEATURES:
+      if name not in _IMPLEMENTED_FUTURE_FEATURES:
+        msg = 'future feature {} not yet implemented by grumpy'.format(name)
+        raise util.ParseError(node, msg)
+      setattr(features, name, True)
+    elif name == 'braces':
+      raise util.ParseError(node, 'not a chance')
+    elif name not in _REDUNDANT_FUTURE_FEATURES:
+      msg = 'future feature {} is not defined'.format(name)
+      raise util.ParseError(node, msg)
+  return features
 
-  Returns an instance of FutureFeatures which encapsulates the flags and the
-  line number of the last valid future import parsed. A downstream parser can
-  use the latter to detect invalid future imports that appear too late in the
-  file.
-  """
-  # If this is the module node, do an initial pass through the module body's
-  # statements to detect future imports and process their directives (i.e.,
-  # set compiler flags), and detect ones that don't appear at the beginning of
-  # the file. The only things that can proceed a future statement are other
-  # future statements and/or a doc string.
-  assert isinstance(node, ast.Module)
-  ff = FutureFeatures()
-  done = False
+
+def parse_future_features(mod):
+  """Accumulates a set of flags for the compiler __future__ imports."""
+  assert isinstance(mod, ast.Module)
   found_docstring = False
-  for node in node.body:
+  for node in mod.body:
     if isinstance(node, ast.ImportFrom):
-      modname = node.module
-      if modname == '__future__':
-        if done:
-          raise util.LateFutureError(node)
-        ff.parser_flags |= import_from_future(node)
-        ff.future_lineno = node.lineno
-      else:
-        done = True
+      if node.module == '__future__':
+        return node, _make_future_features(node)
+      break
     elif isinstance(node, ast.Expr) and not found_docstring:
-      e = node.value
-      if not isinstance(e, ast.Str): # pylint: disable=simplifiable-if-statement
-        done = True
-      else:
-        found_docstring = True
+      if not isinstance(node.value, ast.Str):
+        break
+      found_docstring = True
     else:
-      done = True
-  return ff
+      break
+  return None, FutureFeatures()

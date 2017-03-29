@@ -232,31 +232,75 @@ class ImportVisitorTest(unittest.TestCase):
                      [imp.__dict__ for imp in got])
 
 
-class VisitFutureTest(unittest.TestCase):
+class MakeFutureFeaturesTest(unittest.TestCase):
 
-  def testVisitFuture(self):
+  def testImportFromFuture(self):
+    print_function_features = imputil.FutureFeatures()
+    print_function_features.print_function = True
     testcases = [
         ('from __future__ import print_function',
-         imputil.FUTURE_PRINT_FUNCTION, 1),
+         print_function_features),
+        ('from __future__ import generators', imputil.FutureFeatures()),
+        ('from __future__ import generators, print_function',
+         print_function_features),
+    ]
+
+    for tc in testcases:
+      source, want = tc
+      mod = pythonparser.parse(textwrap.dedent(source))
+      node = mod.body[0]
+      got = imputil._make_future_features(node)  # pylint: disable=protected-access
+      self.assertEqual(want.__dict__, got.__dict__)
+
+  def testImportFromFutureParseError(self):
+    testcases = [
+        # NOTE: move this group to testImportFromFuture as they are implemented
+        # by grumpy
+        ('from __future__ import absolute_import',
+         r'future feature \w+ not yet implemented'),
+        ('from __future__ import division',
+         r'future feature \w+ not yet implemented'),
+        ('from __future__ import unicode_literals',
+         r'future feature \w+ not yet implemented'),
+        ('from __future__ import braces', 'not a chance'),
+        ('from __future__ import nonexistant_feature',
+         r'future feature \w+ is not defined'),
+    ]
+
+    for tc in testcases:
+      source, want_regexp = tc
+      mod = pythonparser.parse(source)
+      node = mod.body[0]
+      self.assertRaisesRegexp(util.ParseError, want_regexp,
+                              imputil._make_future_features, node)  # pylint: disable=protected-access
+
+
+class ParseFutureFeaturesTest(unittest.TestCase):
+
+  def testVisitFuture(self):
+    print_function_features = imputil.FutureFeatures()
+    print_function_features.print_function = True
+    testcases = [
+        ('from __future__ import print_function',
+         print_function_features),
         ("""\
         "module docstring"
 
         from __future__ import print_function
-        """, imputil.FUTURE_PRINT_FUNCTION, 3),
+        """, print_function_features),
         ("""\
         "module docstring"
 
         from __future__ import print_function, with_statement
         from __future__ import nested_scopes
-        """, imputil.FUTURE_PRINT_FUNCTION, 4),
+        """, print_function_features),
     ]
 
     for tc in testcases:
-      source, flags, lineno = tc
+      source, want = tc
       mod = pythonparser.parse(textwrap.dedent(source))
-      future_features = imputil.visit_future(mod)
-      self.assertEqual(future_features.parser_flags, flags)
-      self.assertEqual(future_features.future_lineno, lineno)
+      _, got = imputil.parse_future_features(mod)
+      self.assertEqual(want.__dict__, got.__dict__)
 
   def testVisitFutureLate(self):
     testcases = [
@@ -274,4 +318,5 @@ class VisitFutureTest(unittest.TestCase):
 
     for source in testcases:
       mod = pythonparser.parse(textwrap.dedent(source))
-      self.assertRaises(util.LateFutureError, imputil.visit_future, mod)
+      self.assertRaises(util.LateFutureError,
+                        imputil.parse_future_features, mod)
