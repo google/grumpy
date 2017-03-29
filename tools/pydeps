@@ -36,7 +36,6 @@ def main(args):
   if not gopath:
     print >> sys.stderr, 'GOPATH not set'
     return 1
-  path = imputil.Path(gopath, args.modname, args.script)
 
   with open(args.script) as py_file:
     py_contents = py_file.read()
@@ -48,11 +47,13 @@ def main(args):
     return 2
 
   try:
-    future_node, _ = imputil.parse_future_features(mod)
+    future_node, future_features = imputil.parse_future_features(mod)
   except util.CompileError as e:
     print >> sys.stderr, str(e)
     return 2
 
+  path = imputil.Path(gopath, args.modname, args.script,
+                      future_features.absolute_import)
   visitor = imputil.ImportVisitor(path, future_node)
   try:
     visitor.visit(mod)
