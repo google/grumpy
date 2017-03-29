@@ -299,6 +299,11 @@ class StatementVisitorTest(unittest.TestCase):
         import sys
         print type(sys.modules)""")))
 
+  def testImportFutureLateRaises(self):
+    regexp = 'from __future__ imports must occur at the beginning of the file'
+    self.assertRaisesRegexp(util.ImportError, regexp, _ParseAndVisit,
+                            'foo = bar\nfrom __future__ import print_function')
+
   def testImportMember(self):
     self.assertEqual((0, "<type 'dict'>\n"), _GrumpRun(textwrap.dedent("""\
         from sys import modules
@@ -329,12 +334,6 @@ class StatementVisitorTest(unittest.TestCase):
         from __go__.time import type_Duration as Duration
         print Duration""")))
 
-  def testPrintStatement(self):
-    self.assertEqual((0, 'abc 123\nfoo bar\n'), _GrumpRun(textwrap.dedent("""\
-        print 'abc',
-        print '123'
-        print 'foo', 'bar'""")))
-
   def testImportWildcardMemberRaises(self):
     regexp = r'wildcard member import is not implemented: from foo import *'
     self.assertRaisesRegexp(util.ImportError, regexp, _ParseAndVisit,
@@ -344,7 +343,13 @@ class StatementVisitorTest(unittest.TestCase):
     self.assertRaisesRegexp(util.ImportError, regexp, _ParseAndVisit,
                             'from __go__.foo import *')
 
-  def testFutureFeaturePrintFunction(self):
+  def testPrintStatement(self):
+    self.assertEqual((0, 'abc 123\nfoo bar\n'), _GrumpRun(textwrap.dedent("""\
+        print 'abc',
+        print '123'
+        print 'foo', 'bar'""")))
+
+  def testPrintFunction(self):
     want = "abc\n123\nabc 123\nabcx123\nabc 123 "
     self.assertEqual((0, want), _GrumpRun(textwrap.dedent("""\
         "module docstring is ok to proceed __future__"
