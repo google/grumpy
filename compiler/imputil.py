@@ -34,7 +34,7 @@ _NATIVE_MODULE_PREFIX = '__go__.'
 class Path(object):
   """Resolves imported modules based on a search path of directories."""
 
-  def __init__(self, gopath, modname, script):
+  def __init__(self, gopath, modname, script, absolute_import):
     self.dirs = []
     if gopath:
       self.dirs.extend(os.path.join(d, 'src', '__python__')
@@ -50,6 +50,7 @@ class Path(object):
     else:
       self.package_dir = None
       self.package_name = None
+    self.absolute_import = absolute_import
 
   def resolve_import(self, modname):
     """Find module on the path returning full module name and script path.
@@ -61,7 +62,7 @@ class Path(object):
       A pair (full_name, script), where full_name is the absolute module name
       and script is the filename of the associate .py file.
     """
-    if self.package_dir:
+    if not self.absolute_import and self.package_dir:
       script = self._find_script(self.package_dir, modname)
       if script:
         return '{}.{}'.format(self.package_name, modname), script
@@ -178,7 +179,7 @@ _FUTURE_FEATURES = (
     'unicode_literals',
 )
 
-_IMPLEMENTED_FUTURE_FEATURES = ('print_function',)
+_IMPLEMENTED_FUTURE_FEATURES = ('absolute_import', 'print_function',)
 
 # These future features are already in the language proper as of 2.6, so
 # importing them via __future__ has no effect.
@@ -188,8 +189,10 @@ _REDUNDANT_FUTURE_FEATURES = ('generators', 'with_statement', 'nested_scopes')
 class FutureFeatures(object):
 
   def __init__(self):
-    for name in _FUTURE_FEATURES:
-      setattr(self, name, False)
+    self.absolute_import = False
+    self.division = False
+    self.print_function = False
+    self.unicode_literals = False
 
 
 def _make_future_features(node):

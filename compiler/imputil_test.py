@@ -72,18 +72,18 @@ class _MaterializedPathTree(object):
 class PathTest(unittest.TestCase):
 
   def testResolveImportEmptyPath(self):
-    path = imputil.Path(None, 'foo', 'foo.py')
+    path = imputil.Path(None, 'foo', 'foo.py', False)
     self.assertEqual(path.resolve_import('bar'), (None, None))
 
   def testResolveImportTopLevelModule(self):
     with _MaterializedPathTree({'bar.py': None}) as tree:
-      path = imputil.Path(tree.rootdir, 'foo', 'foo.py')
+      path = imputil.Path(tree.rootdir, 'foo', 'foo.py', False)
       want = ('bar', os.path.join(tree.pydir, 'bar.py'))
       self.assertEqual(path.resolve_import('bar'), want)
 
   def testResolveImportTopLevelPackage(self):
     with _MaterializedPathTree({'bar/': {'__init__.py': None}}) as tree:
-      path = imputil.Path(tree.rootdir, 'foo', 'foo.py')
+      path = imputil.Path(tree.rootdir, 'foo', 'foo.py', False)
       want = ('bar', os.path.join(tree.pydir, 'bar', '__init__.py'))
       self.assertEqual(path.resolve_import('bar'), want)
 
@@ -95,7 +95,7 @@ class PathTest(unittest.TestCase):
         }
     }
     with _MaterializedPathTree(spec) as tree:
-      path = imputil.Path(tree.rootdir, 'foo', 'foo.py')
+      path = imputil.Path(tree.rootdir, 'foo', 'foo.py', False)
       want = ('bar.baz', os.path.join(tree.pydir, 'bar', 'baz.py'))
       self.assertEqual(path.resolve_import('bar.baz'), want)
 
@@ -104,12 +104,27 @@ class PathTest(unittest.TestCase):
         'bar/': {
             '__init__.py': None,
             'baz.py': None,
-        }
+        },
+        'baz.py': None,
     }
     with _MaterializedPathTree(spec) as tree:
       bar_script = os.path.join(tree.pydir, 'bar', '__init__.py')
-      path = imputil.Path(tree.rootdir, 'bar', bar_script)
+      path = imputil.Path(tree.rootdir, 'bar', bar_script, False)
       want = ('bar.baz', os.path.join(tree.pydir, 'bar', 'baz.py'))
+      self.assertEqual(path.resolve_import('baz'), want)
+
+  def testResolveImportPackageModuleAbsoluteImport(self):
+    spec = {
+        'bar/': {
+            '__init__.py': None,
+            'baz.py': None,
+        },
+        'baz.py': None,
+    }
+    with _MaterializedPathTree(spec) as tree:
+      bar_script = os.path.join(tree.pydir, 'bar', '__init__.py')
+      path = imputil.Path(tree.rootdir, 'bar', bar_script, True)
+      want = ('baz', os.path.join(tree.pydir, 'baz.py'))
       self.assertEqual(path.resolve_import('baz'), want)
 
   def testResolveImportPackageModuleRelativeFromSubModule(self):
@@ -122,7 +137,7 @@ class PathTest(unittest.TestCase):
     }
     with _MaterializedPathTree(spec) as tree:
       foo_script = os.path.join(tree.pydir, 'bar', 'foo.py')
-      path = imputil.Path(tree.rootdir, 'bar.foo', foo_script)
+      path = imputil.Path(tree.rootdir, 'bar.foo', foo_script, False)
       want = ('bar.baz', os.path.join(tree.pydir, 'bar', 'baz.py'))
       self.assertEqual(path.resolve_import('baz'), want)
 
@@ -278,8 +293,9 @@ class MakeFutureFeaturesTest(unittest.TestCase):
 class ParseFutureFeaturesTest(unittest.TestCase):
 
   def testFutureFeatures(self):
-    print_function_features = imputil.FutureFeatures()
-    print_function_features.print_function = True
+    print_function_features = {'print_function': True}
+    absolute_import_features = {'absolute_import': True}
+    all_features = {'print_function': True, 'absolute_import': True}
     testcases = [
         ('from __future__ import print_function',
          print_function_features),
@@ -294,13 +310,17 @@ class ParseFutureFeaturesTest(unittest.TestCase):
         from __future__ import print_function, with_statement
         from __future__ import nested_scopes
         """, print_function_features),
+        ('from __future__ import absolute_import',
+         absolute_import_features),
+        ('from __future__ import absolute_import, print_function',
+         all_features),
     ]
 
     for tc in testcases:
       source, want = tc
       mod = pythonparser.parse(textwrap.dedent(source))
       _, got = imputil.parse_future_features(mod)
-      self.assertEqual(want.__dict__, got.__dict__)
+      self.assertEqual(want, got.__dict__)
 
   def testFutureAfterAssignRaises(self):
     source = 'foo = 123\nfrom __future__ import print_function'
