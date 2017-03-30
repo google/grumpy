@@ -18,7 +18,6 @@ import (
 	"fmt"
 	"math"
 	"math/big"
-	//	"strconv"
 	"strings"
 	"unicode"
 )
@@ -643,8 +642,9 @@ func builtinRound(f *Frame, args Args, _ KWArgs) (*Object, *BaseException) {
 	}
 
 	var result float64
-	if ndigits >= 0 {
+	if ndigits == 0 {
 		result = round(number, ndigits)
+		// round(12.5) => 13, round(-12.5) => -13
 		if math.Abs(result-number) == 0.5 {
 			if number > 0.0 {
 				result = number + 0.5
@@ -652,6 +652,8 @@ func builtinRound(f *Frame, args Args, _ KWArgs) (*Object, *BaseException) {
 				result = number - 0.5
 			}
 		}
+	} else if ndigits > 0 {
+		result = round(number, ndigits)
 	} else {
 		pow := math.Pow(10.0, float64(-ndigits))
 		y := number / pow
@@ -887,12 +889,8 @@ func initIters(f *Frame, items []*Object) ([]*Object, *BaseException) {
 }
 
 func round(x float64, ndigits int) float64 {
-	pow := 1.0
-	for i := 0; i < ndigits; i++ {
-		pow *= 10
-	}
-	rounded := math.Floor(x*pow+0.5) / pow
-	return rounded
+	pow := math.Pow(10.0, float64(ndigits))
+	return math.Floor(x*pow+0.5) / pow
 }
 
 // zipLongest return the list of aggregates elements from each of the
