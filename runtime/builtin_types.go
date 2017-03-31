@@ -655,6 +655,14 @@ func builtinRound(f *Frame, args Args, _ KWArgs) (*Object, *BaseException) {
 	} else if ndigits > 0 {
 		result = round(number, ndigits)
 	} else {
+		/***
+		corona10 :
+		In Python 2, ndigits < 0 treats the decimal point as .0,
+		and the integer parts are  masked to 0 as | ndigits |.
+		To do this, divide -12.5 by pow (10, | ndigits |)
+		(this will be -1.25) and round it.
+		Finally, multiplying by pow (10, | ndigits |) yields -10.0.
+		***/
 		pow := math.Pow(10.0, float64(-ndigits))
 		y := number / pow
 		result = round(y, 0)
