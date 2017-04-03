@@ -641,35 +641,15 @@ func builtinRound(f *Frame, args Args, _ KWArgs) (*Object, *BaseException) {
 		return NewFloat(number).ToObject(), nil
 	}
 
-	var result float64
-	if ndigits == 0 {
-		result = round(number, ndigits)
-		// round(12.5) => 13, round(-12.5) => -13
-		if math.Abs(result-number) == 0.5 {
-			if number > 0.0 {
-				result = number + 0.5
-			} else {
-				result = number - 0.5
-			}
-		}
-	} else if ndigits > 0 {
-		result = round(number, ndigits)
-	} else {
-		/***
-		corona10 :
-		In Python 2, ndigits < 0 treats the decimal point as .0,
-		and the integer parts are  masked to 0 as | ndigits |.
-		To do this, divide -12.5 by pow (10, | ndigits |)
-		(this will be -1.25) and round it.
-		Finally, multiplying by pow (10, | ndigits |) yields -10.0.
-		***/
-		pow := math.Pow(10.0, float64(-ndigits))
-		y := number / pow
-		result = round(y, 0)
-		if math.Abs(y-result) == 0.5 {
-			result = y + math.Copysign(0.5, y)
-		}
-		result *= pow
+	neg := false
+	if number < 0 {
+		neg = true
+		number = -number
+	}
+	pow := math.Pow(10.0, float64(ndigits))
+	result := math.Floor(number*pow+0.5) / pow
+	if neg {
+		result = -result
 	}
 	return NewFloat(result).ToObject(), nil
 }
@@ -894,11 +874,6 @@ func initIters(f *Frame, items []*Object) ([]*Object, *BaseException) {
 		iters[i] = iter
 	}
 	return iters, nil
-}
-
-func round(x float64, ndigits int) float64 {
-	pow := math.Pow(10.0, float64(ndigits))
-	return math.Floor(x*pow+0.5) / pow
 }
 
 // zipLongest return the list of aggregates elements from each of the
