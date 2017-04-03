@@ -187,12 +187,23 @@ _REDUNDANT_FUTURE_FEATURES = ('generators', 'with_statement', 'nested_scopes')
 
 
 class FutureFeatures(object):
+  """Spec for future feature flags imported by a module."""
 
-  def __init__(self):
-    self.absolute_import = False
-    self.division = False
-    self.print_function = False
-    self.unicode_literals = False
+  def __init__(self, absolute_import=False, division=False,
+               print_function=False, unicode_literals=False):
+    self.absolute_import = absolute_import
+    self.division = division
+    self.print_function = print_function
+    self.unicode_literals = unicode_literals
+
+  def __repr__(self):
+    return '<FutureFeatures {!r}>'.format(self.__dict__)
+
+  def __eq__(self, other):
+    return isinstance(other, FutureFeatures) and self.__dict__ == other.__dict__
+
+  def __ne__(self, other):
+    return not self.__eq__(other)
 
 
 def _make_future_features(node):

@@ -211,8 +211,15 @@ class ImportVisitorTest(unittest.TestCase):
     self.assertRaises(util.ImportError, self._visit_import, 'from foo import *')
 
   def testImportFromFuture(self):
-    result = self._visit_import('from __future__ import print_function')
-    self.assertEqual([], result)
+    mod = pythonparser.parse('from __future__ import print_function')
+    visitor = imputil.ImportVisitor(MockPath(), mod.body[0])
+    visitor.visit(mod)
+    self.assertEqual([], visitor.imports)
+
+  def testImportLateFuture(self):
+    mod = pythonparser.parse('import os\nfrom __future__ import print_function')
+    visitor = imputil.ImportVisitor(MockPath())
+    self.assertRaises(util.LateFutureError, visitor.visit, mod)
 
   def testImportFromNative(self):
     imp = imputil.Import('fmt', is_native=True)
@@ -250,14 +257,12 @@ class ImportVisitorTest(unittest.TestCase):
 class MakeFutureFeaturesTest(unittest.TestCase):
 
   def testImportFromFuture(self):
-    print_function_features = imputil.FutureFeatures()
-    print_function_features.print_function = True
     testcases = [
         ('from __future__ import print_function',
-         print_function_features),
+         imputil.FutureFeatures(print_function=True)),
         ('from __future__ import generators', imputil.FutureFeatures()),
         ('from __future__ import generators, print_function',
-         print_function_features),
+         imputil.FutureFeatures(print_function=True)),
     ]
 
     for tc in testcases:
@@ -271,8 +276,6 @@ class MakeFutureFeaturesTest(unittest.TestCase):
     testcases = [
         # NOTE: move this group to testImportFromFuture as they are implemented
         # by grumpy
-        ('from __future__ import absolute_import',
-         r'future feature \w+ not yet implemented'),
         ('from __future__ import division',
          r'future feature \w+ not yet implemented'),
         ('from __future__ import unicode_literals',
@@ -293,44 +296,35 @@ class MakeFutureFeaturesTest(unittest.TestCase):
 class ParseFutureFeaturesTest(unittest.TestCase):
 
   def testFutureFeatures(self):
-    print_function_features = {'print_function': True}
-    absolute_import_features = {'absolute_import': True}
-    all_features = {'print_function': True, 'absolute_import': True}
     testcases = [
         ('from __future__ import print_function',
-         print_function_features),
+         imputil.FutureFeatures(print_function=True)),
         ("""\
         "module docstring"
 
         from __future__ import print_function
-        """, print_function_features),
+        """, imputil.FutureFeatures(print_function=True)),
         ("""\
         "module docstring"
 
         from __future__ import print_function, with_statement
         from __future__ import nested_scopes
-        """, print_function_features),
+        """, imputil.FutureFeatures(print_function=True)),
         ('from __future__ import absolute_import',
-         absolute_import_features),
+         imputil.FutureFeatures(absolute_import=True)),
         ('from __future__ import absolute_import, print_function',
-         all_features),
+         imputil.FutureFeatures(absolute_import=True, print_function=True)),
+        ('foo = 123\nfrom __future__ import print_function',
+         imputil.FutureFeatures()),
+        ('import os\nfrom __future__ import print_function',
+         imputil.FutureFeatures()),
     ]
 
     for tc in testcases:
       source, want = tc
       mod = pythonparser.parse(textwrap.dedent(source))
       _, got = imputil.parse_future_features(mod)
-      self.assertEqual(want, got.__dict__)
-
-  def testFutureAfterAssignRaises(self):
-    source = 'foo = 123\nfrom __future__ import print_function'
-    mod = pythonparser.parse(source)
-    self.assertRaises(util.LateFutureError, imputil.parse_future_features, mod)
-
-  def testFutureAfterImportRaises(self):
-    source = 'import os\nfrom __future__ import print_function'
-    mod = pythonparser.parse(source)
-    self.assertRaises(util.LateFutureError, imputil.parse_future_features, mod)
+      self.assertEqual(want, got)
 
   def testUnimplementedFutureRaises(self):
     mod = pythonparser.parse('from __future__ import division')
@@ -343,3 +337,7 @@ class ParseFutureFeaturesTest(unittest.TestCase):
     self.assertRaisesRegexp(
         util.ParseError, 'future feature foo is not defined',
         imputil.parse_future_features, mod)
+
+
+if __name__ == '__main__':
+  unittest.main()
