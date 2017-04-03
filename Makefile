@@ -152,7 +152,7 @@ $(COMPILER_SRCS) $(COMPILER_TEST_SRCS) $(COMPILER_SHARDED_TEST_SRCS): $(PY_DIR)/
 	@mkdir -p $(PY_DIR)/grumpy/compiler
 	@cp -f $< $@
 
-$(COMPILER_PASS_FILES): %.pass: %.py $(COMPILER)
+$(COMPILER_PASS_FILES): %.pass: %.py $(COMPILER) $(COMPILER_TEST_SRCS)
 	@$(PYTHON) $< -q
 	@touch $@
 	@echo compiler/`basename $*` PASS
