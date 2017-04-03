@@ -631,15 +631,27 @@ func builtinRound(f *Frame, args Args, _ KWArgs) (*Object, *BaseException) {
 			return nil, raised
 		}
 	}
-	// TODO: implement this.
-	if ndigits != 0 {
-		return nil, f.RaiseType(NotImplementedErrorType, "round with ndigits is not implemented in grumpy")
-	}
 	number, isFloat := floatCoerce(args[0])
+
 	if !isFloat {
 		return nil, f.RaiseType(TypeErrorType, "a float is required")
 	}
-	return NewFloat(math.Floor(number + 0.5)).ToObject(), nil
+
+	if math.IsNaN(number) || math.IsInf(number, 0) || number == 0.0 {
+		return NewFloat(number).ToObject(), nil
+	}
+
+	neg := false
+	if number < 0 {
+		neg = true
+		number = -number
+	}
+	pow := math.Pow(10.0, float64(ndigits))
+	result := math.Floor(number*pow+0.5) / pow
+	if neg {
+		result = -result
+	}
+	return NewFloat(result).ToObject(), nil
 }
 
 func builtinSetAttr(f *Frame, args Args, _ KWArgs) (*Object, *BaseException) {
