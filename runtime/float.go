@@ -207,15 +207,7 @@ func floatNew(f *Frame, t *Type, args Args, _ KWArgs) (*Object, *BaseException) 
 	}
 	o := args[0]
 	if floatSlot := o.typ.slots.Float; floatSlot != nil {
-		result, raised := floatSlot.Fn(f, o)
-		if raised != nil {
-			return nil, raised
-		}
-		if raised == nil && !result.isInstance(FloatType) {
-			exc := fmt.Sprintf("__float__ returned non-float (type %s)", result.typ.Name())
-			return nil, f.RaiseType(TypeErrorType, exc)
-		}
-		return result, nil
+		return floatConvert(floatSlot, f, o)
 	}
 	if !o.isInstance(StrType) {
 		return nil, f.RaiseType(TypeErrorType, "float() argument must be a string or a number")
@@ -226,6 +218,18 @@ func floatNew(f *Frame, t *Type, args Args, _ KWArgs) (*Object, *BaseException) 
 		return nil, f.RaiseType(ValueErrorType, fmt.Sprintf("could not convert string to float: %s", s))
 	}
 	return NewFloat(result).ToObject(), nil
+}
+
+func floatConvert(floatSlot *unaryOpSlot, f *Frame, o *Object) (*Object, *BaseException) {
+	result, raised := floatSlot.Fn(f, o)
+	if raised != nil {
+		return nil, raised
+	}
+	if !result.isInstance(FloatType) {
+		exc := fmt.Sprintf("__float__ returned non-float (type %s)", result.typ.Name())
+		return nil, f.RaiseType(TypeErrorType, exc)
+	}
+	return result, nil
 }
 
 func floatNonZero(f *Frame, o *Object) (*Object, *BaseException) {
