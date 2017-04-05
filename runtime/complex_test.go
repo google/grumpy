@@ -37,8 +37,6 @@ func TestComplexEq(t *testing.T) {
 		{args: wrapArgs(complex(math.Inf(-1), 0), complex(math.Inf(-1), 0)), want: True.ToObject()},
 		{args: wrapArgs(complex(math.Inf(-1), 0), complex(0, math.Inf(-1))), want: False.ToObject()},
 		{args: wrapArgs(complex(math.Inf(1), math.Inf(1)), complex(math.Inf(1), math.Inf(1))), want: True.ToObject()},
-		{args: wrapArgs(float64(1.1), complex(1, 2)), wantExc: mustCreateException(TypeErrorType, "__eq__ received non-complex (type float)")},
-		{args: wrapArgs("a", complex(1, 2)), wantExc: mustCreateException(TypeErrorType, "__eq__ received non-complex (type str)")},
 	}
 	for _, cas := range cases {
 		if err := runInvokeTestCase(wrapFuncForTest(complexEq), &cas); err != "" {
@@ -49,7 +47,11 @@ func TestComplexEq(t *testing.T) {
 
 func TestComplexGE(t *testing.T) {
 	cases := []invokeTestCase{
-		{args: wrapArgs(complex(0, 0), 0), wantExc: mustCreateException(TypeErrorType, "'__ge__' of 'complex' is not defined")},
+		{args: wrapArgs(complex(1, 2), 1), wantExc: mustCreateException(TypeErrorType, "no ordering relation is defined for complex numbers")},
+		{args: wrapArgs(complex(1, 2), 1.2), wantExc: mustCreateException(TypeErrorType, "no ordering relation is defined for complex numbers")},
+		{args: wrapArgs(complex(1, 2), math.NaN()), wantExc: mustCreateException(TypeErrorType, "no ordering relation is defined for complex numbers")},
+		{args: wrapArgs(complex(1, 2), math.Inf(-1)), wantExc: mustCreateException(TypeErrorType, "no ordering relation is defined for complex numbers")},
+		{args: wrapArgs(complex(1, 2), "abc"), want: NotImplemented},
 	}
 	for _, cas := range cases {
 		if err := runInvokeTestCase(wrapFuncForTest(complexGE), &cas); err != "" {
@@ -60,7 +62,11 @@ func TestComplexGE(t *testing.T) {
 
 func TestComplexGT(t *testing.T) {
 	cases := []invokeTestCase{
-		{args: wrapArgs(complex(0, 0), 0), wantExc: mustCreateException(TypeErrorType, "'__gt__' of 'complex' is not defined")},
+		{args: wrapArgs(complex(1, 2), 1), wantExc: mustCreateException(TypeErrorType, "no ordering relation is defined for complex numbers")},
+		{args: wrapArgs(complex(1, 2), 1.2), wantExc: mustCreateException(TypeErrorType, "no ordering relation is defined for complex numbers")},
+		{args: wrapArgs(complex(1, 2), math.NaN()), wantExc: mustCreateException(TypeErrorType, "no ordering relation is defined for complex numbers")},
+		{args: wrapArgs(complex(1, 2), math.Inf(-1)), wantExc: mustCreateException(TypeErrorType, "no ordering relation is defined for complex numbers")},
+		{args: wrapArgs(complex(1, 2), "abc"), want: NotImplemented},
 	}
 	for _, cas := range cases {
 		if err := runInvokeTestCase(wrapFuncForTest(complexGT), &cas); err != "" {
@@ -71,7 +77,11 @@ func TestComplexGT(t *testing.T) {
 
 func TestComplexLE(t *testing.T) {
 	cases := []invokeTestCase{
-		{args: wrapArgs(complex(0, 0), 0), wantExc: mustCreateException(TypeErrorType, "'__le__' of 'complex' is not defined")},
+		{args: wrapArgs(complex(1, 2), 1), wantExc: mustCreateException(TypeErrorType, "no ordering relation is defined for complex numbers")},
+		{args: wrapArgs(complex(1, 2), 1.2), wantExc: mustCreateException(TypeErrorType, "no ordering relation is defined for complex numbers")},
+		{args: wrapArgs(complex(1, 2), math.NaN()), wantExc: mustCreateException(TypeErrorType, "no ordering relation is defined for complex numbers")},
+		{args: wrapArgs(complex(1, 2), math.Inf(-1)), wantExc: mustCreateException(TypeErrorType, "no ordering relation is defined for complex numbers")},
+		{args: wrapArgs(complex(1, 2), "abc"), want: NotImplemented},
 	}
 	for _, cas := range cases {
 		if err := runInvokeTestCase(wrapFuncForTest(complexLE), &cas); err != "" {
@@ -82,7 +92,11 @@ func TestComplexLE(t *testing.T) {
 
 func TestComplexLT(t *testing.T) {
 	cases := []invokeTestCase{
-		{args: wrapArgs(complex(0, 0), 0), wantExc: mustCreateException(TypeErrorType, "'__lt__' of 'complex' is not defined")},
+		{args: wrapArgs(complex(1, 2), 1), wantExc: mustCreateException(TypeErrorType, "no ordering relation is defined for complex numbers")},
+		{args: wrapArgs(complex(1, 2), 1.2), wantExc: mustCreateException(TypeErrorType, "no ordering relation is defined for complex numbers")},
+		{args: wrapArgs(complex(1, 2), math.NaN()), wantExc: mustCreateException(TypeErrorType, "no ordering relation is defined for complex numbers")},
+		{args: wrapArgs(complex(1, 2), math.Inf(-1)), wantExc: mustCreateException(TypeErrorType, "no ordering relation is defined for complex numbers")},
+		{args: wrapArgs(complex(1, 2), "abc"), want: NotImplemented},
 	}
 	for _, cas := range cases {
 		if err := runInvokeTestCase(wrapFuncForTest(complexLT), &cas); err != "" {
@@ -106,8 +120,6 @@ func TestComplexNE(t *testing.T) {
 		{args: wrapArgs(complex(math.Inf(-1), 0), complex(math.Inf(-1), 0)), want: False.ToObject()},
 		{args: wrapArgs(complex(math.Inf(-1), 0), complex(0, math.Inf(-1))), want: True.ToObject()},
 		{args: wrapArgs(complex(math.Inf(1), math.Inf(1)), complex(math.Inf(1), math.Inf(1))), want: False.ToObject()},
-		{args: wrapArgs(float64(1.1), complex(1, 2)), wantExc: mustCreateException(TypeErrorType, "__ne__ received non-complex (type float)")},
-		{args: wrapArgs("a", complex(1, 2)), wantExc: mustCreateException(TypeErrorType, "__ne__ received non-complex (type str)")},
 	}
 	for _, cas := range cases {
 		if err := runInvokeTestCase(wrapFuncForTest(complexNE), &cas); err != "" {
@@ -185,7 +197,7 @@ func TestComplexNew(t *testing.T) {
 		{args: wrapArgs(), wantExc: mustCreateException(TypeErrorType, "'__new__' requires 1 arguments")},
 		{args: wrapArgs(FloatType), wantExc: mustCreateException(TypeErrorType, "complex.__new__(float): float is not a subtype of complex")},
 		{args: wrapArgs(ComplexType, None), wantExc: mustCreateException(TypeErrorType, "complex() argument must be a string or a number")},
-		{args: wrapArgs(ComplexType, "foo"), wantExc: mustCreateException(ValueErrorType, "could not convert string to complex: foo")},
+		{args: wrapArgs(ComplexType, "foo"), wantExc: mustCreateException(ValueErrorType, "complex() arg is a malformed string")},
 		{args: wrapArgs(ComplexType, 123, None, None), wantExc: mustCreateException(TypeErrorType, "'__new__' of 'complex' requires at most 2 arguments")},
 	}
 	for _, cas := range cases {
@@ -278,13 +290,13 @@ func TestSplitBeforeSign(t *testing.T) {
 		{"-1.2-3.4", []string{"", "-1.2", "-3.4"}},
 	}
 	for _, cas := range cases {
-		if got := splitBeforeSign(cas.s); !eq(got, cas.want) {
+		if got := splitBeforeSign(cas.s); !stringSlicesAreEq(got, cas.want) {
 			t.Errorf("splitBeforeSign(%q) = %v, want %v", cas.s, got, cas.want)
 		}
 	}
 }
 
-func eq(a, b []string) bool {
+func stringSlicesAreEq(a, b []string) bool {
 	if len(a) != len(b) {
 		return false
 	}

@@ -81,47 +81,51 @@ func initComplexType(dict map[string]*Object) {
 }
 
 func complexEq(f *Frame, v, w *Object) (*Object, *BaseException) {
-	if !v.isInstance(ComplexType) {
-		format := "__eq__ received non-complex (type %s)"
-		return nil, f.RaiseType(TypeErrorType, fmt.Sprintf(format, v.typ.Name()))
+	e, ok := complexCompare(toComplexUnsafe(v), w)
+	if !ok {
+		return NotImplemented, nil
 	}
-	return complexCompare(toComplexUnsafe(v), w, True, False), nil
+	return GetBool(e).ToObject(), nil
 }
 
 func complexGE(f *Frame, v, w *Object) (*Object, *BaseException) {
-	return nil, f.RaiseType(TypeErrorType, "'__ge__' of 'complex' is not defined")
+	return comparisonNotSuported(f, w)
 }
 
 func complexGT(f *Frame, v, w *Object) (*Object, *BaseException) {
-	return nil, f.RaiseType(TypeErrorType, "'__gt__' of 'complex' is not defined")
+	return comparisonNotSuported(f, w)
 }
 
 func complexLE(f *Frame, v, w *Object) (*Object, *BaseException) {
-	return nil, f.RaiseType(TypeErrorType, "'__le__' of 'complex' is not defined")
+	return comparisonNotSuported(f, w)
 }
 
 func complexLT(f *Frame, v, w *Object) (*Object, *BaseException) {
-	return nil, f.RaiseType(TypeErrorType, "'__lt__' of 'complex' is not defined")
+	return comparisonNotSuported(f, w)
 }
 
 func complexNE(f *Frame, v, w *Object) (*Object, *BaseException) {
-	if !v.isInstance(ComplexType) {
-		format := "__ne__ received non-complex (type %s)"
-		return nil, f.RaiseType(TypeErrorType, fmt.Sprintf(format, v.typ.Name()))
+	e, ok := complexCompare(toComplexUnsafe(v), w)
+	if !ok {
+		return NotImplemented, nil
 	}
-	return complexCompare(toComplexUnsafe(v), w, False, True), nil
+	return GetBool(!e).ToObject(), nil
 }
 
-func complexCompare(v *Complex, w *Object, eqResult *Int, neResult *Int) *Object {
+func complexCompare(v *Complex, w *Object) (bool, bool) {
 	lhsr := real(v.Value())
 	rhs, ok := complexCoerce(w)
 	if !ok {
-		return NotImplemented
+		return false, false
 	}
-	if lhsr == real(rhs) && imag(v.Value()) == imag(rhs) {
-		return eqResult.ToObject()
+	return lhsr == real(rhs) && imag(v.Value()) == imag(rhs), true
+}
+
+func comparisonNotSuported(f *Frame, w *Object) (*Object, *BaseException) {
+	if w.isInstance(IntType) || w.isInstance(LongType) || w.isInstance(FloatType) || w.isInstance(ComplexType) {
+		return nil, f.RaiseType(TypeErrorType, "no ordering relation is defined for complex numbers")
 	}
-	return neResult.ToObject()
+	return NotImplemented, nil
 }
 
 // complexCoerce will coerce any numeric type to a complex. If all is
@@ -178,13 +182,9 @@ func complexNew(f *Frame, t *Type, args Args, _ KWArgs) (*Object, *BaseException
 			return result, nil
 		}
 		if floatSlot := o.typ.slots.Float; floatSlot != nil {
-			result, raised := floatSlot.Fn(f, o)
+			result, raised := floatConvert(floatSlot, f, o)
 			if raised != nil {
 				return nil, raised
-			}
-			if !result.isInstance(FloatType) {
-				exc := fmt.Sprintf("__float__ returned non-float (type %s)", result.typ.Name())
-				return nil, f.RaiseType(TypeErrorType, exc)
 			}
 			f := toFloatUnsafe(result).Value()
 			return NewComplex(complex(f, 0)).ToObject(), nil
@@ -195,7 +195,7 @@ func complexNew(f *Frame, t *Type, args Args, _ KWArgs) (*Object, *BaseException
 		s := toStrUnsafe(o).Value()
 		result, err := parseComplex(s)
 		if err != nil {
-			return nil, f.RaiseType(ValueErrorType, fmt.Sprintf("could not convert string to complex: %s", s))
+			return nil, f.RaiseType(ValueErrorType, "complex() arg is a malformed string")
 		}
 		return NewComplex(result).ToObject(), nil
 	}
