@@ -110,3 +110,28 @@ func TestMakeStructFieldDescriptor(t *testing.T) {
 		}
 	}
 }
+
+func TestMakeStructFieldDescriptorRW_get(t *testing.T) {
+	fun := newBuiltinFunction("TestMakeStructFieldDescriptorRW_get", func(f *Frame, args Args, kwargs KWArgs) (*Object, *BaseException) {
+		if raised := checkMethodArgs(f, "TestMakeStructFieldDescriptorRW_get", args, TypeType, StrType, StrType, ObjectType); raised != nil {
+			return nil, raised
+		}
+		t := toTypeUnsafe(args[0])
+		desc := makeStructFieldDescriptor(t, toStrUnsafe(args[1]).Value(), toStrUnsafe(args[2]).Value(), fieldDescriptorRW)
+		get, raised := GetAttr(f, desc, NewStr("__get__"), nil)
+		if raised != nil {
+			return nil, raised
+		}
+		return get.Call(f, wrapArgs(args[3], t), nil)
+	}).ToObject()
+	cases := []invokeTestCase{
+		{args: wrapArgs(FileType, "Softspace", "softspace", newObject(FileType)), want: NewInt(0).ToObject()},
+		{args: wrapArgs(FileType, "Softspace", "softspace", 42), wantExc: mustCreateException(TypeErrorType, "descriptor 'softspace' for 'file' objects doesn't apply to 'int' objects")},
+		//{args: wrapArgs(FileType, "open", "open", true), wantExc: mustCreateException(TypeErrorType, "field 'open' is not public on Golang code. Please fix it.")},
+	}
+	for _, cas := range cases {
+		if err := runInvokeTestCase(fun, &cas); err != "" {
+			t.Error(err)
+		}
+	}
+}
