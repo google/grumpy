@@ -138,9 +138,17 @@ func makeStructFieldDescriptor(t *Type, fieldName, propertyName string, fieldTyp
 
 			self := args[0]
 			newValue := args[1]
-			if !newValue.isInstance(getNativeType(field.Type)) {
+
+			if !self.isInstance(t) {
 				format := "descriptor '%s' for '%s' objects doesn't apply to '%s' objects"
 				return nil, f.RaiseType(TypeErrorType, fmt.Sprintf(format, propertyName, t.Name(), self.typ.Name()))
+			}
+
+			if !newValue.isInstance(getNativeType(field.Type)) {
+				format := "an %s is required. Field '%s.%s' cannot store a '%s' value"
+				return nil, f.RaiseType(TypeErrorType, fmt.Sprintf(format,
+					field.Type.Name(), t.Name(), propertyName, newValue.typ.Name()),
+				)
 			}
 
 			var converted reflect.Value

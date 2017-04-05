@@ -135,3 +135,32 @@ func TestMakeStructFieldDescriptorRW_get(t *testing.T) {
 		}
 	}
 }
+
+func TestMakeStructFieldDescriptorRW_set(t *testing.T) {
+	//e := mustNotRaise(RuntimeErrorType.Call(NewRootFrame(), wrapArgs("foo"), nil))
+	fun := newBuiltinFunction("TestMakeStructFieldDescriptorRW_set", func(f *Frame, args Args, kwargs KWArgs) (*Object, *BaseException) {
+		if raised := checkMethodArgs(f, "TestMakeStructFieldDescriptorRW_set", args, TypeType, StrType, StrType, ObjectType, ObjectType); raised != nil {
+			return nil, raised
+		}
+		t := toTypeUnsafe(args[0])
+		desc := makeStructFieldDescriptor(t, toStrUnsafe(args[1]).Value(), toStrUnsafe(args[2]).Value(), fieldDescriptorRW)
+		set, raised := GetAttr(f, desc, NewStr("__set__"), nil)
+		if raised != nil {
+			return nil, raised
+		}
+		return set.Call(f, wrapArgs(args[3], args[4]), nil)
+	}).ToObject()
+	cases := []invokeTestCase{
+		{args: wrapArgs(FileType, "Softspace", "softspace", newObject(FileType), NewInt(0).ToObject()), want: None},
+		{args: wrapArgs(FileType, "Softspace", "softspace", newObject(FileType), NewInt(0)), want: None},
+		{args: wrapArgs(FileType, "Softspace", "softspace", newObject(FileType), "wrong"), wantExc: mustCreateException(TypeErrorType, "an int is required. Field 'file.softspace' cannot store a 'str' value")},
+		{args: wrapArgs(FileType, "Softspace", "softspace", 42, NewInt(0)), wantExc: mustCreateException(TypeErrorType, "descriptor 'softspace' for 'file' objects doesn't apply to 'int' objects")},
+		//{args: wrapArgs(StrType, "value", "value", 42), wantExc: mustCreateException(TypeErrorType, "field 'dict' is not public on Golang code. Please fix it.")},
+		//{args: wrapArgs(BaseExceptionType, "args", "args", e), want: None},
+	}
+	for _, cas := range cases {
+		if err := runInvokeTestCase(fun, &cas); err != "" {
+			t.Error(err)
+		}
+	}
+}
