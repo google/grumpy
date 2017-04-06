@@ -42,7 +42,7 @@ func TestComplexEq(t *testing.T) {
 	}
 }
 
-func TestComplexGE(t *testing.T) {
+func TestComplexCompareNotSupported(t *testing.T) {
 	cases := []invokeTestCase{
 		{args: wrapArgs(complex(1, 2), 1), wantExc: mustCreateException(TypeErrorType, "no ordering relation is defined for complex numbers")},
 		{args: wrapArgs(complex(1, 2), 1.2), wantExc: mustCreateException(TypeErrorType, "no ordering relation is defined for complex numbers")},
@@ -51,52 +51,7 @@ func TestComplexGE(t *testing.T) {
 		{args: wrapArgs(complex(1, 2), "abc"), want: NotImplemented},
 	}
 	for _, cas := range cases {
-		if err := runInvokeTestCase(wrapFuncForTest(complexGE), &cas); err != "" {
-			t.Error(err)
-		}
-	}
-}
-
-func TestComplexGT(t *testing.T) {
-	cases := []invokeTestCase{
-		{args: wrapArgs(complex(1, 2), 1), wantExc: mustCreateException(TypeErrorType, "no ordering relation is defined for complex numbers")},
-		{args: wrapArgs(complex(1, 2), 1.2), wantExc: mustCreateException(TypeErrorType, "no ordering relation is defined for complex numbers")},
-		{args: wrapArgs(complex(1, 2), math.NaN()), wantExc: mustCreateException(TypeErrorType, "no ordering relation is defined for complex numbers")},
-		{args: wrapArgs(complex(1, 2), math.Inf(-1)), wantExc: mustCreateException(TypeErrorType, "no ordering relation is defined for complex numbers")},
-		{args: wrapArgs(complex(1, 2), "abc"), want: NotImplemented},
-	}
-	for _, cas := range cases {
-		if err := runInvokeTestCase(wrapFuncForTest(complexGT), &cas); err != "" {
-			t.Error(err)
-		}
-	}
-}
-
-func TestComplexLE(t *testing.T) {
-	cases := []invokeTestCase{
-		{args: wrapArgs(complex(1, 2), 1), wantExc: mustCreateException(TypeErrorType, "no ordering relation is defined for complex numbers")},
-		{args: wrapArgs(complex(1, 2), 1.2), wantExc: mustCreateException(TypeErrorType, "no ordering relation is defined for complex numbers")},
-		{args: wrapArgs(complex(1, 2), math.NaN()), wantExc: mustCreateException(TypeErrorType, "no ordering relation is defined for complex numbers")},
-		{args: wrapArgs(complex(1, 2), math.Inf(-1)), wantExc: mustCreateException(TypeErrorType, "no ordering relation is defined for complex numbers")},
-		{args: wrapArgs(complex(1, 2), "abc"), want: NotImplemented},
-	}
-	for _, cas := range cases {
-		if err := runInvokeTestCase(wrapFuncForTest(complexLE), &cas); err != "" {
-			t.Error(err)
-		}
-	}
-}
-
-func TestComplexLT(t *testing.T) {
-	cases := []invokeTestCase{
-		{args: wrapArgs(complex(1, 2), 1), wantExc: mustCreateException(TypeErrorType, "no ordering relation is defined for complex numbers")},
-		{args: wrapArgs(complex(1, 2), 1.2), wantExc: mustCreateException(TypeErrorType, "no ordering relation is defined for complex numbers")},
-		{args: wrapArgs(complex(1, 2), math.NaN()), wantExc: mustCreateException(TypeErrorType, "no ordering relation is defined for complex numbers")},
-		{args: wrapArgs(complex(1, 2), math.Inf(-1)), wantExc: mustCreateException(TypeErrorType, "no ordering relation is defined for complex numbers")},
-		{args: wrapArgs(complex(1, 2), "abc"), want: NotImplemented},
-	}
-	for _, cas := range cases {
-		if err := runInvokeTestCase(wrapFuncForTest(complexLT), &cas); err != "" {
+		if err := runInvokeTestCase(wrapFuncForTest(complexCompareNotSupported), &cas); err != "" {
 			t.Error(err)
 		}
 	}

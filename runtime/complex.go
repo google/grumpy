@@ -70,10 +70,10 @@ func complexRepr(f *Frame, o *Object) (*Object, *BaseException) {
 
 func initComplexType(dict map[string]*Object) {
 	ComplexType.slots.Eq = &binaryOpSlot{complexEq}
-	ComplexType.slots.GE = &binaryOpSlot{complexGE}
-	ComplexType.slots.GT = &binaryOpSlot{complexGT}
-	ComplexType.slots.LE = &binaryOpSlot{complexLE}
-	ComplexType.slots.LT = &binaryOpSlot{complexLT}
+	ComplexType.slots.GE = &binaryOpSlot{complexCompareNotSupported}
+	ComplexType.slots.GT = &binaryOpSlot{complexCompareNotSupported}
+	ComplexType.slots.LE = &binaryOpSlot{complexCompareNotSupported}
+	ComplexType.slots.LT = &binaryOpSlot{complexCompareNotSupported}
 	ComplexType.slots.NE = &binaryOpSlot{complexNE}
 	ComplexType.slots.Repr = &unaryOpSlot{complexRepr}
 }
@@ -84,22 +84,6 @@ func complexEq(f *Frame, v, w *Object) (*Object, *BaseException) {
 		return NotImplemented, nil
 	}
 	return GetBool(e).ToObject(), nil
-}
-
-func complexGE(f *Frame, v, w *Object) (*Object, *BaseException) {
-	return comparisonNotSuported(f, w)
-}
-
-func complexGT(f *Frame, v, w *Object) (*Object, *BaseException) {
-	return comparisonNotSuported(f, w)
-}
-
-func complexLE(f *Frame, v, w *Object) (*Object, *BaseException) {
-	return comparisonNotSuported(f, w)
-}
-
-func complexLT(f *Frame, v, w *Object) (*Object, *BaseException) {
-	return comparisonNotSuported(f, w)
 }
 
 func complexNE(f *Frame, v, w *Object) (*Object, *BaseException) {
@@ -119,7 +103,7 @@ func complexCompare(v *Complex, w *Object) (bool, bool) {
 	return lhsr == real(rhs) && imag(v.Value()) == imag(rhs), true
 }
 
-func comparisonNotSuported(f *Frame, w *Object) (*Object, *BaseException) {
+func complexCompareNotSupported(f *Frame, v, w *Object) (*Object, *BaseException) {
 	if w.isInstance(IntType) || w.isInstance(LongType) || w.isInstance(FloatType) || w.isInstance(ComplexType) {
 		return nil, f.RaiseType(TypeErrorType, "no ordering relation is defined for complex numbers")
 	}
