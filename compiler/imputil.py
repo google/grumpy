@@ -31,58 +31,6 @@ from grumpy.compiler import util
 _NATIVE_MODULE_PREFIX = '__go__.'
 
 
-class Path(object):
-  """Resolves imported modules based on a search path of directories."""
-
-  def __init__(self, gopath, modname, script, absolute_import):
-    self.dirs = []
-    if gopath:
-      self.dirs.extend(os.path.join(d, 'src', '__python__')
-                       for d in gopath.split(os.pathsep))
-    dirname, basename = os.path.split(script)
-    if basename == '__init__.py':
-      self.package_dir = dirname
-      self.package_name = modname
-    elif (modname.find('.') != -1 and
-          os.path.isfile(os.path.join(dirname, '__init__.py'))):
-      self.package_dir = dirname
-      self.package_name = modname[:modname.rfind('.')]
-    else:
-      self.package_dir = None
-      self.package_name = None
-    self.absolute_import = absolute_import
-
-  def resolve_import(self, modname):
-    """Find module on the path returning full module name and script path.
-
-    Args:
-      modname: Name identified by an import statement, possibly relative.
-
-    Returns:
-      A pair (full_name, script), where full_name is the absolute module name
-      and script is the filename of the associate .py file.
-    """
-    if not self.absolute_import and self.package_dir:
-      script = self._find_script(self.package_dir, modname)
-      if script:
-        return '{}.{}'.format(self.package_name, modname), script
-    for dirname in self.dirs:
-      script = self._find_script(dirname, modname)
-      if script:
-        return modname, script
-    return None, None
-
-  def _find_script(self, dirname, name):
-    prefix = os.path.join(dirname, name.replace('.', os.sep))
-    script = prefix + '.py'
-    if os.path.isfile(script):
-      return script
-    script = os.path.join(prefix, '__init__.py')
-    if os.path.isfile(script):
-      return script
-    return None
-
-
 class Import(object):
   """Represents a single module import and all its associated bindings.
 
@@ -105,17 +53,34 @@ class Import(object):
     self.bindings.append(Import.Binding(bind_type, alias, value))
 
 
-class ImportVisitor(algorithm.Visitor):
+class Importer(algorithm.Visitor):
   """Visits import nodes and produces corresponding Import objects."""
 
   # pylint: disable=invalid-name,missing-docstring,no-init
 
-  def __init__(self, path, future_node=None):
-    self.path = path
-    self.future_node = future_node
-    self.imports = []
+  def __init__(self, gopath, modname, script, absolute_import):
+    self.pathdirs = []
+    if gopath:
+      self.pathdirs.extend(os.path.join(d, 'src', '__python__')
+                           for d in gopath.split(os.pathsep))
+    dirname, basename = os.path.split(script)
+    if basename == '__init__.py':
+      self.package_dir = dirname
+      self.package_name = modname
+    elif (modname.find('.') != -1 and
+          os.path.isfile(os.path.join(dirname, '__init__.py'))):
+      self.package_dir = dirname
+      self.package_name = modname[:modname.rfind('.')]
+    else:
+      self.package_dir = None
+      self.package_name = None
+    self.absolute_import = absolute_import
+
+  def generic_visit(self, node):
+    raise ValueError('Import cannot visit {} node'.format(type(node).__name__))
 
   def visit_Import(self, node):
+    imports = []
     for alias in node.names:
       if alias.name.startswith(_NATIVE_MODULE_PREFIX):
         raise util.ImportError(
@@ -125,9 +90,10 @@ class ImportVisitor(algorithm.Visitor):
         imp.add_binding(Import.MODULE, alias.asname, imp.name.count('.'))
       else:
         parts = alias.name.split('.')
-        imp.add_binding(Import.MODULE, parts[-1],
+        imp.add_binding(Import.MODULE, parts[0],
                         imp.name.count('.') - len(parts) + 1)
-      self.imports.append(imp)
+      imports.append(imp)
+    return imports
 
   def visit_ImportFrom(self, node):
     if any(a.name == '*' for a in node.names):
@@ -136,40 +102,47 @@ class ImportVisitor(algorithm.Visitor):
       raise util.ImportError(node, msg)
 
     if node.module == '__future__':
-      if node != self.future_node:
-        raise util.LateFutureError(node)
-      return
+      return []
 
     if node.module.startswith(_NATIVE_MODULE_PREFIX):
       imp = Import(node.module[len(_NATIVE_MODULE_PREFIX):], is_native=True)
       for alias in node.names:
         asname = alias.asname or alias.name
         imp.add_binding(Import.MEMBER, asname, alias.name)
-      self.imports.append(imp)
-      return
+      return [imp]
 
+    imports = []
     member_imp = None
     for alias in node.names:
       asname = alias.asname or alias.name
-      full_name, _ = self.path.resolve_import(
-          '{}.{}'.format(node.module, alias.name))
-      if full_name:
-        # Imported name is a submodule within a package, so bind that module.
-        imp = Import(full_name)
-        imp.add_binding(Import.MODULE, asname, imp.name.count('.'))
-        self.imports.append(imp)
-      else:
+      try:
+        imp = self._resolve_import(
+            node, '{}.{}'.format(node.module, alias.name))
+      except util.ImportError:
         # A member (not a submodule) is being imported, so bind it.
         if not member_imp:
           member_imp = self._resolve_import(node, node.module)
-          self.imports.append(member_imp)
+          imports.append(member_imp)
         member_imp.add_binding(Import.MEMBER, asname, alias.name)
+      else:
+        # Imported name is a submodule within a package, so bind that module.
+        imp.add_binding(Import.MODULE, asname, imp.name.count('.'))
+        imports.append(imp)
+    return imports
 
-  def _resolve_import(self, node, name):
-    full_name, _ = self.path.resolve_import(name)
-    if not full_name:
-      raise util.ImportError(node, 'no such module: {}'.format(name))
-    return Import(full_name)
+  def _resolve_import(self, node, modname):
+    if not self.absolute_import and self.package_dir:
+      if self._script_exists(self.package_dir, modname):
+        return Import('{}.{}'.format(self.package_name, modname))
+    for dirname in self.pathdirs:
+      if self._script_exists(dirname, modname):
+        return Import(modname)
+    raise util.ImportError(node, 'no such module: {}'.format(modname))
+
+  def _script_exists(self, dirname, name):
+    prefix = os.path.join(dirname, name.replace('.', os.sep))
+    return (os.path.isfile(prefix + '.py') or
+            os.path.isfile(os.path.join(prefix, '__init__.py')))
 
 
 _FUTURE_FEATURES = (
@@ -195,15 +168,6 @@ class FutureFeatures(object):
     self.division = division
     self.print_function = print_function
     self.unicode_literals = unicode_literals
-
-  def __repr__(self):
-    return '<FutureFeatures {!r}>'.format(self.__dict__)
-
-  def __eq__(self, other):
-    return isinstance(other, FutureFeatures) and self.__dict__ == other.__dict__
-
-  def __ne__(self, other):
-    return not self.__eq__(other)
 
 
 def _make_future_features(node):
