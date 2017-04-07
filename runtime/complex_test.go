@@ -15,8 +15,70 @@
 package grumpy
 
 import (
+	"math"
 	"testing"
 )
+
+func TestComplexEq(t *testing.T) {
+	cases := []invokeTestCase{
+		{args: wrapArgs(complex(0, 0), 0), want: True.ToObject()},
+		{args: wrapArgs(complex(1, 0), 0), want: False.ToObject()},
+		{args: wrapArgs(complex(-12, 0), -12), want: True.ToObject()},
+		{args: wrapArgs(complex(-12, 0), 1), want: False.ToObject()},
+		{args: wrapArgs(complex(17.20, 0), 17.20), want: True.ToObject()},
+		{args: wrapArgs(complex(1.2, 0), 17.20), want: False.ToObject()},
+		{args: wrapArgs(complex(-4, 15), complex(-4, 15)), want: True.ToObject()},
+		{args: wrapArgs(complex(-4, 15), complex(1, 2)), want: False.ToObject()},
+		{args: wrapArgs(complex(math.Inf(1), 0), complex(math.Inf(1), 0)), want: True.ToObject()},
+		{args: wrapArgs(complex(math.Inf(1), 0), complex(0, math.Inf(1))), want: False.ToObject()},
+		{args: wrapArgs(complex(math.Inf(-1), 0), complex(math.Inf(-1), 0)), want: True.ToObject()},
+		{args: wrapArgs(complex(math.Inf(-1), 0), complex(0, math.Inf(-1))), want: False.ToObject()},
+		{args: wrapArgs(complex(math.Inf(1), math.Inf(1)), complex(math.Inf(1), math.Inf(1))), want: True.ToObject()},
+	}
+	for _, cas := range cases {
+		if err := runInvokeTestCase(wrapFuncForTest(complexEq), &cas); err != "" {
+			t.Error(err)
+		}
+	}
+}
+
+func TestComplexCompareNotSupported(t *testing.T) {
+	cases := []invokeTestCase{
+		{args: wrapArgs(complex(1, 2), 1), wantExc: mustCreateException(TypeErrorType, "no ordering relation is defined for complex numbers")},
+		{args: wrapArgs(complex(1, 2), 1.2), wantExc: mustCreateException(TypeErrorType, "no ordering relation is defined for complex numbers")},
+		{args: wrapArgs(complex(1, 2), math.NaN()), wantExc: mustCreateException(TypeErrorType, "no ordering relation is defined for complex numbers")},
+		{args: wrapArgs(complex(1, 2), math.Inf(-1)), wantExc: mustCreateException(TypeErrorType, "no ordering relation is defined for complex numbers")},
+		{args: wrapArgs(complex(1, 2), "abc"), want: NotImplemented},
+	}
+	for _, cas := range cases {
+		if err := runInvokeTestCase(wrapFuncForTest(complexCompareNotSupported), &cas); err != "" {
+			t.Error(err)
+		}
+	}
+}
+
+func TestComplexNE(t *testing.T) {
+	cases := []invokeTestCase{
+		{args: wrapArgs(complex(0, 0), 0), want: False.ToObject()},
+		{args: wrapArgs(complex(1, 0), 0), want: True.ToObject()},
+		{args: wrapArgs(complex(-12, 0), -12), want: False.ToObject()},
+		{args: wrapArgs(complex(-12, 0), 1), want: True.ToObject()},
+		{args: wrapArgs(complex(17.20, 0), 17.20), want: False.ToObject()},
+		{args: wrapArgs(complex(1.2, 0), 17.20), want: True.ToObject()},
+		{args: wrapArgs(complex(-4, 15), complex(-4, 15)), want: False.ToObject()},
+		{args: wrapArgs(complex(-4, 15), complex(1, 2)), want: True.ToObject()},
+		{args: wrapArgs(complex(math.Inf(1), 0), complex(math.Inf(1), 0)), want: False.ToObject()},
+		{args: wrapArgs(complex(math.Inf(1), 0), complex(0, math.Inf(1))), want: True.ToObject()},
+		{args: wrapArgs(complex(math.Inf(-1), 0), complex(math.Inf(-1), 0)), want: False.ToObject()},
+		{args: wrapArgs(complex(math.Inf(-1), 0), complex(0, math.Inf(-1))), want: True.ToObject()},
+		{args: wrapArgs(complex(math.Inf(1), math.Inf(1)), complex(math.Inf(1), math.Inf(1))), want: False.ToObject()},
+	}
+	for _, cas := range cases {
+		if err := runInvokeTestCase(wrapFuncForTest(complexNE), &cas); err != "" {
+			t.Error(err)
+		}
+	}
+}
 
 func TestComplexRepr(t *testing.T) {
 	cases := []invokeTestCase{

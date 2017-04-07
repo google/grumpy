@@ -16,6 +16,7 @@ package grumpy
 
 import (
 	"fmt"
+	"math"
 	"reflect"
 	"strconv"
 )
@@ -68,5 +69,64 @@ func complexRepr(f *Frame, o *Object) (*Object, *BaseException) {
 }
 
 func initComplexType(dict map[string]*Object) {
+	ComplexType.slots.Eq = &binaryOpSlot{complexEq}
+	ComplexType.slots.GE = &binaryOpSlot{complexCompareNotSupported}
+	ComplexType.slots.GT = &binaryOpSlot{complexCompareNotSupported}
+	ComplexType.slots.LE = &binaryOpSlot{complexCompareNotSupported}
+	ComplexType.slots.LT = &binaryOpSlot{complexCompareNotSupported}
+	ComplexType.slots.NE = &binaryOpSlot{complexNE}
 	ComplexType.slots.Repr = &unaryOpSlot{complexRepr}
+}
+
+func complexEq(f *Frame, v, w *Object) (*Object, *BaseException) {
+	e, ok := complexCompare(toComplexUnsafe(v), w)
+	if !ok {
+		return NotImplemented, nil
+	}
+	return GetBool(e).ToObject(), nil
+}
+
+func complexNE(f *Frame, v, w *Object) (*Object, *BaseException) {
+	e, ok := complexCompare(toComplexUnsafe(v), w)
+	if !ok {
+		return NotImplemented, nil
+	}
+	return GetBool(!e).ToObject(), nil
+}
+
+func complexCompare(v *Complex, w *Object) (bool, bool) {
+	lhsr := real(v.Value())
+	rhs, ok := complexCoerce(w)
+	if !ok {
+		return false, false
+	}
+	return lhsr == real(rhs) && imag(v.Value()) == imag(rhs), true
+}
+
+func complexCompareNotSupported(f *Frame, v, w *Object) (*Object, *BaseException) {
+	if w.isInstance(IntType) || w.isInstance(LongType) || w.isInstance(FloatType) || w.isInstance(ComplexType) {
+		return nil, f.RaiseType(TypeErrorType, "no ordering relation is defined for complex numbers")
+	}
+	return NotImplemented, nil
+}
+
+// complexCoerce will coerce any numeric type to a complex. If all is
+// well, it will return the complex128 value, and true (OK). If an overflow
+// occurs, it will return either (+Inf, false) or (-Inf, false) depending
+// on whether the source value was too large or too small. Note that if the
+// source number is an infinite float, the result will be infinite without
+// overflow, (+-Inf, true).
+// If the input is not a number, it will return (0, false).
+func complexCoerce(o *Object) (complex128, bool) {
+	if o.isInstance(ComplexType) {
+		return toComplexUnsafe(o).Value(), true
+	}
+	floatO, ok := floatCoerce(o)
+	if !ok {
+		if math.IsInf(floatO, 0) {
+			return complex(floatO, 0.0), false
+		}
+		return 0, false
+	}
+	return complex(floatO, 0.0), true
 }
