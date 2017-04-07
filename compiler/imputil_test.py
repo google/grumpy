@@ -279,8 +279,6 @@ class MakeFutureFeaturesTest(unittest.TestCase):
         # by grumpy
         ('from __future__ import division',
          r'future feature \w+ not yet implemented'),
-        ('from __future__ import unicode_literals',
-         r'future feature \w+ not yet implemented'),
         ('from __future__ import braces', 'not a chance'),
         ('from __future__ import nonexistant_feature',
          r'future feature \w+ is not defined'),

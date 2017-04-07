@@ -303,6 +303,12 @@ class StatementVisitorTest(unittest.TestCase):
     self.assertRaisesRegexp(util.ImportError, regexp, _ParseAndVisit,
                             'foo = bar\nfrom __future__ import print_function')
 
+  def testFutureUnicodeLiterals(self):
+    want = "u'foo'\n"
+    self.assertEqual((0, want), _GrumpRun(textwrap.dedent("""\
+        from __future__ import unicode_literals
+        print repr('foo')""")))
+
   def testImportMember(self):
     self.assertEqual((0, "<type 'dict'>\n"), _GrumpRun(textwrap.dedent("""\
         from sys import modules
