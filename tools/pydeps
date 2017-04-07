@@ -21,6 +21,7 @@ import os
 import sys
 
 import pythonparser
+from pythonparser import algorithm
 
 from grumpy.compiler import imputil
 from grumpy.compiler import util
@@ -29,6 +30,26 @@ from grumpy.compiler import util
 parser = argparse.ArgumentParser()
 parser.add_argument('script', help='Python source filename')
 parser.add_argument('-modname', default='__main__', help='Python module name')
+
+
+class ImportCollector(algorithm.Visitor):
+
+  # pylint: disable=invalid-name
+
+  def __init__(self, importer, future_node):
+    self.importer = importer
+    self.future_node = future_node
+    self.imports = []
+
+  def visit_Import(self, node):
+    self.imports.extend(self.importer.visit(node))
+
+  def visit_ImportFrom(self, node):
+    if node.module == '__future__':
+      if node != self.future_node:
+        raise util.LateFutureError(node)
+      return
+    self.imports.extend(self.importer.visit(node))
 
 
 def main(args):
@@ -52,16 +73,16 @@ def main(args):
     print >> sys.stderr, str(e)
     return 2
 
-  path = imputil.Path(gopath, args.modname, args.script,
-                      future_features.absolute_import)
-  visitor = imputil.ImportVisitor(path, future_node)
+  importer = imputil.Importer(gopath, args.modname, args.script,
+                              future_features.absolute_import)
+  collector = ImportCollector(importer, future_node)
   try:
-    visitor.visit(mod)
+    collector.visit(mod)
   except util.CompileError as e:
     print >> sys.stderr, str(e)
     return 2
   imports = set([args.modname])
-  for imp in visitor.imports:
+  for imp in collector.imports:
     if not imp.is_native:
       parts = imp.name.split('.')
       # Iterate over all packages and the leaf module.

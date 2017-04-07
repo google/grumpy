@@ -28,7 +28,6 @@ from pythonparser import ast
 
 from grumpy.compiler import block
 from grumpy.compiler import imputil
-from grumpy.compiler import imputil_test
 from grumpy.compiler import shard_test
 from grumpy.compiler import stmt
 from grumpy.compiler import util
@@ -532,15 +531,16 @@ class StatementVisitorTest(unittest.TestCase):
 
 
 def _MakeModuleBlock():
-  return block.ModuleBlock(imputil_test.MockPath(), '__main__',
-                           '<test>', '', imputil.FutureFeatures())
+  return block.ModuleBlock(None, '__main__', '<test>', '',
+                           imputil.FutureFeatures())
 
 
 def _ParseAndVisit(source):
   mod = pythonparser.parse(source)
   _, future_features = imputil.parse_future_features(mod)
-  b = block.ModuleBlock(imputil_test.MockPath(), '__main__',
-                        '<test>', source, future_features)
+  importer = imputil.Importer(None, 'foo', 'foo.py', False)
+  b = block.ModuleBlock(importer, '__main__', '<test>',
+                        source, future_features)
   visitor = stmt.StatementVisitor(b)
   visitor.visit(mod)
   return visitor

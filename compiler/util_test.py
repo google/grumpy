@@ -22,7 +22,6 @@ import unittest
 
 from grumpy.compiler import block
 from grumpy.compiler import imputil
-from grumpy.compiler import imputil_test
 from grumpy.compiler import util
 
 
@@ -38,8 +37,8 @@ class WriterTest(unittest.TestCase):
 
   def testWriteBlock(self):
     writer = util.Writer()
-    mod_block = block.ModuleBlock(imputil_test.MockPath(), '__main__',
-                                  '<test>', '', imputil.FutureFeatures())
+    mod_block = block.ModuleBlock(None, '__main__', '<test>', '',
+                                  imputil.FutureFeatures())
     writer.write_block(mod_block, 'BODY')
     output = writer.getvalue()
     dispatch = 'switch πF.State() {\n\tcase 0:\n\tdefault: panic'

@@ -64,10 +64,10 @@ def main(args):
     print >> sys.stderr, str(e)
     return 2
 
-  path = imputil.Path(gopath, args.modname, args.script,
-                      future_features.absolute_import)
+  importer = imputil.Importer(gopath, args.modname, args.script,
+                              future_features.absolute_import)
   full_package_name = args.modname.replace('.', '/')
-  mod_block = block.ModuleBlock(path, full_package_name, args.script,
+  mod_block = block.ModuleBlock(importer, full_package_name, args.script,
                                 py_contents, future_features)
   mod_block.add_native_import('grumpy')
   visitor = stmt.StatementVisitor(mod_block, future_node)
