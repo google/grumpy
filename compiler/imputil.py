@@ -180,7 +180,11 @@ _FUTURE_FEATURES = (
     'unicode_literals',
 )
 
-_IMPLEMENTED_FUTURE_FEATURES = ('absolute_import', 'print_function',)
+_IMPLEMENTED_FUTURE_FEATURES = (
+    'absolute_import',
+    'print_function',
+    'unicode_literals'
+)
 
 # These future features are already in the language proper as of 2.6, so
 # importing them via __future__ has no effect.
