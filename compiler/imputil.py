@@ -20,6 +20,7 @@
 from __future__ import unicode_literals
 
 import collections
+import functools
 import os
 
 from pythonparser import algorithm
@@ -101,10 +102,10 @@ class Importer(algorithm.Visitor):
           node.module)
       raise util.ImportError(node, msg)
 
-    if node.module == '__future__':
+    if not node.level and node.module == '__future__':
       return []
 
-    if node.module.startswith(_NATIVE_MODULE_PREFIX):
+    if not node.level and node.module.startswith(_NATIVE_MODULE_PREFIX):
       imp = Import(node.module[len(_NATIVE_MODULE_PREFIX):], is_native=True)
       for alias in node.names:
         asname = alias.asname or alias.name
@@ -112,16 +113,29 @@ class Importer(algorithm.Visitor):
       return [imp]
 
     imports = []
+    if not node.module:
+      # Import of the form 'from .. import foo, bar'. All named imports must be
+      # modules, not module members.
+      for alias in node.names:
+        imp = self._resolve_relative_import(node.level, node, alias.name)
+        imp.add_binding(Import.MODULE, alias.asname or alias.name,
+                        imp.name.count('.'))
+        imports.append(imp)
+      return imports
+
     member_imp = None
     for alias in node.names:
       asname = alias.asname or alias.name
+      if node.level:
+        resolver = functools.partial(self._resolve_relative_import, node.level)
+      else:
+        resolver = self._resolve_import
       try:
-        imp = self._resolve_import(
-            node, '{}.{}'.format(node.module, alias.name))
+        imp = resolver(node, '{}.{}'.format(node.module, alias.name))
       except util.ImportError:
         # A member (not a submodule) is being imported, so bind it.
         if not member_imp:
-          member_imp = self._resolve_import(node, node.module)
+          member_imp = resolver(node, node.module)
           imports.append(member_imp)
         member_imp.add_binding(Import.MEMBER, asname, alias.name)
       else:
@@ -138,6 +152,20 @@ class Importer(algorithm.Visitor):
       if self._script_exists(dirname, modname):
         return Import(modname)
     raise util.ImportError(node, 'no such module: {}'.format(modname))
+
+  def _resolve_relative_import(self, level, node, modname):
+    if not self.package_dir:
+      raise util.ImportError(node, 'attempted relative import in non-package')
+    uplevel = level - 1
+    if uplevel > self.package_name.count('.'):
+      raise util.ImportError(
+          node, 'attempted relative import beyond toplevel package')
+    dirname = os.path.normpath(os.path.join(
+        self.package_dir, *(['..'] * uplevel)))
+    if not self._script_exists(dirname, modname):
+      raise util.ImportError(node, 'no such module: {}'.format(modname))
+    parts = self.package_name.split('.')
+    return Import('.'.join(parts[:len(parts)-uplevel]) + '.' + modname)
 
   def _script_exists(self, dirname, name):
     prefix = os.path.join(dirname, name.replace('.', os.sep))
