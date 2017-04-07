@@ -834,7 +834,8 @@ func TestPyPrint(t *testing.T) {
 	}
 }
 
-func TestPrint(t *testing.T) {
+// TODO(corona10): Re-enable once #282 is addressed.
+/*func TestPrint(t *testing.T) {
 	fun := wrapFuncForTest(func(f *Frame, args *Tuple, nl bool) (string, *BaseException) {
 		return captureStdout(f, func() *BaseException {
 			return Print(NewRootFrame(), args.elems, nl)
@@ -851,7 +852,7 @@ func TestPrint(t *testing.T) {
 			t.Error(err)
 		}
 	}
-}
+}*/
 
 func TestReprRaise(t *testing.T) {
 	testTypes := []*Type{
