@@ -36,6 +36,10 @@ class ImportVisitorTest(unittest.TestCase):
       'foo.py': None,
       'qux.py': None,
       'bar/': {
+          'fred/': {
+              '__init__.py': None,
+              'quux.py': None,
+          },
           '__init__.py': None,
           'baz.py': None,
           'foo.py': None,
@@ -50,6 +54,12 @@ class ImportVisitorTest(unittest.TestCase):
         self.rootdir, {'src/': {'__python__/': self._PATH_SPEC}})
     foo_script = os.path.join(self.rootdir, 'foo.py')
     self.importer = imputil.Importer(self.rootdir, 'foo', foo_script, False)
+    bar_script = os.path.join(self.pydir, 'bar', '__init__.py')
+    self.bar_importer = imputil.Importer(
+        self.rootdir, 'bar', bar_script, False)
+    fred_script = os.path.join(self.pydir, 'bar', 'fred', '__init__.py')
+    self.fred_importer = imputil.Importer(
+        self.rootdir, 'bar.fred', fred_script, False)
 
   def tearDown(self):
     shutil.rmtree(self.rootdir)
@@ -82,9 +92,7 @@ class ImportVisitorTest(unittest.TestCase):
   def testImportPackageModuleRelative(self):
     imp = imputil.Import('bar.baz')
     imp.add_binding(imputil.Import.MODULE, 'baz', 1)
-    bar_script = os.path.join(self.pydir, 'bar', '__init__.py')
-    importer = imputil.Importer(self.rootdir, 'bar', bar_script, False)
-    got = importer.visit(pythonparser.parse('import baz').body[0])
+    got = self.bar_importer.visit(pythonparser.parse('import baz').body[0])
     self._assert_imports_equal([imp], got)
 
   def testImportPackageModuleRelativeFromSubModule(self):
@@ -175,6 +183,58 @@ class ImportVisitorTest(unittest.TestCase):
     imp = imputil.Import('fmt', is_native=True)
     imp.add_binding(imputil.Import.MEMBER, 'foo', 'Printf')
     self._check_imports('from __go__.fmt import Printf as foo', [imp])
+
+  def testRelativeImportNonPackage(self):
+    self.assertRaises(util.ImportError, self.importer.visit,
+                      pythonparser.parse('from . import bar').body[0])
+
+  def testRelativeImportBeyondTopLevel(self):
+    self.assertRaises(util.ImportError, self.bar_importer.visit,
+                      pythonparser.parse('from .. import qux').body[0])
+
+  def testRelativeModuleNoExist(self):
+    self.assertRaises(util.ImportError, self.bar_importer.visit,
+                      pythonparser.parse('from . import qux').body[0])
+
+  def testRelativeModule(self):
+    imp = imputil.Import('bar.foo')
+    imp.add_binding(imputil.Import.MODULE, 'foo', 1)
+    node = pythonparser.parse('from . import foo').body[0]
+    self._assert_imports_equal([imp], self.bar_importer.visit(node))
+
+  def testRelativeModuleFromSubModule(self):
+    imp = imputil.Import('bar.foo')
+    imp.add_binding(imputil.Import.MODULE, 'foo', 1)
+    baz_script = os.path.join(self.pydir, 'bar', 'baz.py')
+    importer = imputil.Importer(self.rootdir, 'bar.baz', baz_script, False)
+    node = pythonparser.parse('from . import foo').body[0]
+    self._assert_imports_equal([imp], importer.visit(node))
+
+  def testRelativeModuleMember(self):
+    imp = imputil.Import('bar.foo')
+    imp.add_binding(imputil.Import.MEMBER, 'qux', 'qux')
+    node = pythonparser.parse('from .foo import qux').body[0]
+    self._assert_imports_equal([imp], self.bar_importer.visit(node))
+
+  def testRelativeModuleMemberMixed(self):
+    imp1 = imputil.Import('bar.fred')
+    imp1.add_binding(imputil.Import.MEMBER, 'qux', 'qux')
+    imp2 = imputil.Import('bar.fred.quux')
+    imp2.add_binding(imputil.Import.MODULE, 'quux', 2)
+    node = pythonparser.parse('from .fred import qux, quux').body[0]
+    self._assert_imports_equal([imp1, imp2], self.bar_importer.visit(node))
+
+  def testRelativeUpLevel(self):
+    imp = imputil.Import('bar.foo')
+    imp.add_binding(imputil.Import.MODULE, 'foo', 1)
+    node = pythonparser.parse('from .. import foo').body[0]
+    self._assert_imports_equal([imp], self.fred_importer.visit(node))
+
+  def testRelativeUpLevelMember(self):
+    imp = imputil.Import('bar.foo')
+    imp.add_binding(imputil.Import.MEMBER, 'qux', 'qux')
+    node = pythonparser.parse('from ..foo import qux').body[0]
+    self._assert_imports_equal([imp], self.fred_importer.visit(node))
 
   def _check_imports(self, stmt, want):
     got = self.importer.visit(pythonparser.parse(stmt).body[0])
