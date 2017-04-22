@@ -24,12 +24,11 @@ import os
 import sys
 import textwrap
 
-import pythonparser
-
 from grumpy.compiler import block
 from grumpy.compiler import imputil
 from grumpy.compiler import stmt
 from grumpy.compiler import util
+from grumpy import pythonparser
 
 
 parser = argparse.ArgumentParser()

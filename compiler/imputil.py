@@ -23,10 +23,9 @@ import collections
 import functools
 import os
 
-from pythonparser import algorithm
-from pythonparser import ast
-
 from grumpy.compiler import util
+from grumpy.pythonparser import algorithm
+from grumpy.pythonparser import ast
 
 
 _NATIVE_MODULE_PREFIX = '__go__.'

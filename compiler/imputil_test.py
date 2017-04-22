@@ -24,10 +24,9 @@ import tempfile
 import textwrap
 import unittest
 
-import pythonparser
-
 from grumpy.compiler import imputil
 from grumpy.compiler import util
+from grumpy import pythonparser
 
 
 class ImportVisitorTest(unittest.TestCase):

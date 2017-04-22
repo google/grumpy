@@ -20,11 +20,10 @@ import argparse
 import os
 import sys
 
-import pythonparser
-from pythonparser import algorithm
-
 from grumpy.compiler import imputil
 from grumpy.compiler import util
+from grumpy import pythonparser
+from grumpy.pythonparser import algorithm
 
 
 parser = argparse.ArgumentParser()

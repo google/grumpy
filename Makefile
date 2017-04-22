@@ -55,7 +55,7 @@ export PATH := $(ROOT_DIR)/build/bin:$(PATH)
 
 GOPATH_PY_ROOT := $(GOPATH)/src/__python__
 
-PYTHONPARSER_SRCS := $(patsubst third_party/%,$(PY_DIR)/%,$(wildcard third_party/pythonparser/*.py))
+PYTHONPARSER_SRCS := $(patsubst third_party/%,$(PY_DIR)/grumpy/%,$(wildcard third_party/pythonparser/*.py))
 
 COMPILER_BIN := build/bin/grumpc
 COMPILER_SRCS := $(addprefix $(PY_DIR)/grumpy/compiler/,$(notdir $(shell find compiler -name '*.py' -not -name '*_test.py'))) $(PY_DIR)/grumpy/__init__.py
@@ -217,8 +217,8 @@ $(PYLINT_BIN):
 	@cd build/third_party && curl -sL https://pypi.io/packages/source/p/pylint/pylint-1.6.4.tar.gz | tar -zx
 	@cd build/third_party/pylint-1.6.4 && $(PYTHON) setup.py install --prefix $(ROOT_DIR)/build
 
-pylint: $(PYLINT_BIN)
-	@$(PYTHON) $(PYLINT_BIN) compiler/*.py $(addprefix tools/,benchcmp coverparse diffrange genmake grumpc grumprun pydeps)
+pylint: $(PYLINT_BIN) $(COMPILER_SRCS) $(PYTHONPARSER_SRCS) $(COMPILER_BIN) $(RUNNER_BIN) $(TOOL_BINS)
+	@$(PYTHON) $(PYLINT_BIN) $(COMPILER_SRCS) $(COMPILER_BIN) $(RUNNER_BIN) $(TOOL_BINS)
 
 lint: golint pylint
 
@@ -284,7 +284,7 @@ $(eval $(foreach x,$(STDLIB_TESTS),$(call GRUMPY_STDLIB_TEST,$(x))))
 $(PY_DIR)/weetest.py: lib/weetest.py
 	@cp -f $< $@
 
-$(PYTHONPARSER_SRCS): $(PY_DIR)/%: third_party/%
+$(PYTHONPARSER_SRCS): $(PY_DIR)/grumpy/%: third_party/%
 	@mkdir -p $(@D)
 	@cp -f $< $@
 
@@ -328,4 +328,5 @@ install: $(RUNNER_BIN) $(COMPILER) $(RUNTIME) $(STDLIB)
 	install -d "$(DESTDIR)"{/usr/lib/go,"$(PY_INSTALL_DIR)"}
 	cp -rv "$(PY_DIR)/grumpy" "$(DESTDIR)$(PY_INSTALL_DIR)"
 	# Go package and sources
+	install -d "$(DESTDIR)/usr/lib/go/"
 	cp -rv build/pkg build/src "$(DESTDIR)/usr/lib/go/"
