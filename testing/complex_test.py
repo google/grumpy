@@ -12,7 +12,5 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import md5
-
-assert md5.new("").hexdigest() == 'd41d8cd98f00b204e9800998ecf8427e'
-assert md5.new("hello").hexdigest() == '5d41402abc4b2a76b9719d911017c592'
+assert repr(1j) == "1j"
+assert repr(complex()) == "0j"

@@ -422,6 +422,32 @@ func TestHash(t *testing.T) {
 	}
 }
 
+func TestHex(t *testing.T) {
+	badHex := newTestClass("badHex", []*Type{ObjectType}, newStringDict(map[string]*Object{
+		"__hex__": newBuiltinFunction("__hex__", func(f *Frame, args Args, kwargs KWArgs) (*Object, *BaseException) {
+			return NewInt(123).ToObject(), nil
+		}).ToObject(),
+	}))
+	goodHex := newTestClass("goodHex", []*Type{ObjectType}, newStringDict(map[string]*Object{
+		"__hex__": newBuiltinFunction("__hex__", func(f *Frame, _ Args, _ KWArgs) (*Object, *BaseException) {
+			return NewStr("0x123").ToObject(), nil
+		}).ToObject(),
+	}))
+	cases := []invokeTestCase{
+		{args: wrapArgs(-123), want: NewStr("-0x7b").ToObject()},
+		{args: wrapArgs(123), want: NewStr("0x7b").ToObject()},
+		{args: wrapArgs(newObject(goodHex)), want: NewStr("0x123").ToObject()},
+		{args: wrapArgs(NewList()), wantExc: mustCreateException(TypeErrorType, "hex() argument can't be converted to hex")},
+		{args: wrapArgs(NewDict()), wantExc: mustCreateException(TypeErrorType, "hex() argument can't be converted to hex")},
+		{args: wrapArgs(newObject(badHex)), wantExc: mustCreateException(TypeErrorType, "__hex__ returned non-string (type int)")},
+	}
+	for _, cas := range cases {
+		if err := runInvokeTestCase(wrapFuncForTest(Hex), &cas); err != "" {
+			t.Error(err)
+		}
+	}
+}
+
 func TestIndex(t *testing.T) {
 	goodType := newTestClass("GoodIndex", []*Type{ObjectType}, newStringDict(map[string]*Object{
 		"__index__": newBuiltinFunction("__index__", func(f *Frame, _ Args, _ KWArgs) (*Object, *BaseException) {
@@ -732,6 +758,32 @@ func TestInvokeKeywordArgs(t *testing.T) {
 			t.Errorf("PackKwargs(%v, %v) raised %v, want %v", cas.keywords, cas.kwargs, raised, cas.wantExc)
 		case checkInvokeResultReturnValueMismatch:
 			t.Errorf("PackKwargs(%v, %v) = %v, want %v", cas.keywords, cas.kwargs, got, cas.want)
+		}
+	}
+}
+
+func TestOct(t *testing.T) {
+	badOct := newTestClass("badOct", []*Type{ObjectType}, newStringDict(map[string]*Object{
+		"__oct__": newBuiltinFunction("__oct__", func(f *Frame, args Args, kwargs KWArgs) (*Object, *BaseException) {
+			return NewInt(123).ToObject(), nil
+		}).ToObject(),
+	}))
+	goodOct := newTestClass("goodOct", []*Type{ObjectType}, newStringDict(map[string]*Object{
+		"__oct__": newBuiltinFunction("__oct__", func(f *Frame, _ Args, _ KWArgs) (*Object, *BaseException) {
+			return NewStr("0123").ToObject(), nil
+		}).ToObject(),
+	}))
+	cases := []invokeTestCase{
+		{args: wrapArgs(-123), want: NewStr("-0173").ToObject()},
+		{args: wrapArgs(123), want: NewStr("0173").ToObject()},
+		{args: wrapArgs(newObject(goodOct)), want: NewStr("0123").ToObject()},
+		{args: wrapArgs(NewList()), wantExc: mustCreateException(TypeErrorType, "oct() argument can't be converted to oct")},
+		{args: wrapArgs(NewDict()), wantExc: mustCreateException(TypeErrorType, "oct() argument can't be converted to oct")},
+		{args: wrapArgs(newObject(badOct)), wantExc: mustCreateException(TypeErrorType, "__oct__ returned non-string (type int)")},
+	}
+	for _, cas := range cases {
+		if err := runInvokeTestCase(wrapFuncForTest(Oct), &cas); err != "" {
+			t.Error(err)
 		}
 	}
 }

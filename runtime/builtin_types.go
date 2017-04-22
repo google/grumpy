@@ -27,6 +27,11 @@ var (
 	builtinStr = NewStr("__builtin__")
 	// ExceptionTypes contains all builtin exception types.
 	ExceptionTypes []*Type
+	// EllipsisType is the object representing the Python 'ellipsis' type
+	EllipsisType = newSimpleType("ellipsis", ObjectType)
+	// Ellipsis is the singleton ellipsis object representing the Python
+	// 'Ellipsis' object.
+	Ellipsis = &Object{typ: EllipsisType}
 	// NoneType is the object representing the Python 'NoneType' type.
 	NoneType = newSimpleType("NoneType", ObjectType)
 	// None is the singleton NoneType object representing the Python 'None'
@@ -44,8 +49,17 @@ var (
 	UnboundLocal = newObject(unboundLocalType)
 )
 
+func ellipsisRepr(*Frame, *Object) (*Object, *BaseException) {
+	return NewStr("Ellipsis").ToObject(), nil
+}
+
 func noneRepr(*Frame, *Object) (*Object, *BaseException) {
 	return NewStr("None").ToObject(), nil
+}
+
+func initEllipsisType(map[string]*Object) {
+	EllipsisType.flags &= ^(typeFlagInstantiable | typeFlagBasetype)
+	EllipsisType.slots.Repr = &unaryOpSlot{ellipsisRepr}
 }
 
 func initNoneType(map[string]*Object) {
@@ -86,12 +100,14 @@ var builtinTypes = map[*Type]*builtinTypeInfo{
 	BoolType:                      {init: initBoolType, global: true},
 	BytesWarningType:              {global: true},
 	CodeType:                      {},
+	ComplexType:                   {init: initComplexType, global: true},
 	ClassMethodType:               {init: initClassMethodType, global: true},
 	DeprecationWarningType:        {global: true},
 	dictItemIteratorType:          {init: initDictItemIteratorType},
 	dictKeyIteratorType:           {init: initDictKeyIteratorType},
 	dictValueIteratorType:         {init: initDictValueIteratorType},
 	DictType:                      {init: initDictType, global: true},
+	EllipsisType:                  {init: initEllipsisType, global: true},
 	enumerateType:                 {init: initEnumerateType, global: true},
 	EnvironmentErrorType:          {global: true},
 	ExceptionType:                 {global: true},
@@ -303,6 +319,13 @@ func builtinCmp(f *Frame, args Args, _ KWArgs) (*Object, *BaseException) {
 	return Compare(f, args[0], args[1])
 }
 
+func builtinDelAttr(f *Frame, args Args, _ KWArgs) (*Object, *BaseException) {
+	if raised := checkFunctionArgs(f, "delattr", args, ObjectType, StrType); raised != nil {
+		return nil, raised
+	}
+	return None, DelAttr(f, args[0], toStrUnsafe(args[1]))
+}
+
 func builtinDir(f *Frame, args Args, kwargs KWArgs) (*Object, *BaseException) {
 	// TODO: Support __dir__.
 	if raised := checkFunctionArgs(f, "dir", args, ObjectType); raised != nil {
@@ -337,6 +360,7 @@ func builtinFrame(f *Frame, args Args, _ KWArgs) (*Object, *BaseException) {
 	if raised := checkFunctionArgs(f, "__frame__", args); raised != nil {
 		return nil, raised
 	}
+	f.taken = true
 	return f.ToObject(), nil
 }
 
@@ -393,19 +417,7 @@ func builtinHex(f *Frame, args Args, _ KWArgs) (*Object, *BaseException) {
 	if raised := checkFunctionArgs(f, "hex", args, ObjectType); raised != nil {
 		return nil, raised
 	}
-	if method, raised := args[0].typ.mroLookup(f, NewStr("__hex__")); raised != nil {
-		return nil, raised
-	} else if method != nil {
-		return method.Call(f, args, nil)
-	}
-	if !args[0].isInstance(IntType) && !args[0].isInstance(LongType) {
-		return nil, f.RaiseType(TypeErrorType, "hex() argument can't be converted to hex")
-	}
-	s := numberToBase("0x", 16, args[0])
-	if args[0].isInstance(LongType) {
-		s += "L"
-	}
-	return NewStr(s).ToObject(), nil
+	return Hex(f, args[0])
 }
 
 func builtinID(f *Frame, args Args, kwargs KWArgs) (*Object, *BaseException) {
@@ -482,23 +494,7 @@ func builtinOct(f *Frame, args Args, _ KWArgs) (*Object, *BaseException) {
 	if raised := checkFunctionArgs(f, "oct", args, ObjectType); raised != nil {
 		return nil, raised
 	}
-	if method, raised := args[0].typ.mroLookup(f, NewStr("__oct__")); raised != nil {
-		return nil, raised
-	} else if method != nil {
-		return method.Call(f, args, nil)
-	}
-	if !args[0].isInstance(IntType) && !args[0].isInstance(LongType) {
-		return nil, f.RaiseType(TypeErrorType, "oct() argument can't be converted to oct")
-	}
-	s := numberToBase("0", 8, args[0])
-	if args[0].isInstance(LongType) {
-		s += "L"
-	}
-	// For oct(0), return "0", not "00".
-	if s == "00" {
-		s = "0"
-	}
-	return NewStr(s).ToObject(), nil
+	return Oct(f, args[0])
 }
 
 func builtinOpen(f *Frame, args Args, kwargs KWArgs) (*Object, *BaseException) {
@@ -574,6 +570,13 @@ func builtinRepr(f *Frame, args Args, kwargs KWArgs) (*Object, *BaseException) {
 	return s.ToObject(), nil
 }
 
+func builtinSetAttr(f *Frame, args Args, _ KWArgs) (*Object, *BaseException) {
+	if raised := checkFunctionArgs(f, "setattr", args, ObjectType, StrType, ObjectType); raised != nil {
+		return nil, raised
+	}
+	return None, SetAttr(f, args[0], toStrUnsafe(args[1]), args[2])
+}
+
 func builtinSorted(f *Frame, args Args, _ KWArgs) (*Object, *BaseException) {
 	// TODO: Support (cmp=None, key=None, reverse=False)
 	if raised := checkFunctionArgs(f, "sorted", args, ObjectType); raised != nil {
@@ -638,7 +641,9 @@ func init() {
 		"callable":       newBuiltinFunction("callable", builtinCallable).ToObject(),
 		"chr":            newBuiltinFunction("chr", builtinChr).ToObject(),
 		"cmp":            newBuiltinFunction("cmp", builtinCmp).ToObject(),
+		"delattr":        newBuiltinFunction("delattr", builtinDelAttr).ToObject(),
 		"dir":            newBuiltinFunction("dir", builtinDir).ToObject(),
+		"Ellipsis":       Ellipsis,
 		"False":          False.ToObject(),
 		"getattr":        newBuiltinFunction("getattr", builtinGetAttr).ToObject(),
 		"globals":        newBuiltinFunction("globals", builtinGlobals).ToObject(),
@@ -662,6 +667,7 @@ func init() {
 		"print":          newBuiltinFunction("print", builtinPrint).ToObject(),
 		"range":          newBuiltinFunction("range", builtinRange).ToObject(),
 		"repr":           newBuiltinFunction("repr", builtinRepr).ToObject(),
+		"setattr":        newBuiltinFunction("setattr", builtinSetAttr).ToObject(),
 		"sorted":         newBuiltinFunction("sorted", builtinSorted).ToObject(),
 		"True":           True.ToObject(),
 		"unichr":         newBuiltinFunction("unichr", builtinUniChr).ToObject(),

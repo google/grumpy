@@ -129,6 +129,28 @@ func seqContains(f *Frame, iterable *Object, v *Object) (*Object, *BaseException
 	return GetBool(foundEqItem).ToObject(), raised
 }
 
+func seqCount(f *Frame, iterable *Object, v *Object) (*Object, *BaseException) {
+	count := 0
+	raised := seqForEach(f, iterable, func(o *Object) *BaseException {
+		eq, raised := Eq(f, o, v)
+		if raised != nil {
+			return raised
+		}
+		t, raised := IsTrue(f, eq)
+		if raised != nil {
+			return raised
+		}
+		if t {
+			count++
+		}
+		return nil
+	})
+	if raised != nil {
+		return nil, raised
+	}
+	return NewInt(count).ToObject(), nil
+}
+
 func seqFindFirst(f *Frame, iterable *Object, pred func(*Object) (bool, *BaseException)) (bool, *BaseException) {
 	iter, raised := Iter(f, iterable)
 	if raised != nil {

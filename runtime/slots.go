@@ -388,6 +388,7 @@ type typeSlots struct {
 	GetItem      *binaryOpSlot
 	GT           *binaryOpSlot
 	Hash         *unaryOpSlot
+	Hex          *unaryOpSlot
 	IAdd         *binaryOpSlot
 	IAnd         *binaryOpSlot
 	IDiv         *binaryOpSlot
@@ -415,6 +416,7 @@ type typeSlots struct {
 	New          *newSlot
 	Next         *unaryOpSlot
 	NonZero      *unaryOpSlot
+	Oct          *unaryOpSlot
 	Or           *binaryOpSlot
 	Pow          *binaryOpSlot
 	RAdd         *binaryOpSlot

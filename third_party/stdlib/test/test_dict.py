@@ -42,7 +42,6 @@ class DictTest(unittest.TestCase):
         self.assertTrue(d.has_key('b'))
         self.assertRaises(TypeError, d.keys, None)
 
-    @unittest.expectedFailure
     def test_values(self):
         d = {}
         self.assertEqual(d.values(), [])
@@ -727,8 +726,4 @@ def test_main():
         )
 
 if __name__ == "__main__":
-    import traceback
-    try:
-        test_main()
-    except:
-        traceback.print_exc()
+    test_main()

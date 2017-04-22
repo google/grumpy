@@ -17,6 +17,7 @@
 """Visitor class for traversing Python expressions."""
 
 import ast
+import contextlib
 import textwrap
 
 from grumpy.compiler import block
@@ -178,6 +179,17 @@ class ExprVisitor(ast.NodeVisitor):
       self.writer.write('{} = {}.ToObject()'.format(result.name, d.expr))
     return result
 
+  def visit_Set(self, node):
+    with self.block.alloc_temp('*πg.Set') as s:
+      self.writer.write('{} = πg.NewSet()'.format(s.name))
+      for e in node.elts:
+        with self.visit(e) as value:
+          self.writer.write_checked_call2(expr.blank_var, '{}.Add(πF, {})',
+                                          s.expr, value.expr)
+      result = self.block.alloc_temp()
+      self.writer.write('{} = {}.ToObject()'.format(result.name, s.expr))
+    return result
+
   def visit_DictComp(self, node):
     result = self.block.alloc_temp()
     elt = ast.Tuple(elts=[node.key, node.value], context=ast.Load)
@@ -188,14 +200,19 @@ class ExprVisitor(ast.NodeVisitor):
 
   def visit_ExtSlice(self, node):
     result = self.block.alloc_temp()
-    with self.block.alloc_temp('[]*πg.Object') as dims:
-      self.writer.write('{} = make([]*πg.Object, {})'.format(
-          dims.name, len(node.dims)))
-      for i, dim in enumerate(node.dims):
-        with self.visit(dim) as s:
-          self.writer.write('{}[{}] = {}'.format(dims.name, i, s.expr))
-      self.writer.write('{} = πg.NewTuple({}...).ToObject()'.format(
-          result.name, dims.expr))
+    if len(node.dims) <= util.MAX_DIRECT_TUPLE:
+      with contextlib.nested(*(self.visit(d) for d in node.dims)) as dims:
+        self.writer.write('{} = πg.NewTuple{}({}).ToObject()'.format(
+            result.name, len(dims), ', '.join(d.expr for d in dims)))
+    else:
+      with self.block.alloc_temp('[]*πg.Object') as dims:
+        self.writer.write('{} = make([]*πg.Object, {})'.format(
+            dims.name, len(node.dims)))
+        for i, dim in enumerate(node.dims):
+          with self.visit(dim) as s:
+            self.writer.write('{}[{}] = {}'.format(dims.name, i, s.expr))
+        self.writer.write('{} = πg.NewTuple({}...).ToObject()'.format(
+            result.name, dims.expr))
     return result
 
   def visit_GeneratorExp(self, node):
@@ -276,6 +293,8 @@ class ExprVisitor(ast.NodeVisitor):
         expr_str = expr_str + '.Neg()'
     elif isinstance(node.n, float):
       expr_str = 'NewFloat({})'.format(node.n)
+    elif isinstance(node.n, complex):
+      expr_str = 'NewComplex(complex({}, {}))'.format(node.n.real, node.n.imag)
     else:
       msg = 'number type not yet implemented: ' + type(node.n).__name__
       raise util.ParseError(node, msg)
@@ -313,10 +332,15 @@ class ExprVisitor(ast.NodeVisitor):
     return expr.GeneratedLiteral(expr_str)
 
   def visit_Tuple(self, node):
-    with self._visit_seq_elts(node.elts) as elems:
-      result = self.block.alloc_temp()
-      self.writer.write('{} = πg.NewTuple({}...).ToObject()'.format(
-          result.expr, elems.expr))
+    result = self.block.alloc_temp()
+    if len(node.elts) <= util.MAX_DIRECT_TUPLE:
+      with contextlib.nested(*(self.visit(e) for e in node.elts)) as elts:
+        self.writer.write('{} = πg.NewTuple{}({}).ToObject()'.format(
+            result.name, len(elts), ', '.join(e.expr for e in elts)))
+    else:
+      with self._visit_seq_elts(node.elts) as elems:
+        self.writer.write('{} = πg.NewTuple({}...).ToObject()'.format(
+            result.expr, elems.expr))
     return result
 
   def visit_UnaryOp(self, node):
@@ -400,17 +424,17 @@ class ExprVisitor(ast.NodeVisitor):
       visitor._visit_each(node.body)  # pylint: disable=protected-access
 
     result = self.block.alloc_temp()
-    with self.block.alloc_temp('[]πg.FunctionArg') as func_args:
+    with self.block.alloc_temp('[]πg.Param') as func_args:
       args = node.args
       argc = len(args.args)
-      self.writer.write('{} = make([]πg.FunctionArg, {})'.format(
+      self.writer.write('{} = make([]πg.Param, {})'.format(
           func_args.expr, argc))
       # The list of defaults only contains args for which a default value is
       # specified so pad it with None to make it the same length as args.
       defaults = [None] * (argc - len(args.defaults)) + args.defaults
       for i, (a, d) in enumerate(zip(args.args, defaults)):
         with self.visit(d) if d else expr.nil_expr as default:
-          tmpl = '$args[$i] = πg.FunctionArg{Name: $name, Def: $default}'
+          tmpl = '$args[$i] = πg.Param{Name: $name, Def: $default}'
           self.writer.write_tmpl(tmpl, args=func_args.expr, i=i,
                                  name=util.go_str(a.id), default=default.expr)
       flags = []

@@ -190,7 +190,7 @@ func unicodeGetNewArgs(f *Frame, args Args, _ KWArgs) (*Object, *BaseException) 
 	if raised := checkMethodArgs(f, "__getnewargs__", args, UnicodeType); raised != nil {
 		return nil, raised
 	}
-	return NewTuple(args[0]).ToObject(), nil
+	return NewTuple1(args[0]).ToObject(), nil
 }
 
 func unicodeGT(f *Frame, v, w *Object) (*Object, *BaseException) {

@@ -45,7 +45,7 @@ SUPPORT, UPDATES, ENHANCEMENTS, OR MODIFICATIONS.
 """
 
 __all__ = ['TestResult', 'TestCase', 'TestSuite',
-           'TextTestRunner', 'TestLoader', 'FunctionTestCase', 'main',
+           'TextTestRunner', 'TestLoader', 'FunctionTestCase',
            'defaultTestLoader', 'SkipTest', 'skip', 'skipIf', 'skipUnless',
            'expectedFailure', 'TextTestResult', 'installHandler',
            'registerResult', 'removeResult', 'removeHandler']

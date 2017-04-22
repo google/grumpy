@@ -18,6 +18,7 @@ import (
 	"fmt"
 	"math/big"
 	"reflect"
+	"runtime"
 	"testing"
 )
 
@@ -27,6 +28,14 @@ func TestNewStr(t *testing.T) {
 	if !reflect.DeepEqual(s, expected) {
 		t.Errorf(`NewStr("foo") = %+v, expected %+v`, *s, *expected)
 	}
+}
+
+func BenchmarkNewStr(b *testing.B) {
+	var ret *Str
+	for i := 0; i < b.N; i++ {
+		ret = NewStr("foo")
+	}
+	runtime.KeepAlive(ret)
 }
 
 // # On a 64bit system:
@@ -64,11 +73,19 @@ func TestStrBinaryOps(t *testing.T) {
 		{args: wrapArgs(Add, "", newObject(ObjectType)), wantExc: mustCreateException(TypeErrorType, "unsupported operand type(s) for +: 'str' and 'object'")},
 		{args: wrapArgs(Add, None, ""), wantExc: mustCreateException(TypeErrorType, "unsupported operand type(s) for +: 'NoneType' and 'str'")},
 		{args: wrapArgs(Mod, "%s", 42), want: NewStr("42").ToObject()},
+		{args: wrapArgs(Mod, "%3s", 42), want: NewStr(" 42").ToObject()},
+		{args: wrapArgs(Mod, "%03s", 42), want: NewStr(" 42").ToObject()},
 		{args: wrapArgs(Mod, "%f", 3.14), want: NewStr("3.140000").ToObject()},
+		{args: wrapArgs(Mod, "%10f", 3.14), want: NewStr("  3.140000").ToObject()},
+		{args: wrapArgs(Mod, "%010f", 3.14), want: NewStr("003.140000").ToObject()},
 		{args: wrapArgs(Mod, "abc %d", NewLong(big.NewInt(123))), want: NewStr("abc 123").ToObject()},
 		{args: wrapArgs(Mod, "%d", 3.14), want: NewStr("3").ToObject()},
 		{args: wrapArgs(Mod, "%%", NewTuple()), want: NewStr("%").ToObject()},
+		{args: wrapArgs(Mod, "%3%", NewTuple()), want: NewStr("  %").ToObject()},
+		{args: wrapArgs(Mod, "%03%", NewTuple()), want: NewStr("  %").ToObject()},
 		{args: wrapArgs(Mod, "%r", "abc"), want: NewStr("'abc'").ToObject()},
+		{args: wrapArgs(Mod, "%6r", "abc"), want: NewStr(" 'abc'").ToObject()},
+		{args: wrapArgs(Mod, "%06r", "abc"), want: NewStr(" 'abc'").ToObject()},
 		{args: wrapArgs(Mod, "%s %s", true), wantExc: mustCreateException(TypeErrorType, "not enough arguments for format string")},
 		{args: wrapArgs(Mod, "%Z", None), wantExc: mustCreateException(ValueErrorType, "invalid format spec")},
 		{args: wrapArgs(Mod, "%s", NewDict()), wantExc: mustCreateException(NotImplementedErrorType, "mappings not yet supported")},
@@ -82,6 +99,13 @@ func TestStrBinaryOps(t *testing.T) {
 		{args: wrapArgs(Mod, "%f", None), wantExc: mustCreateException(TypeErrorType, "float argument required, not NoneType")},
 		{args: wrapArgs(Mod, "%s", newTestTuple(123, None)), wantExc: mustCreateException(TypeErrorType, "not all arguments converted during string formatting")},
 		{args: wrapArgs(Mod, "%d", newTestTuple("123")), wantExc: mustCreateException(TypeErrorType, "an integer is required")},
+		{args: wrapArgs(Mod, "%o", newTestTuple(123)), want: NewStr("173").ToObject()},
+		{args: wrapArgs(Mod, "%o", 8), want: NewStr("10").ToObject()},
+		{args: wrapArgs(Mod, "%o", -8), want: NewStr("-10").ToObject()},
+		{args: wrapArgs(Mod, "%03o", newTestTuple(123)), want: NewStr("173").ToObject()},
+		{args: wrapArgs(Mod, "%04o", newTestTuple(123)), want: NewStr("0173").ToObject()},
+		{args: wrapArgs(Mod, "%o", newTestTuple("123")), wantExc: mustCreateException(TypeErrorType, "an integer is required")},
+		{args: wrapArgs(Mod, "%o", None), wantExc: mustCreateException(TypeErrorType, "an integer is required")},
 		{args: wrapArgs(Mul, "", 10), want: NewStr("").ToObject()},
 		{args: wrapArgs(Mul, "foo", -2), want: NewStr("").ToObject()},
 		{args: wrapArgs(Mul, "foobar", 0), want: NewStr("").ToObject()},
@@ -175,6 +199,7 @@ func TestStrGetItem(t *testing.T) {
 		{args: wrapArgs("bar", newTestSlice(1, 3)), want: NewStr("ar").ToObject()},
 		{args: wrapArgs("bar", newTestSlice(1, None)), want: NewStr("ar").ToObject()},
 		{args: wrapArgs("foobarbaz", newTestSlice(1, 8, 2)), want: NewStr("obra").ToObject()},
+		{args: wrapArgs("abc", newTestSlice(None, None, -1)), want: NewStr("cba").ToObject()},
 		{args: wrapArgs("bar", newTestSlice(1, 2, 0)), wantExc: mustCreateException(ValueErrorType, "slice step cannot be zero")},
 	}
 	for _, cas := range cases {
@@ -258,12 +283,36 @@ func TestStrMethods(t *testing.T) {
 			return NewLong(big.NewInt(2)).ToObject(), nil
 		}).ToObject(),
 	}))
+	intIntType := newTestClass("IntInt", []*Type{ObjectType}, newStringDict(map[string]*Object{
+		"__int__": newBuiltinFunction("__int__", func(f *Frame, _ Args, _ KWArgs) (*Object, *BaseException) {
+			return NewInt(2).ToObject(), nil
+		}).ToObject(),
+	}))
+	longIntType := newTestClass("LongInt", []*Type{ObjectType}, newStringDict(map[string]*Object{
+		"__int__": newBuiltinFunction("__int__", func(f *Frame, _ Args, _ KWArgs) (*Object, *BaseException) {
+			return NewLong(big.NewInt(2)).ToObject(), nil
+		}).ToObject(),
+	}))
 	cases := []struct {
 		methodName string
 		args       Args
 		want       *Object
 		wantExc    *BaseException
 	}{
+		{"capitalize", wrapArgs(""), NewStr("").ToObject(), nil},
+		{"capitalize", wrapArgs("foobar"), NewStr("Foobar").ToObject(), nil},
+		{"capitalize", wrapArgs("FOOBAR"), NewStr("Foobar").ToObject(), nil},
+		{"capitalize", wrapArgs("ùBAR"), NewStr("ùbar").ToObject(), nil},
+		{"capitalize", wrapArgs("вол"), NewStr("вол").ToObject(), nil},
+		{"capitalize", wrapArgs("foobar", 123), nil, mustCreateException(TypeErrorType, "'capitalize' of 'str' requires 1 arguments")},
+		{"capitalize", wrapArgs("ВОЛ"), NewStr("ВОЛ").ToObject(), nil},
+		{"count", wrapArgs("", "a"), NewInt(0).ToObject(), nil},
+		{"count", wrapArgs("five", ""), NewInt(5).ToObject(), nil},
+		{"count", wrapArgs("abba", "bb"), NewInt(1).ToObject(), nil},
+		{"count", wrapArgs("abbba", "bb"), NewInt(1).ToObject(), nil},
+		{"count", wrapArgs("abbbba", "bb"), NewInt(2).ToObject(), nil},
+		{"count", wrapArgs("abcdeffdeabcb", "b"), NewInt(3).ToObject(), nil},
+		{"count", wrapArgs(""), nil, mustCreateException(TypeErrorType, "'count' of 'str' requires 2 arguments")},
 		{"endswith", wrapArgs("", ""), True.ToObject(), nil},
 		{"endswith", wrapArgs("", "", 1), False.ToObject(), nil},
 		{"endswith", wrapArgs("foobar", "bar"), True.ToObject(), nil},
@@ -322,6 +371,8 @@ func TestStrMethods(t *testing.T) {
 		{"lower", wrapArgs("aBC"), NewStr("abc").ToObject(), nil},
 		{"lower", wrapArgs("abc def", 123), nil, mustCreateException(TypeErrorType, "'lower' of 'str' requires 1 arguments")},
 		{"lower", wrapArgs(123), nil, mustCreateException(TypeErrorType, "unbound method lower() must be called with str instance as first argument (got int instance instead)")},
+		{"lower", wrapArgs("вол"), NewStr("вол").ToObject(), nil},
+		{"lower", wrapArgs("ВОЛ"), NewStr("ВОЛ").ToObject(), nil},
 		{"lstrip", wrapArgs("foo "), NewStr("foo ").ToObject(), nil},
 		{"lstrip", wrapArgs(" foo bar "), NewStr("foo bar ").ToObject(), nil},
 		{"lstrip", wrapArgs("foo foo", "o"), NewStr("foo foo").ToObject(), nil},
@@ -341,6 +392,16 @@ func TestStrMethods(t *testing.T) {
 		{"split", wrapArgs("a \tb\nc", None, 1), newTestList("a", "b\nc").ToObject(), nil},
 		{"split", wrapArgs("foo", 1), nil, mustCreateException(TypeErrorType, "expected a str separator")},
 		{"split", wrapArgs("foo", ""), nil, mustCreateException(ValueErrorType, "empty separator")},
+		{"split", wrapArgs(""), newTestList().ToObject(), nil},
+		{"split", wrapArgs(" "), newTestList().ToObject(), nil},
+		{"split", wrapArgs("", "x"), newTestList("").ToObject(), nil},
+		{"split", wrapArgs(" ", " ", 1), newTestList("", "").ToObject(), nil},
+		{"split", wrapArgs("aa", "a", 2), newTestList("", "", "").ToObject(), nil},
+		{"split", wrapArgs(" a ", "a"), newTestList(" ", " ").ToObject(), nil},
+		{"split", wrapArgs("a b c d", None, 1), newTestList("a", "b c d").ToObject(), nil},
+		{"split", wrapArgs("a b c d "), newTestList("a", "b", "c", "d").ToObject(), nil},
+		{"split", wrapArgs(" a b c d ", None, 1), newTestList("a", "b c d ").ToObject(), nil},
+		{"split", wrapArgs("   a b c d ", None, 0), newTestList("a b c d ").ToObject(), nil},
 		{"splitlines", wrapArgs(""), NewList().ToObject(), nil},
 		{"splitlines", wrapArgs("\n"), newTestList("").ToObject(), nil},
 		{"splitlines", wrapArgs("foo"), newTestList("foo").ToObject(), nil},
@@ -372,6 +433,41 @@ func TestStrMethods(t *testing.T) {
 		{"strip", wrapArgs("foo", "bar", "baz"), nil, mustCreateException(TypeErrorType, "'strip' of 'str' requires 2 arguments")},
 		{"strip", wrapArgs("\xfboo", NewUnicode("o")), nil, mustCreateException(UnicodeDecodeErrorType, "'utf8' codec can't decode byte 0xfb in position 0")},
 		{"strip", wrapArgs("foo", NewUnicode("o")), NewUnicode("f").ToObject(), nil},
+		{"replace", wrapArgs("one!two!three!", "!", "@", 1), NewStr("one@two!three!").ToObject(), nil},
+		{"replace", wrapArgs("one!two!three!", "!", ""), NewStr("onetwothree").ToObject(), nil},
+		{"replace", wrapArgs("one!two!three!", "!", "@", 2), NewStr("one@two@three!").ToObject(), nil},
+		{"replace", wrapArgs("one!two!three!", "!", "@", 3), NewStr("one@two@three@").ToObject(), nil},
+		{"replace", wrapArgs("one!two!three!", "!", "@", 4), NewStr("one@two@three@").ToObject(), nil},
+		{"replace", wrapArgs("one!two!three!", "!", "@", 0), NewStr("one!two!three!").ToObject(), nil},
+		{"replace", wrapArgs("one!two!three!", "!", "@"), NewStr("one@two@three@").ToObject(), nil},
+		{"replace", wrapArgs("one!two!three!", "x", "@"), NewStr("one!two!three!").ToObject(), nil},
+		{"replace", wrapArgs("one!two!three!", "x", "@", 2), NewStr("one!two!three!").ToObject(), nil},
+		{"replace", wrapArgs("\xd0\xb2\xd0\xbe\xd0\xbb", "", "\x00", -1), NewStr("\x00\xd0\x00\xb2\x00\xd0\x00\xbe\x00\xd0\x00\xbb\x00").ToObject(), nil},
+		{"replace", wrapArgs("\xd0\xb2\xd0\xbe\xd0\xbb", "", "\x01\x02", -1), NewStr("\x01\x02\xd0\x01\x02\xb2\x01\x02\xd0\x01\x02\xbe\x01\x02\xd0\x01\x02\xbb\x01\x02").ToObject(), nil},
+		{"replace", wrapArgs("abc", "", "-"), NewStr("-a-b-c-").ToObject(), nil},
+		{"replace", wrapArgs("abc", "", "-", 3), NewStr("-a-b-c").ToObject(), nil},
+		{"replace", wrapArgs("abc", "", "-", 0), NewStr("abc").ToObject(), nil},
+		{"replace", wrapArgs("", "", ""), NewStr("").ToObject(), nil},
+		{"replace", wrapArgs("", "", "a"), NewStr("a").ToObject(), nil},
+		{"replace", wrapArgs("abc", "a", "--", 0), NewStr("abc").ToObject(), nil},
+		{"replace", wrapArgs("abc", "xy", "--"), NewStr("abc").ToObject(), nil},
+		{"replace", wrapArgs("123", "123", ""), NewStr("").ToObject(), nil},
+		{"replace", wrapArgs("123123", "123", ""), NewStr("").ToObject(), nil},
+		{"replace", wrapArgs("123x123", "123", ""), NewStr("x").ToObject(), nil},
+		{"replace", wrapArgs("one!two!three!", "!", "@", NewLong(big.NewInt(1))), NewStr("one@two!three!").ToObject(), nil},
+		{"replace", wrapArgs("foobar", "bar", "baz", newObject(intIntType)), NewStr("foobaz").ToObject(), nil},
+		{"replace", wrapArgs("foobar", "bar", "baz", newObject(longIntType)), NewStr("foobaz").ToObject(), nil},
+		{"replace", wrapArgs("", "", "x"), NewStr("x").ToObject(), nil},
+		{"replace", wrapArgs("", "", "x", -1), NewStr("x").ToObject(), nil},
+		{"replace", wrapArgs("", "", "x", 0), NewStr("").ToObject(), nil},
+		{"replace", wrapArgs("", "", "x", 1), NewStr("").ToObject(), nil},
+		{"replace", wrapArgs("", "", "x", 1000), NewStr("").ToObject(), nil},
+		// TODO: Support unicode substring.
+		{"replace", wrapArgs("foobar", "", NewUnicode("bar")), nil, mustCreateException(TypeErrorType, "'replace' requires a 'str' object but received a 'unicode'")},
+		{"replace", wrapArgs("foobar", NewUnicode("bar"), ""), nil, mustCreateException(TypeErrorType, "'replace' requires a 'str' object but received a 'unicode'")},
+		{"replace", wrapArgs("foobar", "bar", "baz", None), nil, mustCreateException(TypeErrorType, "an integer is required")},
+		{"replace", wrapArgs("foobar", "bar", "baz", newObject(intIndexType)), nil, mustCreateException(TypeErrorType, "an integer is required")},
+		{"replace", wrapArgs("foobar", "bar", "baz", newObject(longIndexType)), nil, mustCreateException(TypeErrorType, "an integer is required")},
 		{"rstrip", wrapArgs("foo "), NewStr("foo").ToObject(), nil},
 		{"rstrip", wrapArgs(" foo bar "), NewStr(" foo bar").ToObject(), nil},
 		{"rstrip", wrapArgs("foo foo", "o"), NewStr("foo f").ToObject(), nil},
@@ -390,6 +486,8 @@ func TestStrMethods(t *testing.T) {
 		{"title", wrapArgs("aBC dEF"), NewStr("Abc Def").ToObject(), nil},
 		{"title", wrapArgs("abc def", 123), nil, mustCreateException(TypeErrorType, "'title' of 'str' requires 1 arguments")},
 		{"title", wrapArgs(123), nil, mustCreateException(TypeErrorType, "unbound method title() must be called with str instance as first argument (got int instance instead)")},
+		{"title", wrapArgs("вол"), NewStr("вол").ToObject(), nil},
+		{"title", wrapArgs("ВОЛ"), NewStr("ВОЛ").ToObject(), nil},
 		{"upper", wrapArgs(""), NewStr("").ToObject(), nil},
 		{"upper", wrapArgs("a"), NewStr("A").ToObject(), nil},
 		{"upper", wrapArgs("A"), NewStr("A").ToObject(), nil},
@@ -399,6 +497,8 @@ func TestStrMethods(t *testing.T) {
 		{"upper", wrapArgs("aBC"), NewStr("ABC").ToObject(), nil},
 		{"upper", wrapArgs("abc def", 123), nil, mustCreateException(TypeErrorType, "'upper' of 'str' requires 1 arguments")},
 		{"upper", wrapArgs(123), nil, mustCreateException(TypeErrorType, "unbound method upper() must be called with str instance as first argument (got int instance instead)")},
+		{"upper", wrapArgs("вол"), NewStr("вол").ToObject(), nil},
+		{"upper", wrapArgs("ВОЛ"), NewStr("ВОЛ").ToObject(), nil},
 		{"zfill", wrapArgs("123", 2), NewStr("123").ToObject(), nil},
 		{"zfill", wrapArgs("123", 3), NewStr("123").ToObject(), nil},
 		{"zfill", wrapArgs("123", 4), NewStr("0123").ToObject(), nil},
@@ -421,6 +521,17 @@ func TestStrMethods(t *testing.T) {
 		{"zfill", wrapArgs("", False), NewStr("").ToObject(), nil},
 		{"zfill", wrapArgs("34", NewStr("test")), nil, mustCreateException(TypeErrorType, "an integer is required")},
 		{"zfill", wrapArgs("34"), nil, mustCreateException(TypeErrorType, "'zfill' of 'str' requires 2 arguments")},
+		{"swapcase", wrapArgs(""), NewStr("").ToObject(), nil},
+		{"swapcase", wrapArgs("a"), NewStr("A").ToObject(), nil},
+		{"swapcase", wrapArgs("A"), NewStr("a").ToObject(), nil},
+		{"swapcase", wrapArgs(" A"), NewStr(" a").ToObject(), nil},
+		{"swapcase", wrapArgs("abc"), NewStr("ABC").ToObject(), nil},
+		{"swapcase", wrapArgs("ABC"), NewStr("abc").ToObject(), nil},
+		{"swapcase", wrapArgs("aBC"), NewStr("Abc").ToObject(), nil},
+		{"swapcase", wrapArgs("abc def", 123), nil, mustCreateException(TypeErrorType, "'swapcase' of 'str' requires 1 arguments")},
+		{"swapcase", wrapArgs(123), nil, mustCreateException(TypeErrorType, "unbound method swapcase() must be called with str instance as first argument (got int instance instead)")},
+		{"swapcase", wrapArgs("вол"), NewStr("вол").ToObject(), nil},
+		{"swapcase", wrapArgs("ВОЛ"), NewStr("ВОЛ").ToObject(), nil},
 	}
 	for _, cas := range cases {
 		testCase := invokeTestCase{args: cas.args, want: cas.want, wantExc: cas.wantExc}

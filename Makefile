@@ -32,9 +32,18 @@ ifeq ($(PYTHON),)
 endif
 PYTHON_BIN := $(shell which $(PYTHON))
 PYTHON_VER := $(word 2,$(shell $(PYTHON) -V 2>&1))
+GO_REQ_MAJ := 1
+GO_REQ_MIN := 6
+GO_MAJ_MIN := $(subst go,, $(word 3,$(shell go version 2>&1)) )
+GO_MAJ := $(word 1,$(subst ., ,$(GO_MAJ_MIN) ))
+GO_MIN := $(word 2,$(subst ., ,$(GO_MAJ_MIN) ))
 
 ifeq ($(filter 2.7.%,$(PYTHON_VER)),)
   $(error unsupported Python version $(PYTHON_VER), Grumpy only supports 2.7.x. To use a different python binary such as python2, run: 'make PYTHON=python2 ...')
+endif
+
+ifneq ($(shell test $(GO_MAJ) -ge $(GO_REQ_MAJ) -a $(GO_MIN) -ge $(GO_REQ_MIN) && echo ok),ok)
+  $(error unsupported Go version $(GO_VER), Grumpy requires at least $(GO_REQ_MAJ).$(GO_REQ_MIN). Please update Go)
 endif
 
 PY_DIR := build/lib/python2.7/site-packages
@@ -69,26 +78,27 @@ THIRD_PARTY_STDLIB_PACKAGES := $(foreach x,$(THIRD_PARTY_STDLIB_SRCS),$(patsubst
 STDLIB_SRCS := $(GRUMPY_STDLIB_SRCS) $(THIRD_PARTY_STDLIB_SRCS)
 STDLIB_PACKAGES := $(GRUMPY_STDLIB_PACKAGES) $(THIRD_PARTY_STDLIB_PACKAGES)
 STDLIB := $(patsubst %,$(PKG_DIR)/grumpy/lib/%.a,$(STDLIB_PACKAGES))
-LIB_TEST_SRCS := \
-  lib/itertools_test.py \
-  lib/math_test.py \
-  lib/os/path_test.py \
-  lib/os_test.py \
-  lib/random_test.py \
-  lib/sys_test.py \
-  lib/tempfile_test.py \
-  lib/threading_test.py \
-  lib/time_test.py \
-  lib/types_test.py \
-  lib/weetest_test.py
-LIB_PASS_FILES := $(patsubst %.py,$(PKG_DIR)/grumpy/%.pass,$(LIB_TEST_SRCS))
-CPYTHON_TEST_SRCS := \
-  third_party/stdlib/re_tests.py \
-  third_party/stdlib/test/seq_tests.py \
-  third_party/stdlib/test/test_support.py \
-  third_party/stdlib/test/test_tuple.py
-CPYTHON_PASS_FILES := $(patsubst third_party/stdlib/%.py,$(PKG_DIR)/grumpy/lib/%.pass,$(CPYTHON_TEST_SRCS))
-STDLIB_PASS_FILES := $(LIB_PASS_FILES) $(CPYTHON_PASS_FILES)
+STDLIB_TESTS := \
+  itertools_test \
+  math_test \
+  os/path_test \
+  os_test \
+  random_test \
+  re_tests \
+  sys_test \
+  tempfile_test \
+  test/test_tuple \
+  test/test_dict \
+  test/test_list \
+  test/test_slice \
+  test/test_string \
+  test/test_md5 \
+  test/test_bisect \
+  threading_test \
+  time_test \
+  types_test \
+  weetest_test
+STDLIB_PASS_FILES := $(patsubst %,build/testing/%.pass,$(notdir $(STDLIB_TESTS)))
 
 ACCEPT_TESTS := $(patsubst %.py,%,$(wildcard testing/*.py))
 ACCEPT_PASS_FILES := $(patsubst %,build/%.pass,$(ACCEPT_TESTS))
@@ -207,11 +217,6 @@ lint: golint pylint
 # Standard library
 # ------------------------------------------------------------------------------
 
-$(STDLIB_PASS_FILES): $(PKG_DIR)/grumpy/lib/%.pass: $(PKG_DIR)/grumpy/lib/%.a
-	@$(RUNNER_BIN) -m `echo $* | tr / .`
-	@touch $@
-	@echo 'lib/$* PASS'
-
 define GRUMPY_STDLIB
 build/src/grumpy/lib/$(2)/module.go: $(1) $(COMPILER)
 	@mkdir -p build/src/grumpy/lib/$(2)
@@ -230,6 +235,31 @@ $(PKG_DIR)/grumpy/lib/$(2).a: build/src/grumpy/lib/$(2)/module.go $(RUNTIME)
 endef
 
 $(eval $(foreach x,$(shell seq $(words $(STDLIB_SRCS))),$(call GRUMPY_STDLIB,$(word $(x),$(STDLIB_SRCS)),$(word $(x),$(STDLIB_PACKAGES)))))
+
+define GRUMPY_STDLIB_TEST
+build/testing/$(patsubst %_test,%_test_,$(notdir $(1))).go:
+	@mkdir -p build/testing
+	@echo 'package main' > $$@
+	@echo 'import (' >> $$@
+	@echo '	"os"' >> $$@
+	@echo '	"grumpy"' >> $$@
+	@echo '	mod "grumpy/lib/$(1)"' >> $$@
+	@echo ')' >> $$@
+	@echo 'func main() {' >> $$@
+	@echo '	os.Exit(grumpy.RunMain(mod.Code))' >> $$@
+	@echo '}' >> $$@
+
+build/testing/$(notdir $(1)): build/testing/$(patsubst %_test,%_test_,$(notdir $(1))).go $(RUNTIME) $(PKG_DIR)/grumpy/lib/$(1).a
+	@go build -o $$@ $$<
+
+build/testing/$(notdir $(1)).pass: build/testing/$(notdir $(1))
+	@$$<
+	@touch $$@
+	@echo 'lib/$(1) PASS'
+
+endef
+
+$(eval $(foreach x,$(STDLIB_TESTS),$(call GRUMPY_STDLIB_TEST,$(x))))
 
 # ------------------------------------------------------------------------------
 # Acceptance tests & benchmarks
@@ -271,11 +301,11 @@ $(BENCHMARK_BINS): build/benchmarks/%_benchmark: build/benchmarks/%.go $(RUNTIME
 
 install: $(RUNNER_BIN) $(COMPILER) $(RUNTIME) $(STDLIB)
 	# Binary executables
-	install -Dm755 build/bin/grumpc "$(DESTDIR)/usr/bin/grumpc"
-	install -Dm755 build/bin/grumprun "$(DESTDIR)/usr/bin/grumprun"
+	install -d "$(DESTDIR)/usr/bin"
+	install -m755 build/bin/grumpc "$(DESTDIR)/usr/bin/grumpc"
+	install -m755 build/bin/grumprun "$(DESTDIR)/usr/bin/grumprun"
 	# Python module
 	install -d "$(DESTDIR)"{/usr/lib/go,"$(PY_INSTALL_DIR)"}
-	cp -rv --no-preserve=ownership "$(PY_DIR)/grumpy" "$(DESTDIR)$(PY_INSTALL_DIR)"
+	cp -rv "$(PY_DIR)/grumpy" "$(DESTDIR)$(PY_INSTALL_DIR)"
 	# Go package and sources
-	cp -rv --no-preserve=ownership build/pkg build/src "$(DESTDIR)/usr/lib/go/"
-
+	cp -rv build/pkg build/src "$(DESTDIR)/usr/lib/go/"

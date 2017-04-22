@@ -34,6 +34,7 @@ var (
 	strASCIISpaces         = []byte(" \t\n\v\f\r")
 	strInterpolationRegexp = regexp.MustCompile(`^%([#0 +-]?)((\*|[0-9]+)?)((\.(\*|[0-9]+))?)[hlL]?([diouxXeEfFgGcrs%])`)
 	internedStrs           = map[string]*Str{}
+	caseOffset             = byte('a' - 'A')
 )
 
 type stripSide int
@@ -157,6 +158,23 @@ func strAdd(f *Frame, v, w *Object) (*Object, *BaseException) {
 	return NewStr(stringV + stringW).ToObject(), nil
 }
 
+func strCapitalize(f *Frame, args Args, kwargs KWArgs) (*Object, *BaseException) {
+	if raised := checkMethodArgs(f, "capitalize", args, StrType); raised != nil {
+		return nil, raised
+	}
+	s := toStrUnsafe(args[0]).Value()
+	numBytes := len(s)
+	if numBytes == 0 {
+		return args[0], nil
+	}
+	b := make([]byte, numBytes)
+	b[0] = toUpper(s[0])
+	for i := 1; i < numBytes; i++ {
+		b[i] = toLower(s[i])
+	}
+	return NewStr(string(b)).ToObject(), nil
+}
+
 func strContains(f *Frame, o *Object, value *Object) (*Object, *BaseException) {
 	if value.isInstance(UnicodeType) {
 		decoded, raised := toStrUnsafe(o).Decode(f, EncodeDefault, EncodeStrict)
@@ -170,6 +188,16 @@ func strContains(f *Frame, o *Object, value *Object) (*Object, *BaseException) {
 		return nil, f.RaiseType(TypeErrorType, fmt.Sprintf(format, value.typ.Name()))
 	}
 	return GetBool(strings.Contains(toStrUnsafe(o).Value(), toStrUnsafe(value).Value())).ToObject(), nil
+}
+
+func strCount(f *Frame, args Args, kwargs KWArgs) (*Object, *BaseException) {
+	if raised := checkMethodArgs(f, "count", args, StrType, ObjectType); raised != nil {
+		return nil, raised
+	}
+	s := toStrUnsafe(args[0]).Value()
+	sep := toStrUnsafe(args[1]).Value()
+	cnt := strings.Count(s, sep)
+	return NewInt(cnt).ToObject(), nil
 }
 
 func strDecode(f *Frame, args Args, kwargs KWArgs) (*Object, *BaseException) {
@@ -277,7 +305,7 @@ func strGetItem(f *Frame, o, key *Object) (*Object, *BaseException) {
 			return NewStr(s[start:stop]).ToObject(), nil
 		}
 		result := make([]byte, 0, sliceLen)
-		for j := start; j < stop; j += step {
+		for j := start; j != stop; j += step {
 			result = append(result, s[j])
 		}
 		return NewStr(string(result)).ToObject(), nil
@@ -289,7 +317,7 @@ func strGetNewArgs(f *Frame, args Args, _ KWArgs) (*Object, *BaseException) {
 	if raised := checkMethodArgs(f, "__getnewargs__", args, StrType); raised != nil {
 		return nil, raised
 	}
-	return NewTuple(args[0]).ToObject(), nil
+	return NewTuple1(args[0]).ToObject(), nil
 }
 
 func strGT(f *Frame, v, w *Object) (*Object, *BaseException) {
@@ -371,7 +399,15 @@ func strLower(f *Frame, args Args, kwargs KWArgs) (*Object, *BaseException) {
 		return nil, raised
 	}
 	s := toStrUnsafe(args[0]).Value()
-	return NewStr(strings.ToLower(s)).ToObject(), nil
+	numBytes := len(s)
+	if numBytes == 0 {
+		return args[0], nil
+	}
+	b := make([]byte, numBytes)
+	for i := 0; i < numBytes; i++ {
+		b[i] = toLower(s[i])
+	}
+	return NewStr(string(b)).ToObject(), nil
 }
 
 func strLStrip(f *Frame, args Args, _ KWArgs) (*Object, *BaseException) {
@@ -390,7 +426,7 @@ func strMod(f *Frame, v, w *Object) (*Object, *BaseException) {
 	case w.isInstance(TupleType):
 		return strInterpolate(f, s, toTupleUnsafe(w))
 	default:
-		return strInterpolate(f, s, NewTuple(w))
+		return strInterpolate(f, s, NewTuple1(w))
 	}
 }
 
@@ -453,6 +489,70 @@ func strNew(f *Frame, t *Type, args Args, _ KWArgs) (*Object, *BaseException) {
 	return s.ToObject(), nil
 }
 
+// strReplace returns a copy of the string s with the first n non-overlapping
+// instances of old replaced by sub. If old is empty, it matches at the
+// beginning of the string. If n < 0, there is no limit on the number of
+// replacements.
+func strReplace(f *Frame, args Args, _ KWArgs) (*Object, *BaseException) {
+	var raised *BaseException
+	// TODO: Support unicode replace.
+	expectedTypes := []*Type{StrType, StrType, StrType, ObjectType}
+	argc := len(args)
+	if argc == 3 {
+		expectedTypes = expectedTypes[:argc]
+	}
+	if raised := checkMethodArgs(f, "replace", args, expectedTypes...); raised != nil {
+		return nil, raised
+	}
+	n := -1
+	if argc == 4 {
+		n, raised = ToIntValue(f, args[3])
+		if raised != nil {
+			return nil, raised
+		}
+	}
+	s := toStrUnsafe(args[0]).Value()
+	// Returns early if no need to replace.
+	if n == 0 {
+		return NewStr(s).ToObject(), nil
+	}
+
+	old := toStrUnsafe(args[1]).Value()
+	sub := toStrUnsafe(args[2]).Value()
+	numBytes := len(s)
+	// Even if s and old is blank, replace should return sub, except n is negative.
+	// This is CPython specific behavior.
+	if numBytes == 0 && old == "" && n >= 0 {
+		return NewStr("").ToObject(), nil
+	}
+	// If old is non-blank, pass to strings.Replace.
+	if len(old) > 0 {
+		return NewStr(strings.Replace(s, old, sub, n)).ToObject(), nil
+	}
+
+	// If old is blank, insert sub after every bytes on s and beginning.
+	if n < 0 {
+		n = numBytes + 1
+	}
+	// Insert sub at beginning.
+	buf := bytes.Buffer{}
+	buf.WriteString(sub)
+	n--
+	// Insert after every byte.
+	i := 0
+	for n > 0 && i < numBytes {
+		buf.WriteByte(s[i])
+		buf.WriteString(sub)
+		i++
+		n--
+	}
+	// Write the remaining string.
+	if i < numBytes {
+		buf.WriteString(s[i:])
+	}
+	return NewStr(buf.String()).ToObject(), nil
+}
+
 func strRepr(_ *Frame, o *Object) (*Object, *BaseException) {
 	s := toStrUnsafe(o).Value()
 	buf := bytes.Buffer{}
@@ -501,7 +601,12 @@ func strSplit(f *Frame, args Args, kwargs KWArgs) (*Object, *BaseException) {
 	s := toStrUnsafe(args[0]).Value()
 	var parts []string
 	if sep == "" {
+		s = strings.TrimLeft(s, string(strASCIISpaces))
 		parts = whitespaceSplitRegexp.Split(s, maxSplit)
+		l := len(parts)
+		if l > 0 && strings.Trim(parts[l-1], string(strASCIISpaces)) == "" {
+			parts = parts[:l-1]
+		}
 	} else {
 		parts = strings.SplitN(s, sep, maxSplit)
 	}
@@ -643,8 +748,32 @@ func strStr(_ *Frame, o *Object) (*Object, *BaseException) {
 	return NewStr(toStrUnsafe(o).Value()).ToObject(), nil
 }
 
+func strSwapCase(f *Frame, args Args, kwargs KWArgs) (*Object, *BaseException) {
+	if raised := checkMethodArgs(f, "swapcase", args, StrType); raised != nil {
+		return nil, raised
+	}
+	s := toStrUnsafe(args[0]).Value()
+	numBytes := len(s)
+	if numBytes == 0 {
+		return args[0], nil
+	}
+	b := make([]byte, numBytes)
+	for i := 0; i < numBytes; i++ {
+		if s[i] >= 'a' && s[i] <= 'z' {
+			b[i] = toUpper(s[i])
+		} else if s[i] >= 'A' && s[i] <= 'Z' {
+			b[i] = toLower(s[i])
+		} else {
+			b[i] = s[i]
+		}
+	}
+	return NewStr(string(b)).ToObject(), nil
+}
+
 func initStrType(dict map[string]*Object) {
 	dict["__getnewargs__"] = newBuiltinFunction("__getnewargs__", strGetNewArgs).ToObject()
+	dict["capitalize"] = newBuiltinFunction("capitalize", strCapitalize).ToObject()
+	dict["count"] = newBuiltinFunction("count", strCount).ToObject()
 	dict["decode"] = newBuiltinFunction("decode", strDecode).ToObject()
 	dict["endswith"] = newBuiltinFunction("endswith", strEndsWith).ToObject()
 	dict["find"] = newBuiltinFunction("find", strFind).ToObject()
@@ -655,6 +784,8 @@ func initStrType(dict map[string]*Object) {
 	dict["splitlines"] = newBuiltinFunction("splitlines", strSplitLines).ToObject()
 	dict["startswith"] = newBuiltinFunction("startswith", strStartsWith).ToObject()
 	dict["strip"] = newBuiltinFunction("strip", strStrip).ToObject()
+	dict["swapcase"] = newBuiltinFunction("swapcase", strSwapCase).ToObject()
+	dict["replace"] = newBuiltinFunction("replace", strReplace).ToObject()
 	dict["rstrip"] = newBuiltinFunction("rstrip", strRStrip).ToObject()
 	dict["title"] = newBuiltinFunction("title", strTitle).ToObject()
 	dict["upper"] = newBuiltinFunction("upper", strUpper).ToObject()
@@ -708,21 +839,31 @@ func strInterpolate(f *Frame, format string, values *Tuple) (*Object, *BaseExcep
 		if matches == nil {
 			return nil, f.RaiseType(ValueErrorType, "invalid format spec")
 		}
-		if matches[7] != "%" && valueIndex >= len(values.elems) {
+		flags, fieldType := matches[1], matches[7]
+		if fieldType != "%" && valueIndex >= len(values.elems) {
 			return nil, f.RaiseType(TypeErrorType, "not enough arguments for format string")
 		}
-		if matches[1] != "" {
-			return nil, f.RaiseType(NotImplementedErrorType, "conversion flags not yet supported")
-		}
-		if matches[2] != "" || matches[4] != "" {
+		fieldWidth := -1
+		if matches[2] == "*" || matches[4] != "" {
 			return nil, f.RaiseType(NotImplementedErrorType, "field width not yet supported")
 		}
-		switch matches[7] {
+		if matches[2] != "" {
+			var err error
+			fieldWidth, err = strconv.Atoi(matches[2])
+			if err != nil {
+				return nil, f.RaiseType(TypeErrorType, fmt.Sprint(err))
+			}
+		}
+		if flags != "" && flags != "0" {
+			return nil, f.RaiseType(NotImplementedErrorType, "conversion flags not yet supported")
+		}
+		var val string
+		switch fieldType {
 		case "r", "s":
 			o := values.elems[valueIndex]
 			var s *Str
 			var raised *BaseException
-			if matches[7] == "r" {
+			if fieldType == "r" {
 				s, raised = Repr(f, o)
 			} else {
 				s, raised = ToStr(f, o)
@@ -730,46 +871,74 @@ func strInterpolate(f *Frame, format string, values *Tuple) (*Object, *BaseExcep
 			if raised != nil {
 				return nil, raised
 			}
-			buf.WriteString(s.Value())
+			val = s.Value()
+			if fieldWidth > 0 {
+				val = strLeftPad(val, fieldWidth, " ")
+			}
+			buf.WriteString(val)
 			valueIndex++
 		case "f":
 			o := values.elems[valueIndex]
-			if val, ok := floatCoerce(o); ok {
-				buf.WriteString(strconv.FormatFloat(val, 'f', 6, 64))
+			if v, ok := floatCoerce(o); ok {
+				val := strconv.FormatFloat(v, 'f', 6, 64)
+				if fieldWidth > 0 {
+					fillchar := " "
+					if flags != "" {
+						fillchar = flags
+					}
+					val = strLeftPad(val, fieldWidth, fillchar)
+				}
+				buf.WriteString(val)
 				valueIndex++
 			} else {
 				return nil, f.RaiseType(TypeErrorType, fmt.Sprintf("float argument required, not %s", o.typ.Name()))
 			}
-		case "d", "x", "X":
-			var val string
+		case "d", "x", "X", "o":
 			o := values.elems[valueIndex]
 			i, raised := ToInt(f, values.elems[valueIndex])
 			if raised != nil {
 				return nil, raised
 			}
-			if matches[7] == "d" {
+			if fieldType == "d" {
 				s, raised := ToStr(f, i)
 				if raised != nil {
 					return nil, raised
 				}
 				val = s.Value()
+			} else if matches[7] == "o" {
+				if o.isInstance(LongType) {
+					val = toLongUnsafe(o).Value().Text(8)
+				} else {
+					val = strconv.FormatInt(int64(toIntUnsafe(i).Value()), 8)
+				}
 			} else {
 				if o.isInstance(LongType) {
 					val = toLongUnsafe(o).Value().Text(16)
 				} else {
 					val = strconv.FormatInt(int64(toIntUnsafe(i).Value()), 16)
 				}
-				if matches[7] == "X" {
+				if fieldType == "X" {
 					val = strings.ToUpper(val)
 				}
+			}
+			if fieldWidth > 0 {
+				fillchar := " "
+				if flags != "" {
+					fillchar = flags
+				}
+				val = strLeftPad(val, fieldWidth, fillchar)
 			}
 			buf.WriteString(val)
 			valueIndex++
 		case "%":
-			buf.WriteString("%")
+			val = "%"
+			if fieldWidth > 0 {
+				val = strLeftPad(val, fieldWidth, " ")
+			}
+			buf.WriteString(val)
 		default:
 			format := "conversion type not yet supported: %s"
-			return nil, f.RaiseType(NotImplementedErrorType, fmt.Sprintf(format, matches[7]))
+			return nil, f.RaiseType(NotImplementedErrorType, fmt.Sprintf(format, fieldType))
 		}
 		format = format[len(matches[0]):]
 		index = strings.Index(format, "%")
@@ -890,7 +1059,31 @@ func strTitle(f *Frame, args Args, kwargs KWArgs) (*Object, *BaseException) {
 		return nil, raised
 	}
 	s := toStrUnsafe(args[0]).Value()
-	return NewStr(strings.Title(strings.ToLower(s))).ToObject(), nil
+	numBytes := len(s)
+	if numBytes == 0 {
+		return args[0], nil
+	}
+	b := make([]byte, numBytes)
+	previousIsCased := false
+	for i := 0; i < numBytes; i++ {
+		c := s[i]
+		switch {
+		case s[i] >= 'a' && s[i] <= 'z':
+			if !previousIsCased {
+				c = toUpper(c)
+			}
+			previousIsCased = true
+		case s[i] >= 'A' && s[i] <= 'Z':
+			if previousIsCased {
+				c = toLower(c)
+			}
+			previousIsCased = true
+		default:
+			previousIsCased = false
+		}
+		b[i] = c
+	}
+	return NewStr(string(b)).ToObject(), nil
 }
 
 func strUpper(f *Frame, args Args, kwargs KWArgs) (*Object, *BaseException) {
@@ -899,7 +1092,15 @@ func strUpper(f *Frame, args Args, kwargs KWArgs) (*Object, *BaseException) {
 		return nil, raised
 	}
 	s := toStrUnsafe(args[0]).Value()
-	return NewStr(strings.ToUpper(s)).ToObject(), nil
+	numBytes := len(s)
+	if numBytes == 0 {
+		return args[0], nil
+	}
+	b := make([]byte, numBytes)
+	for i := 0; i < numBytes; i++ {
+		b[i] = toUpper(s[i])
+	}
+	return NewStr(string(b)).ToObject(), nil
 }
 
 func strZFill(f *Frame, args Args, _ KWArgs) (*Object, *BaseException) {
@@ -907,24 +1108,11 @@ func strZFill(f *Frame, args Args, _ KWArgs) (*Object, *BaseException) {
 		return nil, raised
 	}
 	s := toStrUnsafe(args[0]).Value()
-	l := len(s)
 	width, raised := ToIntValue(f, args[1])
 	if raised != nil {
 		return nil, raised
 	}
-	if width <= l {
-		return args[0], nil
-	}
-	buf := bytes.Buffer{}
-	buf.Grow(width)
-	if l > 0 && (s[0] == '-' || s[0] == '+') {
-		buf.WriteByte(s[0])
-		s = s[1:]
-		width--
-	}
-	buf.WriteString(strings.Repeat("0", width-len(s)))
-	buf.WriteString(s)
-	return NewStr(buf.String()).ToObject(), nil
+	return NewStr(strLeftPad(s, width, "0")).ToObject(), nil
 }
 
 func init() {
@@ -932,4 +1120,40 @@ func init() {
 	for i := 0; i < 256; i++ {
 		InternStr(string([]byte{byte(i)}))
 	}
+}
+
+func toLower(b byte) byte {
+	if b >= 'A' && b <= 'Z' {
+		return b + caseOffset
+	}
+	return b
+}
+
+func toUpper(b byte) byte {
+	if b >= 'a' && b <= 'z' {
+		return b - caseOffset
+	}
+	return b
+}
+
+// strLeftPad returns s padded with fillchar so that its length is at least width.
+// Fillchar must be a single character. When fillchar is "0", s starting with a
+// sign are handled correctly.
+func strLeftPad(s string, width int, fillchar string) string {
+	l := len(s)
+	if width <= l {
+		return s
+	}
+	buf := bytes.Buffer{}
+	buf.Grow(width)
+	if l > 0 && fillchar == "0" && (s[0] == '-' || s[0] == '+') {
+		buf.WriteByte(s[0])
+		s = s[1:]
+		l = len(s)
+		width--
+	}
+	// TODO: Support or throw fillchar len more than one.
+	buf.WriteString(strings.Repeat(fillchar, width-l))
+	buf.WriteString(s)
+	return buf.String()
 }

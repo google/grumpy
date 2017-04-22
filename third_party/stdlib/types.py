@@ -50,7 +50,7 @@ GeneratorType = type(_g())
 
 class _C(object):
     def _m(self): pass
-#ClassType = type(_C)
+ClassType = type(_C)
 UnboundMethodType = type(_C._m)         # Same as MethodType
 _x = _C()
 #InstanceType = type(_x)
@@ -72,7 +72,7 @@ except TypeError:
     del tb
 
 SliceType = slice
-#EllipsisType = type(Ellipsis)
+EllipsisType = type(Ellipsis)
 
 #DictProxyType = type(TypeType.__dict__)
 NotImplementedType = type(NotImplemented)
