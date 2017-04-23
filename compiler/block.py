@@ -22,12 +22,11 @@ import abc
 import collections
 import re
 
-from pythonparser import algorithm
-from pythonparser import ast
-from pythonparser import source
-
 from grumpy.compiler import expr
 from grumpy.compiler import util
+from grumpy.pythonparser import algorithm
+from grumpy.pythonparser import ast
+from grumpy.pythonparser import source
 
 
 _non_word_re = re.compile('[^A-Za-z0-9_]')

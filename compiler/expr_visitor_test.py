@@ -22,12 +22,11 @@ import subprocess
 import textwrap
 import unittest
 
-import pythonparser
-
 from grumpy.compiler import block
 from grumpy.compiler import imputil
 from grumpy.compiler import shard_test
 from grumpy.compiler import stmt
+from grumpy import pythonparser
 
 
 def _MakeExprTest(expr):

@@ -1,5 +1,6 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
-import sys, pythonparser.source, pythonparser.lexer, pythonparser.parser, pythonparser.diagnostic
+import sys
+from . import source as pythonparser_source, lexer as pythonparser_lexer, parser as pythonparser_parser, diagnostic as pythonparser_diagnostic
 
 def parse_buffer(buffer, mode="exec", flags=[], version=None, engine=None):
     """
@@ -15,13 +16,13 @@ def parse_buffer(buffer, mode="exec", flags=[], version=None, engine=None):
         version = sys.version_info[0:2]
 
     if engine is None:
-        engine = pythonparser.diagnostic.Engine()
+        engine = pythonparser_diagnostic.Engine()
 
-    lexer = pythonparser.lexer.Lexer(buffer, version, engine)
+    lexer = pythonparser_lexer.Lexer(buffer, version, engine)
     if mode in ("single", "eval"):
         lexer.interactive = True
 
-    parser = pythonparser.parser.Parser(lexer, version, engine)
+    parser = pythonparser_parser.Parser(lexer, version, engine)
     parser.add_flags(flags)
 
     if mode == "exec":
@@ -54,7 +55,7 @@ def parse(source, filename="<unknown>", mode="exec",
     :raise: :class:`diagnostic.Error`
         if the source code is not well-formed
     """
-    ast, comments = parse_buffer(pythonparser.source.Buffer(source, filename),
+    ast, comments = parse_buffer(pythonparser_source.Buffer(source, filename),
                                  mode, flags, version, engine)
     return ast
 

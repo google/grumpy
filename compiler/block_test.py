@@ -21,11 +21,10 @@ from __future__ import unicode_literals
 import textwrap
 import unittest
 
-import pythonparser
-
 from grumpy.compiler import block
 from grumpy.compiler import imputil
 from grumpy.compiler import util
+from grumpy import pythonparser
 
 class PackageTest(unittest.TestCase):
 
