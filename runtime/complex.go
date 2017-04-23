@@ -72,6 +72,7 @@ func initComplexType(dict map[string]*Object) {
 	ComplexType.slots.Eq = &binaryOpSlot{complexEq}
 	ComplexType.slots.GE = &binaryOpSlot{complexCompareNotSupported}
 	ComplexType.slots.GT = &binaryOpSlot{complexCompareNotSupported}
+	ComplexType.slots.Hash = &unaryOpSlot{complexHash}
 	ComplexType.slots.LE = &binaryOpSlot{complexCompareNotSupported}
 	ComplexType.slots.LT = &binaryOpSlot{complexCompareNotSupported}
 	ComplexType.slots.NE = &binaryOpSlot{complexNE}
@@ -129,4 +130,13 @@ func complexCoerce(o *Object) (complex128, bool) {
 		return 0, false
 	}
 	return complex(floatO, 0.0), true
+}
+
+func complexHash(f *Frame, o *Object) (*Object, *BaseException) {
+	v := toComplexUnsafe(o).Value()
+	hashCombined := hashFloat(real(v)) + 1000003*hashFloat(imag(v))
+	if hashCombined == -1 {
+		hashCombined = -2
+	}
+	return NewInt(hashCombined).ToObject(), nil
 }
