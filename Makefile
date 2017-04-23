@@ -157,8 +157,10 @@ $(COMPILER_PASS_FILES): %.pass: %.py $(COMPILER) $(COMPILER_TEST_SRCS)
 	@touch $@
 	@echo compiler/`basename $*` PASS
 
+# NOTE: In the regex below we use (\.|$) instead of \> because the latter is
+# not available in the awk available on OS X.
 $(COMPILER_D_FILES): $(PY_DIR)/%.d: $(PY_DIR)/%.py $(COMPILER_SRCS) $(PYTHONPARSER_SRCS)
-	@$(PYTHON) -m modulefinder $< | awk '{if (match($$2, /^grumpy\>/)) { print "$(PY_DIR)/$*.pass: " substr($$3, length("$(ROOT_DIR)/") + 1) }}' > $@
+	@$(PYTHON) -m modulefinder $< | awk '{if (match($$2, /^grumpy(\.|$$)/)) { print "$(PY_DIR)/$*.pass: " substr($$3, length("$(ROOT_DIR)/") + 1) }}' > $@
 
 -include $(COMPILER_D_FILES)
 
