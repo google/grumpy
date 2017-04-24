@@ -93,3 +93,18 @@ func TestComplexRepr(t *testing.T) {
 		}
 	}
 }
+
+func TestComplexHash(t *testing.T) {
+	cases := []invokeTestCase{
+		{args: wrapArgs(complex(0.0, 0.0)), want: NewInt(0).ToObject()},
+		{args: wrapArgs(complex(0.0, 1.0)), want: NewInt(1000003).ToObject()},
+		{args: wrapArgs(complex(1.0, 0.0)), want: NewInt(1).ToObject()},
+		{args: wrapArgs(complex(3.1, -4.2)), want: NewInt(-1556830019620134).ToObject()},
+		{args: wrapArgs(complex(3.1, 4.2)), want: NewInt(1557030815934348).ToObject()},
+	}
+	for _, cas := range cases {
+		if err := runInvokeTestCase(wrapFuncForTest(complexHash), &cas); err != "" {
+			t.Error(err)
+		}
+	}
+}
