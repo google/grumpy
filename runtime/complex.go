@@ -172,7 +172,7 @@ func complexNew(f *Frame, t *Type, args Args, _ KWArgs) (*Object, *BaseException
 			if raised != nil {
 				return nil, raised
 			}
-			f := toFloatUnsafe(result).Value()
+			f := result.Value()
 			return NewComplex(complex(f, 0)).ToObject(), nil
 		}
 		if !o.isInstance(StrType) {
@@ -200,7 +200,9 @@ func parseComplex(s string) (complex128, error) {
 	if (c > 1) || (c == 1 && strings.Count(s, ")") != 1) {
 		return complex(0, 0), errors.New("Malformed complex string, more than one matching parantheses")
 	}
-	ts := strings.Trim(s, "() ")
+	ts := strings.TrimSpace(s)
+	ts = strings.Trim(ts, "()")
+	ts = strings.TrimSpace(ts)
 	re := `(?i)(?:(?:(?:(?:\d*\.\d+)|(?:\d+\.?))(?:[Ee][+-]?\d+)?)|(?:infinity)|(?:nan)|(?:inf))`
 	fre := `[-+]?` + re
 	sre := `[-+]` + re
@@ -215,40 +217,41 @@ func parseComplex(s string) (complex128, error) {
 	if subs == nil {
 		return complex(0, 0), errors.New("Malformed complex string, no mathing pattern found")
 	}
-	res := make(map[string]string)
-	for i, name := range r.SubexpNames() {
-		// First one is the complete string
-		if i != 0 {
-			res[name] = subs[i]
-		}
-	}
-	if res["real1"] != "" && res["imag1"] != "" {
-		r, _ := strconv.ParseFloat(unsignNaN(res["real1"]), 64)
-		i, err := strconv.ParseFloat(unsignNaN(res["imag1"]), 64)
+	const Real1 = 1
+	const Imag1 = 2
+	const Real2 = 3
+	const Sign2 = 4
+	const Imag3 = 5
+	const Real4 = 6
+	const Sign5 = 7
+	const OnlyJ = 8
+	if subs[Real1] != "" && subs[Imag1] != "" {
+		r, _ := strconv.ParseFloat(unsignNaN(subs[Real1]), 64)
+		i, err := strconv.ParseFloat(unsignNaN(subs[Imag1]), 64)
 		return complex(r, i), err
 	}
-	if res["real2"] != "" && res["sign2"] != "" {
-		r, err := strconv.ParseFloat(unsignNaN(res["real2"]), 64)
-		if res["sign2"] == "-" {
+	if subs[Real2] != "" && subs[Sign2] != "" {
+		r, err := strconv.ParseFloat(unsignNaN(subs[Real2]), 64)
+		if subs[Sign2] == "-" {
 			return complex(r, -1), err
 		}
 		return complex(r, 1), err
 	}
-	if res["imag3"] != "" {
-		i, err := strconv.ParseFloat(unsignNaN(res["imag3"]), 64)
+	if subs[Imag3] != "" {
+		i, err := strconv.ParseFloat(unsignNaN(subs[Imag3]), 64)
 		return complex(0, i), err
 	}
-	if res["real4"] != "" {
-		r, err := strconv.ParseFloat(unsignNaN(res["real4"]), 64)
+	if subs[Real4] != "" {
+		r, err := strconv.ParseFloat(unsignNaN(subs[Real4]), 64)
 		return complex(r, 0), err
 	}
-	if res["sign5"] != "" {
-		if res["sign5"] == "-" {
+	if subs[Sign5] != "" {
+		if subs[Sign5] == "-" {
 			return complex(0, -1), nil
 		}
 		return complex(0, 1), nil
 	}
-	if res["onlyJ"] != "" {
+	if subs[OnlyJ] != "" {
 		return complex(0, 1), nil
 	}
 	return complex(0, 0), errors.New("Malformed complex string")

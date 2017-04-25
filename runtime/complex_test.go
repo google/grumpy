@@ -217,6 +217,7 @@ func TestParseComplex(t *testing.T) {
 		{"(2.1-3.4j)", complex(2.1, -3.4), nil},
 		{"   (2.1-3.4j)    ", complex(2.1, -3.4), nil},
 		{"   (   2.1-3.4j    )     ", complex(2.1, -3.4), nil},
+		{" \t \n \r ( \t \n \r 2.1-3.4j \t \n \r ) \t \n \r ", complex(2.1, -3.4), nil},
 		{"     3.14-15.16j   ", complex(3.14, -15.16), nil},
 		{"(2.1-3.4j", complex(0, 0), ErrSyntax},
 		{"((2.1-3.4j))", complex(0, 0), ErrSyntax},
