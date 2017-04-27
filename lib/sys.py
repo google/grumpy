@@ -21,7 +21,7 @@ from __go__.unicode import MaxRune
 
 argv = []
 for arg in Args:
-  argv.append(arg)
+    argv.append(arg)
 
 goversion = Version()
 maxint = MaxInt
@@ -34,35 +34,36 @@ warnoptions = []
 byteorder = 'little'
 
 class _Flags(object):
-  """Container class for sys.flags."""
-  debug = 0
-  py3k_warning = 0
-  division_warning = 0
-  division_new = 0
-  inspect = 0
-  interactive = 0
-  optimize = 0
-  dont_write_bytecode = 0
-  no_user_site = 0
-  no_site = 0
-  ignore_environment = 0
-  tabcheck = 0
-  verbose = 0
-  unicode = 0
-  bytes_warning = 0
-  hash_randomization = 0
+    """Container class for sys.flags."""
+    debug = 0
+    py3k_warning = 0
+    division_warning = 0
+    division_new = 0
+    inspect = 0
+    interactive = 0
+    optimize = 0
+    dont_write_bytecode = 0
+    no_user_site = 0
+    no_site = 0
+    ignore_environment = 0
+    tabcheck = 0
+    verbose = 0
+    unicode = 0
+    bytes_warning = 0
+    hash_randomization = 0
 
 
 flags = _Flags()
 
 
 def exc_info():
-  e, tb = __frame__().__exc_info__()  # pylint: disable=undefined-variable
-  t = None
-  if e:
-    t = type(e)
-  return t, e, tb
+    e, tb = __frame__().__exc_info__()  # pylint: disable=undefined-variable
+    t = None
+    if e:
+        t = type(e)
+    return t, e, tb
 
 
 def exit(code=None):  # pylint: disable=redefined-builtin
-  raise SystemExit(code)
+    raise SystemExit(code)
+
