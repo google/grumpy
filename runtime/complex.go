@@ -155,28 +155,20 @@ func complexNew(f *Frame, t *Type, args Args, _ KWArgs) (*Object, *BaseException
 		return result.ToObject(), nil
 	}
 	o := args[0]
-	if argc == 1 {
-		if complexSlot := o.typ.slots.Complex; complexSlot != nil {
-			result, raised := complexSlot.Fn(f, o)
-			if raised != nil {
-				return nil, raised
-			}
-			if !result.isInstance(ComplexType) {
-				format := "__complex__ returned non-complex (type %s)"
-				return nil, f.RaiseType(TypeErrorType, fmt.Sprintf(format, result.typ.Name()))
-			}
-			return result, nil
+	if complexSlot := o.typ.slots.Complex; complexSlot != nil && argc == 1 {
+		result, raised := complexSlot.Fn(f, o)
+		if raised != nil {
+			return nil, raised
 		}
-		if floatSlot := o.typ.slots.Float; floatSlot != nil {
-			result, raised := floatConvert(floatSlot, f, o)
-			if raised != nil {
-				return nil, raised
-			}
-			f := result.Value()
-			return NewComplex(complex(f, 0)).ToObject(), nil
+		if !result.isInstance(ComplexType) {
+			format := "__complex__ returned non-complex (type %s)"
+			return nil, f.RaiseType(TypeErrorType, fmt.Sprintf(format, result.typ.Name()))
 		}
-		if !o.isInstance(StrType) {
-			return nil, f.RaiseType(TypeErrorType, "complex() argument must be a string or a number")
+		return result, nil
+	}
+	if o.isInstance(StrType) {
+		if argc == 2 {
+			return nil, f.RaiseType(TypeErrorType, "complex() can't take second arg if first is a string")
 		}
 		s := toStrUnsafe(o).Value()
 		result, err := parseComplex(s)
@@ -185,10 +177,75 @@ func complexNew(f *Frame, t *Type, args Args, _ KWArgs) (*Object, *BaseException
 		}
 		return NewComplex(result).ToObject(), nil
 	}
-
-	// TODO: fix me
-	return nil, nil
+	if argc == 2 && args[1].isInstance(StrType) {
+		return nil, f.RaiseType(TypeErrorType, "complex() second arg can't be a string")
+	}
+	var cr complex128
+	crIsComplex := false
+	if complexSlot := o.typ.slots.Complex; complexSlot != nil {
+		result, raised := complexSlot.Fn(f, o)
+		if raised != nil {
+			return nil, raised
+		}
+		if !result.isInstance(ComplexType) {
+			format := "__complex__ returned non-complex (type %s)"
+			return nil, f.RaiseType(TypeErrorType, fmt.Sprintf(format, result.typ.Name()))
+		}
+		cr = toComplexUnsafe(result).Value()
+		crIsComplex = true
+	} else if floatSlot := o.typ.slots.Float; floatSlot != nil {
+		result, raised := floatConvert(floatSlot, f, o)
+		if raised != nil {
+			return nil, raised
+		}
+		cr = complex(result.Value(), 0)
+	} else {
+		return nil, f.RaiseType(TypeErrorType, "complex() argument must be a string or a number")
+	}
+	var ci complex128
+	ciIsComplex := false
+	if argc == 1 {
+		ci = complex(imag(cr), 0)
+	} else if complexSlot := args[1].typ.slots.Complex; complexSlot != nil {
+		result, raised := complexSlot.Fn(f, args[1])
+		if raised != nil {
+			return nil, raised
+		}
+		if !result.isInstance(ComplexType) {
+			format := "__complex__ returned non-complex (type %s)"
+			return nil, f.RaiseType(TypeErrorType, fmt.Sprintf(format, result.typ.Name()))
+		}
+		ci = toComplexUnsafe(result).Value()
+		ciIsComplex = true
+	} else if floatSlot := args[1].typ.slots.Float; floatSlot != nil {
+		result, raised := floatConvert(floatSlot, f, args[1])
+		if raised != nil {
+			return nil, raised
+		}
+		ci = complex(result.Value(), 0)
+	} else {
+		return nil, f.RaiseType(TypeErrorType, "complex() argument must be a string or a number")
+	}
+	if ciIsComplex {
+		cr = complex(real(cr)-imag(ci), imag(cr))
+	}
+	if crIsComplex && argc == 2 {
+		ci = complex(real(ci)+imag(cr), imag(ci))
+	}
+	return NewComplex(complex(real(cr), real(ci))).ToObject(), nil
 }
+
+const (
+	_ = iota
+	real1
+	imag1
+	real2
+	sign2
+	imag3
+	real4
+	sign5
+	onlyJ
+)
 
 // ParseComplex converts the string s to a complex number.
 // If string is well-formed (one of these forms: <float>, <float>j,
@@ -217,50 +274,42 @@ func parseComplex(s string) (complex128, error) {
 	if subs == nil {
 		return complex(0, 0), errors.New("Malformed complex string, no mathing pattern found")
 	}
-	const Real1 = 1
-	const Imag1 = 2
-	const Real2 = 3
-	const Sign2 = 4
-	const Imag3 = 5
-	const Real4 = 6
-	const Sign5 = 7
-	const OnlyJ = 8
-	if subs[Real1] != "" && subs[Imag1] != "" {
-		r, _ := strconv.ParseFloat(unsignNaN(subs[Real1]), 64)
-		i, err := strconv.ParseFloat(unsignNaN(subs[Imag1]), 64)
+	if subs[real1] != "" && subs[imag1] != "" {
+		r, _ := strconv.ParseFloat(unsignNaN(subs[real1]), 64)
+		i, err := strconv.ParseFloat(unsignNaN(subs[imag1]), 64)
 		return complex(r, i), err
 	}
-	if subs[Real2] != "" && subs[Sign2] != "" {
-		r, err := strconv.ParseFloat(unsignNaN(subs[Real2]), 64)
-		if subs[Sign2] == "-" {
+	if subs[real2] != "" && subs[sign2] != "" {
+		r, err := strconv.ParseFloat(unsignNaN(subs[real2]), 64)
+		if subs[sign2] == "-" {
 			return complex(r, -1), err
 		}
 		return complex(r, 1), err
 	}
-	if subs[Imag3] != "" {
-		i, err := strconv.ParseFloat(unsignNaN(subs[Imag3]), 64)
+	if subs[imag3] != "" {
+		i, err := strconv.ParseFloat(unsignNaN(subs[imag3]), 64)
 		return complex(0, i), err
 	}
-	if subs[Real4] != "" {
-		r, err := strconv.ParseFloat(unsignNaN(subs[Real4]), 64)
+	if subs[real4] != "" {
+		r, err := strconv.ParseFloat(unsignNaN(subs[real4]), 64)
 		return complex(r, 0), err
 	}
-	if subs[Sign5] != "" {
-		if subs[Sign5] == "-" {
+	if subs[sign5] != "" {
+		if subs[sign5] == "-" {
 			return complex(0, -1), nil
 		}
 		return complex(0, 1), nil
 	}
-	if subs[OnlyJ] != "" {
+	if subs[onlyJ] != "" {
 		return complex(0, 1), nil
 	}
 	return complex(0, 0), errors.New("Malformed complex string")
 }
 
 func unsignNaN(s string) string {
-	us := strings.ToUpper(s)
-	if us == "-NAN" || us == "+NAN" {
-		return "NAN"
+	ls := strings.ToLower(s)
+	if ls == "-nan" || ls == "+nan" {
+		return "nan"
 	}
 	return s
 }
