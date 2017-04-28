@@ -15,23 +15,36 @@
 """System-specific parameters and functions."""
 
 from __go__.os import Args
-from __go__.grumpy import SysModules, MaxInt, Stdin as stdin, Stdout as stdout, Stderr as stderr  # pylint: disable=g-multiple-import
+from __go__.grumpy import SysmoduleDict, SysModules, MaxInt, Stdin, Stdout, Stderr  # pylint: disable=g-multiple-import
 from __go__.runtime import Version
 from __go__.unicode import MaxRune
+
+
+__all__ = ('stdin', 'stdout', 'stderr', 'argv', '_goversion',
+           'maxint', 'maxsize', 'maxunicode', 'modules', 'py3kwarning',
+           'warnoptions', 'byteorder', 'flags', 'exc_info', 'exit')
+
 
 argv = []
 for arg in Args:
     argv.append(arg)
 
 goversion = Version()
+
+stdin = SysmoduleDict['stdin']
+stdout = SysmoduleDict['stdout']
+stderr = SysmoduleDict['stderr']
+
 maxint = MaxInt
 maxsize = maxint
 maxunicode = MaxRune
 modules = SysModules
+
 py3kwarning = False
 warnoptions = []
 # TODO: Support actual byteorder
 byteorder = 'little'
+
 
 class _Flags(object):
     """Container class for sys.flags."""
@@ -67,3 +80,19 @@ def exc_info():
 def exit(code=None):  # pylint: disable=redefined-builtin
     raise SystemExit(code)
 
+
+# TODO: Clear this HACK: Should be the last lines of the python part of hybrid stuff
+class _SysModule(object):
+    def __init__(self):
+        for k in ('__name__', '__file__') + __all__:
+            SysmoduleDict[k] = globals()[k]
+    def __setattr__(self, name, value):
+        SysmoduleDict[name] = value
+    def __getattr__(self, name):
+        resp = SysmoduleDict.get(name)
+        if res is None and name not in SysmoduleDict:
+            return super(_SysModule, self).__getattr__(name)
+        return resp
+
+modules = SysModules
+modules['sys'] = _SysModule()
