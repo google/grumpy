@@ -15,7 +15,7 @@
 package grumpy
 
 var (
-	// Sysmodule is the  __dict__ of the native part of sys.py.
+	// SysmoduleDict is the  __dict__ of the native part of sys.py.
 	SysmoduleDict = newStringDict(map[string]*Object{
 		"__file__": NewStr("<native>").ToObject(),
 		"__name__": NewStr("_sys").ToObject(),
