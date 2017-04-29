@@ -88,10 +88,10 @@ class _SysModule(object):
             SysmoduleDict[k] = globals()[k]
     def __setattr__(self, name, value):
         SysmoduleDict[name] = value
-    def __getattr__(self, name):
+    def __getattribute__(self, name):   # TODO: replace w/ __getattr__ when implemented
         resp = SysmoduleDict.get(name)
         if res is None and name not in SysmoduleDict:
-            return super(_SysModule, self).__getattr__(name)
+            return super(_SysModule, self).__getattribute__(name)
         return resp
 
 modules = SysModules
