@@ -562,7 +562,7 @@ func builtinPrint(f *Frame, args Args, kwargs KWArgs) (*Object, *BaseException) 
 			// to the file descriptor probably
 		}
 	}
-	return nil, pyPrint(f, args, sep, end, file)
+	return nil, pyPrint(f, args, sep, end, file.ToObject())
 }
 
 func builtinRange(f *Frame, args Args, kwargs KWArgs) (*Object, *BaseException) {
@@ -590,7 +590,7 @@ func builtinRawInput(f *Frame, args Args, kwargs KWArgs) (*Object, *BaseExceptio
 	}
 
 	if len(args) == 1 {
-		err := pyPrint(f, args, "", "", Stdout)
+		err := pyPrint(f, args, "", "", Stdout.ToObject())
 		if err != nil {
 			return nil, err
 		}
