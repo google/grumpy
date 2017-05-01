@@ -683,7 +683,11 @@ func Print(f *Frame, args Args, nl bool) *BaseException {
 	} else if len(args) > 0 {
 		end = " "
 	}
-	return pyPrint(f, args, " ", end, Stdout.ToObject())
+	file, raised := SysmoduleDict.GetItemString(f, "stdout")
+	if raised != nil {
+		return raised
+	}
+	return pyPrint(f, args, " ", end, file)
 }
 
 // Repr returns a string containing a printable representation of o. This is
