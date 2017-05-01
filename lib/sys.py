@@ -20,7 +20,7 @@ from __go__.runtime import Version
 from __go__.unicode import MaxRune
 
 
-__all__ = ('stdin', 'stdout', 'stderr', 'argv', '_goversion',
+__all__ = ('stdin', 'stdout', 'stderr', 'argv', 'goversion',
            'maxint', 'maxsize', 'maxunicode', 'modules', 'py3kwarning',
            'warnoptions', 'byteorder', 'flags', 'exc_info', 'exit')
 
@@ -90,7 +90,7 @@ class _SysModule(object):
         SysmoduleDict[name] = value
     def __getattribute__(self, name):   # TODO: replace w/ __getattr__ when implemented
         resp = SysmoduleDict.get(name)
-        if res is None and name not in SysmoduleDict:
+        if resp is None and name not in SysmoduleDict:
             return super(_SysModule, self).__getattribute__(name)
         return resp
 
