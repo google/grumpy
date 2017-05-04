@@ -208,6 +208,9 @@ func floatNew(f *Frame, t *Type, args Args, _ KWArgs) (*Object, *BaseException) 
 	o := args[0]
 	if floatSlot := o.typ.slots.Float; floatSlot != nil {
 		fl, raised := floatConvert(floatSlot, f, o)
+		if raised != nil {
+			return nil, raised
+		}
 		return fl.ToObject(), raised
 	}
 	if !o.isInstance(StrType) {
