@@ -199,15 +199,11 @@ func complexNew(f *Frame, t *Type, args Args, _ KWArgs) (*Object, *BaseException
 	}
 	o := args[0]
 	if complexSlot := o.typ.slots.Complex; complexSlot != nil && argc == 1 {
-		result, raised := complexSlot.Fn(f, o)
+		c, raised := complexConvert(complexSlot, f, o)
 		if raised != nil {
 			return nil, raised
 		}
-		if !result.isInstance(ComplexType) {
-			format := "__complex__ returned non-complex (type %s)"
-			return nil, f.RaiseType(TypeErrorType, fmt.Sprintf(format, result.typ.Name()))
-		}
-		return result, nil
+		return c.ToObject(), nil
 	}
 	if o.isInstance(StrType) {
 		if argc == 2 {
@@ -226,15 +222,11 @@ func complexNew(f *Frame, t *Type, args Args, _ KWArgs) (*Object, *BaseException
 	var cr complex128
 	crIsComplex := false
 	if complexSlot := o.typ.slots.Complex; complexSlot != nil {
-		result, raised := complexSlot.Fn(f, o)
+		c, raised := complexConvert(complexSlot, f, o)
 		if raised != nil {
 			return nil, raised
 		}
-		if !result.isInstance(ComplexType) {
-			format := "__complex__ returned non-complex (type %s)"
-			return nil, f.RaiseType(TypeErrorType, fmt.Sprintf(format, result.typ.Name()))
-		}
-		cr = toComplexUnsafe(result).Value()
+		cr = c.Value()
 		crIsComplex = true
 	} else if floatSlot := o.typ.slots.Float; floatSlot != nil {
 		result, raised := floatConvert(floatSlot, f, o)
@@ -250,15 +242,11 @@ func complexNew(f *Frame, t *Type, args Args, _ KWArgs) (*Object, *BaseException
 	if argc == 1 {
 		ci = complex(imag(cr), 0)
 	} else if complexSlot := args[1].typ.slots.Complex; complexSlot != nil {
-		result, raised := complexSlot.Fn(f, args[1])
+		c, raised := complexConvert(complexSlot, f, args[1])
 		if raised != nil {
 			return nil, raised
 		}
-		if !result.isInstance(ComplexType) {
-			format := "__complex__ returned non-complex (type %s)"
-			return nil, f.RaiseType(TypeErrorType, fmt.Sprintf(format, result.typ.Name()))
-		}
-		ci = toComplexUnsafe(result).Value()
+		ci = c.Value()
 		ciIsComplex = true
 	} else if floatSlot := args[1].typ.slots.Float; floatSlot != nil {
 		result, raised := floatConvert(floatSlot, f, args[1])
@@ -276,6 +264,18 @@ func complexNew(f *Frame, t *Type, args Args, _ KWArgs) (*Object, *BaseException
 		ci = complex(real(ci)+imag(cr), imag(ci))
 	}
 	return NewComplex(complex(real(cr), real(ci))).ToObject(), nil
+}
+
+func complexConvert(complexSlot *unaryOpSlot, f *Frame, o *Object) (*Complex, *BaseException) {
+	result, raised := complexSlot.Fn(f, o)
+	if raised != nil {
+		return nil, raised
+	}
+	if !result.isInstance(ComplexType) {
+		exc := fmt.Sprintf("__complex__ returned non-complex (type %s)", result.typ.Name())
+		return nil, f.RaiseType(TypeErrorType, exc)
+	}
+	return toComplexUnsafe(result), nil
 }
 
 const (

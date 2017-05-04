@@ -211,7 +211,7 @@ func floatNew(f *Frame, t *Type, args Args, _ KWArgs) (*Object, *BaseException) 
 		if raised != nil {
 			return nil, raised
 		}
-		return fl.ToObject(), raised
+		return fl.ToObject(), nil
 	}
 	if !o.isInstance(StrType) {
 		return nil, f.RaiseType(TypeErrorType, "float() argument must be a string or a number")
