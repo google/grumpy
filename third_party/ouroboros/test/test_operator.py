@@ -472,7 +472,6 @@ class OperatorTestCase(unittest.TestCase):
             if dunder:
                 self.assertIs(dunder, orig)
 
-    @unittest.expectedFailure
     def test_complex_operator(self):
         self.assertRaises(TypeError, operator.lt, 1j, 2j)
         self.assertRaises(TypeError, operator.le, 1j, 2j)

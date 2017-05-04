@@ -23,15 +23,13 @@ import subprocess
 import textwrap
 import unittest
 
-import pythonparser
-from pythonparser import ast
-
 from grumpy.compiler import block
 from grumpy.compiler import imputil
-from grumpy.compiler import imputil_test
 from grumpy.compiler import shard_test
 from grumpy.compiler import stmt
 from grumpy.compiler import util
+from grumpy import pythonparser
+from grumpy.pythonparser import ast
 
 
 class StatementVisitorTest(unittest.TestCase):
@@ -304,6 +302,12 @@ class StatementVisitorTest(unittest.TestCase):
     self.assertRaisesRegexp(util.ImportError, regexp, _ParseAndVisit,
                             'foo = bar\nfrom __future__ import print_function')
 
+  def testFutureUnicodeLiterals(self):
+    want = "u'foo'\n"
+    self.assertEqual((0, want), _GrumpRun(textwrap.dedent("""\
+        from __future__ import unicode_literals
+        print repr('foo')""")))
+
   def testImportMember(self):
     self.assertEqual((0, "<type 'dict'>\n"), _GrumpRun(textwrap.dedent("""\
         from sys import modules
@@ -532,15 +536,16 @@ class StatementVisitorTest(unittest.TestCase):
 
 
 def _MakeModuleBlock():
-  return block.ModuleBlock(imputil_test.MockPath(), '__main__',
-                           '<test>', '', imputil.FutureFeatures())
+  return block.ModuleBlock(None, '__main__', '<test>', '',
+                           imputil.FutureFeatures())
 
 
 def _ParseAndVisit(source):
   mod = pythonparser.parse(source)
   _, future_features = imputil.parse_future_features(mod)
-  b = block.ModuleBlock(imputil_test.MockPath(), '__main__',
-                        '<test>', source, future_features)
+  importer = imputil.Importer(None, 'foo', 'foo.py', False)
+  b = block.ModuleBlock(importer, '__main__', '<test>',
+                        source, future_features)
   visitor = stmt.StatementVisitor(b)
   visitor.visit(mod)
   return visitor

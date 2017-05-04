@@ -52,8 +52,45 @@ func (c *Complex) Value() complex128 {
 	return c.value
 }
 
+func complexAdd(f *Frame, v, w *Object) (*Object, *BaseException) {
+	return complexArithmeticOp(f, "__add__", v, w, func(lhs, rhs complex128) complex128 {
+		return lhs + rhs
+	})
+}
+
 func complexComplex(f *Frame, o *Object) (*Object, *BaseException) {
 	return o, nil
+}
+
+func complexEq(f *Frame, v, w *Object) (*Object, *BaseException) {
+	e, ok := complexCompare(toComplexUnsafe(v), w)
+	if !ok {
+		return NotImplemented, nil
+	}
+	return GetBool(e).ToObject(), nil
+}
+
+func complexHash(f *Frame, o *Object) (*Object, *BaseException) {
+	v := toComplexUnsafe(o).Value()
+	hashCombined := hashFloat(real(v)) + 1000003*hashFloat(imag(v))
+	if hashCombined == -1 {
+		hashCombined = -2
+	}
+	return NewInt(hashCombined).ToObject(), nil
+}
+
+func complexNE(f *Frame, v, w *Object) (*Object, *BaseException) {
+	e, ok := complexCompare(toComplexUnsafe(v), w)
+	if !ok {
+		return NotImplemented, nil
+	}
+	return GetBool(!e).ToObject(), nil
+}
+
+func complexRAdd(f *Frame, v, w *Object) (*Object, *BaseException) {
+	return complexArithmeticOp(f, "__radd__", v, w, func(lhs, rhs complex128) complex128 {
+		return lhs + rhs
+	})
 }
 
 func complexRepr(f *Frame, o *Object) (*Object, *BaseException) {
@@ -75,32 +112,33 @@ func complexRepr(f *Frame, o *Object) (*Object, *BaseException) {
 	return NewStr(fmt.Sprintf("%s%s%s%sj%s", pre, rs, sign, is, post)).ToObject(), nil
 }
 
+func complexRSub(f *Frame, v, w *Object) (*Object, *BaseException) {
+	return complexArithmeticOp(f, "__rsub__", v, w, func(lhs, rhs complex128) complex128 {
+		return rhs - lhs
+	})
+}
+
+func complexSub(f *Frame, v, w *Object) (*Object, *BaseException) {
+	return complexArithmeticOp(f, "__rsub__", v, w, func(lhs, rhs complex128) complex128 {
+		return lhs - rhs
+	})
+}
+
 func initComplexType(dict map[string]*Object) {
+	ComplexType.slots.Add = &binaryOpSlot{complexAdd}
 	ComplexType.slots.Complex = &unaryOpSlot{complexComplex}
 	ComplexType.slots.Eq = &binaryOpSlot{complexEq}
 	ComplexType.slots.GE = &binaryOpSlot{complexCompareNotSupported}
 	ComplexType.slots.GT = &binaryOpSlot{complexCompareNotSupported}
+	ComplexType.slots.Hash = &unaryOpSlot{complexHash}
 	ComplexType.slots.LE = &binaryOpSlot{complexCompareNotSupported}
 	ComplexType.slots.LT = &binaryOpSlot{complexCompareNotSupported}
 	ComplexType.slots.NE = &binaryOpSlot{complexNE}
 	ComplexType.slots.New = &newSlot{complexNew}
+	ComplexType.slots.RAdd = &binaryOpSlot{complexRAdd}
 	ComplexType.slots.Repr = &unaryOpSlot{complexRepr}
-}
-
-func complexEq(f *Frame, v, w *Object) (*Object, *BaseException) {
-	e, ok := complexCompare(toComplexUnsafe(v), w)
-	if !ok {
-		return NotImplemented, nil
-	}
-	return GetBool(e).ToObject(), nil
-}
-
-func complexNE(f *Frame, v, w *Object) (*Object, *BaseException) {
-	e, ok := complexCompare(toComplexUnsafe(v), w)
-	if !ok {
-		return NotImplemented, nil
-	}
-	return GetBool(!e).ToObject(), nil
+	ComplexType.slots.RSub = &binaryOpSlot{complexRSub}
+	ComplexType.slots.Sub = &binaryOpSlot{complexSub}
 }
 
 func complexCompare(v *Complex, w *Object) (bool, bool) {
@@ -317,4 +355,19 @@ func unsignNaN(s string) string {
 		return "nan"
 	}
 	return s
+}
+
+func complexArithmeticOp(f *Frame, method string, v, w *Object, fun func(v, w complex128) complex128) (*Object, *BaseException) {
+	if w.isInstance(ComplexType) {
+		return NewComplex(fun(toComplexUnsafe(v).Value(), toComplexUnsafe(w).Value())).ToObject(), nil
+	}
+
+	floatW, ok := floatCoerce(w)
+	if !ok {
+		if math.IsInf(floatW, 0) {
+			return nil, f.RaiseType(OverflowErrorType, "long int too large to convert to float")
+		}
+		return NotImplemented, nil
+	}
+	return NewComplex(fun(toComplexUnsafe(v).Value(), complex(floatW, 0))).ToObject(), nil
 }

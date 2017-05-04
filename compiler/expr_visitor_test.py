@@ -22,13 +22,11 @@ import subprocess
 import textwrap
 import unittest
 
-import pythonparser
-
 from grumpy.compiler import block
 from grumpy.compiler import imputil
-from grumpy.compiler import imputil_test
 from grumpy.compiler import shard_test
 from grumpy.compiler import stmt
+from grumpy import pythonparser
 
 
 def _MakeExprTest(expr):
@@ -222,9 +220,10 @@ class ExprVisitorTest(unittest.TestCase):
   testUnaryOpInvert = _MakeExprTest('~4')
   testUnaryOpPos = _MakeExprTest('+4')
 
+
 def _MakeModuleBlock():
-  return block.ModuleBlock(imputil_test.MockPath(), '__main__',
-                           '<test>', '', imputil.FutureFeatures())
+  return block.ModuleBlock(None, '__main__', '<test>', '',
+                           imputil.FutureFeatures())
 
 
 def _ParseExpr(expr):

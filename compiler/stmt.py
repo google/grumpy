@@ -21,14 +21,13 @@ from __future__ import unicode_literals
 import string
 import textwrap
 
-from pythonparser import algorithm
-from pythonparser import ast
-
 from grumpy.compiler import block
 from grumpy.compiler import expr
 from grumpy.compiler import expr_visitor
 from grumpy.compiler import imputil
 from grumpy.compiler import util
+from grumpy.pythonparser import algorithm
+from grumpy.pythonparser import ast
 
 
 _NATIVE_TYPE_PREFIX = 'type_'
@@ -285,16 +284,16 @@ class StatementVisitor(algorithm.Visitor):
 
   def visit_Import(self, node):
     self._write_py_context(node.lineno)
-    visitor = imputil.ImportVisitor(self.block.root.path)
-    visitor.visit(node)
-    for imp in visitor.imports:
+    for imp in self.block.root.importer.visit(node):
       self._import_and_bind(imp)
 
   def visit_ImportFrom(self, node):
     self._write_py_context(node.lineno)
-    visitor = imputil.ImportVisitor(self.block.root.path, self.future_node)
-    visitor.visit(node)
-    for imp in visitor.imports:
+
+    if node.module == '__future__' and node != self.future_node:
+      raise util.LateFutureError(node)
+
+    for imp in self.block.root.importer.visit(node):
       if imp.is_native:
         values = [b.value for b in imp.bindings]
         with self._import_native(imp.name, values) as mod:
@@ -314,7 +313,7 @@ class StatementVisitor(algorithm.Visitor):
                   mod.expr, self.block.root.intern(name))
               self.block.bind_var(
                   self.writer, binding.alias, member.expr)
-      elif node.module != '__future__':
+      else:
         self._import_and_bind(imp)
 
   def visit_Module(self, node):
@@ -664,11 +663,13 @@ class StatementVisitor(algorithm.Visitor):
 
       # Bind the imported modules or members to variables in the current scope.
       for binding in imp.bindings:
-        self.writer.write('{} = {}[{}]'.format(
-            mod.name, mod_slice.expr, imp.name.count('.')))
         if binding.bind_type == imputil.Import.MODULE:
+          self.writer.write('{} = {}[{}]'.format(
+              mod.name, mod_slice.expr, binding.value))
           self.block.bind_var(self.writer, binding.alias, mod.expr)
         else:
+          self.writer.write('{} = {}[{}]'.format(
+              mod.name, mod_slice.expr, imp.name.count('.')))
           # Binding a member of the imported module.
           with self.block.alloc_temp() as member:
             self.writer.write_checked_call2(

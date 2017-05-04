@@ -21,12 +21,10 @@ from __future__ import unicode_literals
 import textwrap
 import unittest
 
-import pythonparser
-
 from grumpy.compiler import block
 from grumpy.compiler import imputil
-from grumpy.compiler import imputil_test
 from grumpy.compiler import util
+from grumpy import pythonparser
 
 class PackageTest(unittest.TestCase):
 
@@ -247,8 +245,9 @@ class FunctionBlockVisitorTest(unittest.TestCase):
 
 
 def _MakeModuleBlock():
-  return block.ModuleBlock(imputil_test.MockPath(), '__main__',
-                           '<test>', '', imputil.FutureFeatures())
+  importer = imputil.Importer(None, '__main__', '/tmp/foo.py', False)
+  return block.ModuleBlock(importer, '__main__', '<test>', '',
+                           imputil.FutureFeatures())
 
 
 def _ParseStmt(stmt_str):

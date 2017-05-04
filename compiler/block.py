@@ -22,12 +22,11 @@ import abc
 import collections
 import re
 
-from pythonparser import algorithm
-from pythonparser import ast
-from pythonparser import source
-
 from grumpy.compiler import expr
 from grumpy.compiler import util
+from grumpy.pythonparser import algorithm
+from grumpy.pythonparser import ast
+from grumpy.pythonparser import source
 
 
 _non_word_re = re.compile('[^A-Za-z0-9_]')
@@ -150,9 +149,10 @@ class ModuleBlock(Block):
     imports: A dict mapping fully qualified Go package names to Package objects.
   """
 
-  def __init__(self, path, full_package_name, filename, src, future_features):
+  def __init__(self, importer, full_package_name,
+               filename, src, future_features):
     Block.__init__(self, None, '<module>')
-    self.path = path
+    self.importer = importer
     self.full_package_name = full_package_name
     self.filename = filename
     self.buffer = source.Buffer(src)
