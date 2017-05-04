@@ -52,6 +52,10 @@ func (c *Complex) Value() complex128 {
 	return c.value
 }
 
+func complexComplex(f *Frame, o *Object) (*Object, *BaseException) {
+	return o, nil
+}
+
 func complexRepr(f *Frame, o *Object) (*Object, *BaseException) {
 	c := toComplexUnsafe(o).Value()
 	rs, is := "", ""
@@ -72,6 +76,7 @@ func complexRepr(f *Frame, o *Object) (*Object, *BaseException) {
 }
 
 func initComplexType(dict map[string]*Object) {
+	ComplexType.slots.Complex = &unaryOpSlot{complexComplex}
 	ComplexType.slots.Eq = &binaryOpSlot{complexEq}
 	ComplexType.slots.GE = &binaryOpSlot{complexCompareNotSupported}
 	ComplexType.slots.GT = &binaryOpSlot{complexCompareNotSupported}
