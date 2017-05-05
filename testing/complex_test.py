@@ -38,21 +38,21 @@ assert complex(complex(-1, 2), complex(3, -4)) == (3+5j)
 
 try:
   complex('((2.1-3.4j))')
-except TypeError as e:
+except ValueError as e:
   assert str(e) == "complex() arg is a malformed string"
 else:
   raise AssertionError('this was supposed to raise an exception')
 
 try:
   complex('3.14 - 15.16 j')
-except TypeError as e:
+except ValueError as e:
   assert str(e) == "complex() arg is a malformed string"
 else:
   raise AssertionError('this was supposed to raise an exception')
 
 try:
   complex('foo')
-except TypeError as e:
+except ValueError as e:
   assert str(e) == "complex() arg is a malformed string"
 else:
   raise AssertionError('this was supposed to raise an exception')
