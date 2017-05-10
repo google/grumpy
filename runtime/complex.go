@@ -58,6 +58,13 @@ func complexAdd(f *Frame, v, w *Object) (*Object, *BaseException) {
 	})
 }
 
+func complexCompareNotSupported(f *Frame, v, w *Object) (*Object, *BaseException) {
+	if w.isInstance(IntType) || w.isInstance(LongType) || w.isInstance(FloatType) || w.isInstance(ComplexType) {
+		return nil, f.RaiseType(TypeErrorType, "no ordering relation is defined for complex numbers")
+	}
+	return NotImplemented, nil
+}
+
 func complexComplex(f *Frame, o *Object) (*Object, *BaseException) {
 	return o, nil
 }
@@ -85,6 +92,68 @@ func complexNE(f *Frame, v, w *Object) (*Object, *BaseException) {
 		return NotImplemented, nil
 	}
 	return GetBool(!e).ToObject(), nil
+}
+
+func complexNew(f *Frame, t *Type, args Args, _ KWArgs) (*Object, *BaseException) {
+	argc := len(args)
+	if argc == 0 {
+		return newObject(t), nil
+	}
+	if argc > 2 {
+		return nil, f.RaiseType(TypeErrorType, "'__new__' of 'complex' requires at most 2 arguments")
+	}
+	if t != ComplexType {
+		// Allocate a plain complex then copy it's value into an object
+		// of the complex subtype.
+		x, raised := complexNew(f, ComplexType, args, nil)
+		if raised != nil {
+			return nil, raised
+		}
+		result := toComplexUnsafe(newObject(t))
+		result.value = toComplexUnsafe(x).Value()
+		return result.ToObject(), nil
+	}
+	if complexSlot := args[0].typ.slots.Complex; complexSlot != nil && argc == 1 {
+		c, raised := complexConvert(complexSlot, f, args[0])
+		if raised != nil {
+			return nil, raised
+		}
+		return c.ToObject(), nil
+	}
+	if args[0].isInstance(StrType) {
+		if argc > 1 {
+			return nil, f.RaiseType(TypeErrorType, "complex() can't take second arg if first is a string")
+		}
+		s := toStrUnsafe(args[0]).Value()
+		result, err := parseComplex(s)
+		if err != nil {
+			return nil, f.RaiseType(ValueErrorType, "complex() arg is a malformed string")
+		}
+		return NewComplex(result).ToObject(), nil
+	}
+	if argc > 1 && args[1].isInstance(StrType) {
+		return nil, f.RaiseType(TypeErrorType, "complex() second arg can't be a string")
+	}
+	cr, raised := complex128Convert(f, args[0])
+	if raised != nil {
+		return nil, raised
+	}
+	var ci complex128
+	if argc > 1 {
+		ci, raised = complex128Convert(f, args[1])
+		if raised != nil {
+			return nil, raised
+		}
+	}
+
+	// Logically it should be enough to return this:
+	//  NewComplex(cr + ci*1i).ToObject()
+	// But Go complex arithmatic is not satisfying all conditions, for instance:
+	//  cr := complex(math.Inf(1), 0)
+	//  ci := complex(math.Inf(-1), 0)
+	//  fmt.Println(cr + ci*1i)
+	// Output is (NaN-Infi), instead of (+Inf-Infi).
+	return NewComplex(complex(real(cr)-imag(ci), imag(cr)+real(ci))).ToObject(), nil
 }
 
 func complexRAdd(f *Frame, v, w *Object) (*Object, *BaseException) {
@@ -141,20 +210,37 @@ func initComplexType(dict map[string]*Object) {
 	ComplexType.slots.Sub = &binaryOpSlot{complexSub}
 }
 
-func complexCompare(v *Complex, w *Object) (bool, bool) {
-	lhsr := real(v.Value())
-	rhs, ok := complexCoerce(w)
-	if !ok {
-		return false, false
+func complex128Convert(f *Frame, o *Object) (complex128, *BaseException) {
+	if complexSlot := o.typ.slots.Complex; complexSlot != nil {
+		c, raised := complexConvert(complexSlot, f, o)
+		if raised != nil {
+			return complex(0, 0), raised
+		}
+		return c.Value(), nil
+	} else if floatSlot := o.typ.slots.Float; floatSlot != nil {
+		result, raised := floatConvert(floatSlot, f, o)
+		if raised != nil {
+			return complex(0, 0), raised
+		}
+		return complex(result.Value(), 0), nil
+	} else {
+		return complex(0, 0), f.RaiseType(TypeErrorType, "complex() argument must be a string or a number")
 	}
-	return lhsr == real(rhs) && imag(v.Value()) == imag(rhs), true
 }
 
-func complexCompareNotSupported(f *Frame, v, w *Object) (*Object, *BaseException) {
-	if w.isInstance(IntType) || w.isInstance(LongType) || w.isInstance(FloatType) || w.isInstance(ComplexType) {
-		return nil, f.RaiseType(TypeErrorType, "no ordering relation is defined for complex numbers")
+func complexArithmeticOp(f *Frame, method string, v, w *Object, fun func(v, w complex128) complex128) (*Object, *BaseException) {
+	if w.isInstance(ComplexType) {
+		return NewComplex(fun(toComplexUnsafe(v).Value(), toComplexUnsafe(w).Value())).ToObject(), nil
 	}
-	return NotImplemented, nil
+
+	floatW, ok := floatCoerce(w)
+	if !ok {
+		if math.IsInf(floatW, 0) {
+			return nil, f.RaiseType(OverflowErrorType, "long int too large to convert to float")
+		}
+		return NotImplemented, nil
+	}
+	return NewComplex(fun(toComplexUnsafe(v).Value(), complex(floatW, 0))).ToObject(), nil
 }
 
 // complexCoerce will coerce any numeric type to a complex. If all is
@@ -178,76 +264,13 @@ func complexCoerce(o *Object) (complex128, bool) {
 	return complex(floatO, 0.0), true
 }
 
-func complexNew(f *Frame, t *Type, args Args, _ KWArgs) (*Object, *BaseException) {
-	argc := len(args)
-	if argc == 0 {
-		return newObject(t), nil
+func complexCompare(v *Complex, w *Object) (bool, bool) {
+	lhsr := real(v.Value())
+	rhs, ok := complexCoerce(w)
+	if !ok {
+		return false, false
 	}
-	if argc > 2 {
-		return nil, f.RaiseType(TypeErrorType, "'__new__' of 'complex' requires at most 2 arguments")
-	}
-	if t != ComplexType {
-		// Allocate a plain complex then copy it's value into an object
-		// of the complex subtype.
-		x, raised := complexNew(f, ComplexType, args, nil)
-		if raised != nil {
-			return nil, raised
-		}
-		result := toComplexUnsafe(newObject(t))
-		result.value = toComplexUnsafe(x).Value()
-		return result.ToObject(), nil
-	}
-	if complexSlot := args[0].typ.slots.Complex; complexSlot != nil && argc == 1 {
-		c, raised := complexConvert(complexSlot, f, args[0])
-		if raised != nil {
-			return nil, raised
-		}
-		return c.ToObject(), nil
-	}
-	if args[0].isInstance(StrType) {
-		if argc > 1 {
-			return nil, f.RaiseType(TypeErrorType, "complex() can't take second arg if first is a string")
-		}
-		s := toStrUnsafe(args[0]).Value()
-		result, err := parseComplex(s)
-		if err != nil {
-			return nil, f.RaiseType(ValueErrorType, "complex() arg is a malformed string")
-		}
-		return NewComplex(result).ToObject(), nil
-	}
-	if argc > 1 && args[1].isInstance(StrType) {
-		return nil, f.RaiseType(TypeErrorType, "complex() second arg can't be a string")
-	}
-	cr, raised := complex128Convert(f, args[0])
-	if raised != nil {
-		return nil, raised
-	}
-	var ci complex128
-	if argc > 1 {
-		ci, raised = complex128Convert(f, args[1])
-		if raised != nil {
-			return nil, raised
-		}
-	}
-	return NewComplex(cr + ci*1i).ToObject(), nil
-}
-
-func complex128Convert(f *Frame, o *Object) (complex128, *BaseException) {
-	if complexSlot := o.typ.slots.Complex; complexSlot != nil {
-		c, raised := complexConvert(complexSlot, f, o)
-		if raised != nil {
-			return complex(0, 0), raised
-		}
-		return c.Value(), nil
-	} else if floatSlot := o.typ.slots.Float; floatSlot != nil {
-		result, raised := floatConvert(floatSlot, f, o)
-		if raised != nil {
-			return complex(0, 0), raised
-		}
-		return complex(result.Value(), 0), nil
-	} else {
-		return complex(0, 0), f.RaiseType(TypeErrorType, "complex() argument must be a string or a number")
-	}
+	return lhsr == real(rhs) && imag(v.Value()) == imag(rhs), true
 }
 
 func complexConvert(complexSlot *unaryOpSlot, f *Frame, o *Object) (*Complex, *BaseException) {
@@ -339,19 +362,4 @@ func unsignNaN(s string) string {
 		return "nan"
 	}
 	return s
-}
-
-func complexArithmeticOp(f *Frame, method string, v, w *Object, fun func(v, w complex128) complex128) (*Object, *BaseException) {
-	if w.isInstance(ComplexType) {
-		return NewComplex(fun(toComplexUnsafe(v).Value(), toComplexUnsafe(w).Value())).ToObject(), nil
-	}
-
-	floatW, ok := floatCoerce(w)
-	if !ok {
-		if math.IsInf(floatW, 0) {
-			return nil, f.RaiseType(OverflowErrorType, "long int too large to convert to float")
-		}
-		return NotImplemented, nil
-	}
-	return NewComplex(fun(toComplexUnsafe(v).Value(), complex(floatW, 0))).ToObject(), nil
 }
