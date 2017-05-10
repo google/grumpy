@@ -94,6 +94,11 @@ func complexNE(f *Frame, v, w *Object) (*Object, *BaseException) {
 	return GetBool(!e).ToObject(), nil
 }
 
+func complexNeg(f *Frame, o *Object) (*Object, *BaseException) {
+	c := toComplexUnsafe(o).Value()
+	return NewComplex(-c).ToObject(), nil
+}
+
 func complexNew(f *Frame, t *Type, args Args, _ KWArgs) (*Object, *BaseException) {
 	argc := len(args)
 	if argc == 0 {
@@ -203,6 +208,7 @@ func initComplexType(dict map[string]*Object) {
 	ComplexType.slots.LE = &binaryOpSlot{complexCompareNotSupported}
 	ComplexType.slots.LT = &binaryOpSlot{complexCompareNotSupported}
 	ComplexType.slots.NE = &binaryOpSlot{complexNE}
+	ComplexType.slots.Neg = &unaryOpSlot{complexNeg}
 	ComplexType.slots.New = &newSlot{complexNew}
 	ComplexType.slots.RAdd = &binaryOpSlot{complexRAdd}
 	ComplexType.slots.Repr = &unaryOpSlot{complexRepr}
