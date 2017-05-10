@@ -298,11 +298,8 @@ func TestParseComplex(t *testing.T) {
 		{"foo+bar", complex(0, 0), ErrSyntax},
 	}
 	for _, cas := range cases {
-		if got, _ := parseComplex(cas.s); got != cas.want {
-			// Handle NaN specially, since NaN != NaN.
-			if !cmplx.IsNaN(got) || !cmplx.IsNaN(cas.want) {
-				t.Errorf("parseComplex(%q) = %g, want %g", cas.s, got, cas.want)
-			}
+		if got, _ := parseComplex(cas.s); !complexesAreSame(got, cas.want) {
+			t.Errorf("parseComplex(%q) = %g, want %g", cas.s, got, cas.want)
 		}
 	}
 }

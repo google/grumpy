@@ -197,73 +197,57 @@ func complexNew(f *Frame, t *Type, args Args, _ KWArgs) (*Object, *BaseException
 		result.value = toComplexUnsafe(x).Value()
 		return result.ToObject(), nil
 	}
-	o := args[0]
-	if complexSlot := o.typ.slots.Complex; complexSlot != nil && argc == 1 {
-		c, raised := complexConvert(complexSlot, f, o)
+	if complexSlot := args[0].typ.slots.Complex; complexSlot != nil && argc == 1 {
+		c, raised := complexConvert(complexSlot, f, args[0])
 		if raised != nil {
 			return nil, raised
 		}
 		return c.ToObject(), nil
 	}
-	if o.isInstance(StrType) {
-		if argc == 2 {
+	if args[0].isInstance(StrType) {
+		if argc > 1 {
 			return nil, f.RaiseType(TypeErrorType, "complex() can't take second arg if first is a string")
 		}
-		s := toStrUnsafe(o).Value()
+		s := toStrUnsafe(args[0]).Value()
 		result, err := parseComplex(s)
 		if err != nil {
 			return nil, f.RaiseType(ValueErrorType, "complex() arg is a malformed string")
 		}
 		return NewComplex(result).ToObject(), nil
 	}
-	if argc == 2 && args[1].isInstance(StrType) {
+	if argc > 1 && args[1].isInstance(StrType) {
 		return nil, f.RaiseType(TypeErrorType, "complex() second arg can't be a string")
 	}
-	var cr complex128
-	crIsComplex := false
+	cr, raised := complex128Convert(f, args[0])
+	if raised != nil {
+		return nil, raised
+	}
+	var ci complex128
+	if argc > 1 {
+		ci, raised = complex128Convert(f, args[1])
+		if raised != nil {
+			return nil, raised
+		}
+	}
+	return NewComplex(cr + ci*1i).ToObject(), nil
+}
+
+func complex128Convert(f *Frame, o *Object) (complex128, *BaseException) {
 	if complexSlot := o.typ.slots.Complex; complexSlot != nil {
 		c, raised := complexConvert(complexSlot, f, o)
 		if raised != nil {
-			return nil, raised
+			return complex(0, 0), raised
 		}
-		cr = c.Value()
-		crIsComplex = true
+		return c.Value(), nil
 	} else if floatSlot := o.typ.slots.Float; floatSlot != nil {
 		result, raised := floatConvert(floatSlot, f, o)
 		if raised != nil {
-			return nil, raised
+			return complex(0, 0), raised
 		}
-		cr = complex(result.Value(), 0)
+		return complex(result.Value(), 0), nil
 	} else {
-		return nil, f.RaiseType(TypeErrorType, "complex() argument must be a string or a number")
+		return complex(0, 0), f.RaiseType(TypeErrorType, "complex() argument must be a string or a number")
 	}
-	var ci complex128
-	ciIsComplex := false
-	if argc == 1 {
-		ci = complex(imag(cr), 0)
-	} else if complexSlot := args[1].typ.slots.Complex; complexSlot != nil {
-		c, raised := complexConvert(complexSlot, f, args[1])
-		if raised != nil {
-			return nil, raised
-		}
-		ci = c.Value()
-		ciIsComplex = true
-	} else if floatSlot := args[1].typ.slots.Float; floatSlot != nil {
-		result, raised := floatConvert(floatSlot, f, args[1])
-		if raised != nil {
-			return nil, raised
-		}
-		ci = complex(result.Value(), 0)
-	} else {
-		return nil, f.RaiseType(TypeErrorType, "complex() argument must be a string or a number")
-	}
-	if ciIsComplex {
-		cr = complex(real(cr)-imag(ci), imag(cr))
-	}
-	if crIsComplex && argc == 2 {
-		ci = complex(real(ci)+imag(cr), imag(ci))
-	}
-	return NewComplex(complex(real(cr), real(ci))).ToObject(), nil
 }
 
 func complexConvert(complexSlot *unaryOpSlot, f *Frame, o *Object) (*Complex, *BaseException) {
