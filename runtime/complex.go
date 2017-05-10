@@ -178,11 +178,13 @@ func complexRepr(f *Frame, o *Object) (*Object, *BaseException) {
 		pre = "("
 		rs = strconv.FormatFloat(real(c), 'g', -1, 64)
 		is = strconv.FormatFloat(imag(c), 'g', -1, 64)
-		if imag(c) >= 0.0 {
+		if imag(c) >= 0.0 || math.IsNaN(imag(c)) {
 			sign = "+"
 		}
 		post = ")"
 	}
+	rs = unsignPositiveInf(strings.ToLower(rs))
+	is = unsignPositiveInf(strings.ToLower(is))
 	return NewStr(fmt.Sprintf("%s%s%s%sj%s", pre, rs, sign, is, post)).ToObject(), nil
 }
 
@@ -366,6 +368,13 @@ func unsignNaN(s string) string {
 	ls := strings.ToLower(s)
 	if ls == "-nan" || ls == "+nan" {
 		return "nan"
+	}
+	return s
+}
+
+func unsignPositiveInf(s string) string {
+	if s == "+inf" {
+		return "inf"
 	}
 	return s
 }

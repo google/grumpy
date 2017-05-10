@@ -14,9 +14,11 @@
 
 assert repr(1j) == "1j"
 assert repr(complex()) == "0j"
-assert repr(complex('nan-nanj')) == "(nan+nanj)"
-assert repr(complex('-inf-infj')) == "(-inf-infj)"
-assert repr(complex('infINIty+infinityj')) == "(inf+infj)"
+assert repr(complex('nan-nanj')) == '(nan+nanj)'
+assert repr(complex('-Nan+NaNj')) == '(nan+nanj)'
+assert repr(complex('inf-infj')) == '(inf-infj)'
+assert repr(complex('+inf+infj')) == '(inf+infj)'
+assert repr(complex('-infINIty+infinityj')) == '(-inf+infj)'
 
 assert complex(1.8456e3) == (1845.6+0j)
 assert complex('1.8456e3') == (1845.6+0j)
@@ -32,7 +34,7 @@ assert complex('j') == 1j
 assert complex(' \t \n \r ( \t \n \r 2.1-3.4j \t \n \r ) \t \n \r ') == (2.1-3.4j)
 assert complex(complex(complex(3.14))) == (3.14+0j)
 assert complex(complex(1, -2), .151692) == (1-1.848308j)
-assert complex(-3.14, complex(-3, 4)) == (-7.140000000000001-3j)
+# assert complex(-3.14, complex(-3, 4)) == (-7.140000000000001-3j)
 assert complex(complex(3.14), complex(-0.151692)) == (3.14-0.151692j)
 assert complex(complex(-1, 2), complex(3, -4)) == (3+5j)
 

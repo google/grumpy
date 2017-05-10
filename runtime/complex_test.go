@@ -244,6 +244,9 @@ func TestComplexRepr(t *testing.T) {
 		{args: wrapArgs(complex(0.0, 1.0)), want: NewStr("1j").ToObject()},
 		{args: wrapArgs(complex(1.0, 2.0)), want: NewStr("(1+2j)").ToObject()},
 		{args: wrapArgs(complex(3.1, -4.2)), want: NewStr("(3.1-4.2j)").ToObject()},
+		{args: wrapArgs(complex(math.NaN(), math.NaN())), want: NewStr("(nan+nanj)").ToObject()},
+		{args: wrapArgs(complex(math.Inf(-1), math.Inf(1))), want: NewStr("(-inf+infj)").ToObject()},
+		{args: wrapArgs(complex(math.Inf(1), math.Inf(-1))), want: NewStr("(inf-infj)").ToObject()},
 	}
 	for _, cas := range cases {
 		if err := runInvokeTestCase(wrapFuncForTest(Repr), &cas); err != "" {
