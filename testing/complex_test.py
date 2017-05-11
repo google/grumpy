@@ -34,7 +34,6 @@ assert complex('j') == 1j
 assert complex(' \t \n \r ( \t \n \r 2.1-3.4j \t \n \r ) \t \n \r ') == (2.1-3.4j)
 assert complex(complex(complex(3.14))) == (3.14+0j)
 assert complex(complex(1, -2), .151692) == (1-1.848308j)
-# assert complex(-3.14, complex(-3, 4)) == (-7.140000000000001-3j)
 assert complex(complex(3.14), complex(-0.151692)) == (3.14-0.151692j)
 assert complex(complex(-1, 2), complex(3, -4)) == (3+5j)
 
