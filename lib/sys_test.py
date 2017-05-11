@@ -32,6 +32,17 @@ def TestSysModules():
   assert sys.modules['sys'] is not None
 
 
+def TestExcClear():
+  try:
+    raise RuntimeError
+  except:
+    assert all(sys.exc_info()), sys.exc_info()
+    sys.exc_clear()
+    assert not any(sys.exc_info())
+  else:
+    assert False
+
+
 def TestExcInfoNoException():
   assert sys.exc_info() == (None, None, None)
 

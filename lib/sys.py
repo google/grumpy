@@ -56,6 +56,10 @@ class _Flags(object):
 flags = _Flags()
 
 
+def exc_clear():
+  __frame__().__exc_clear__()
+
+
 def exc_info():
   e, tb = __frame__().__exc_info__()  # pylint: disable=undefined-variable
   t = None
