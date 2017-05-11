@@ -385,3 +385,12 @@ except TypeError as e:
   assert str(e) == "unsupported operand type(s) for divmod(): 'str' and 'str'"
 else:
   assert AssertionError
+
+# Check for a bug where zip() and map() were not properly cleaning their
+# internal exception state. See:
+# https://github.com/google/grumpy/issues/305
+sys.exc_clear()
+zip((1, 3), (2, 4))
+assert not any(sys.exc_info())
+map(int, (1, 2, 3))
+assert not any(sys.exc_info())
