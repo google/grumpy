@@ -207,15 +207,11 @@ func floatNew(f *Frame, t *Type, args Args, _ KWArgs) (*Object, *BaseException) 
 	}
 	o := args[0]
 	if floatSlot := o.typ.slots.Float; floatSlot != nil {
-		result, raised := floatSlot.Fn(f, o)
+		fl, raised := floatConvert(floatSlot, f, o)
 		if raised != nil {
 			return nil, raised
 		}
-		if raised == nil && !result.isInstance(FloatType) {
-			exc := fmt.Sprintf("__float__ returned non-float (type %s)", result.typ.Name())
-			return nil, f.RaiseType(TypeErrorType, exc)
-		}
-		return result, nil
+		return fl.ToObject(), nil
 	}
 	if !o.isInstance(StrType) {
 		return nil, f.RaiseType(TypeErrorType, "float() argument must be a string or a number")
@@ -400,6 +396,18 @@ func floatCoerce(o *Object) (float64, bool) {
 	default:
 		return 0, false
 	}
+}
+
+func floatConvert(floatSlot *unaryOpSlot, f *Frame, o *Object) (*Float, *BaseException) {
+	result, raised := floatSlot.Fn(f, o)
+	if raised != nil {
+		return nil, raised
+	}
+	if !result.isInstance(FloatType) {
+		exc := fmt.Sprintf("__float__ returned non-float (type %s)", result.typ.Name())
+		return nil, f.RaiseType(TypeErrorType, exc)
+	}
+	return toFloatUnsafe(result), nil
 }
 
 func floatDivModOp(f *Frame, method string, v, w *Object, fun func(v, w float64) (float64, bool)) (*Object, *BaseException) {
