@@ -161,6 +161,10 @@ func complexNew(f *Frame, t *Type, args Args, _ KWArgs) (*Object, *BaseException
 	return NewComplex(complex(real(cr)-imag(ci), imag(cr)+real(ci))).ToObject(), nil
 }
 
+func complexPos(f *Frame, o *Object) (*Object, *BaseException) {
+	return o, nil
+}
+
 func complexRAdd(f *Frame, v, w *Object) (*Object, *BaseException) {
 	return complexArithmeticOp(f, "__radd__", v, w, func(lhs, rhs complex128) complex128 {
 		return lhs + rhs
@@ -212,6 +216,7 @@ func initComplexType(dict map[string]*Object) {
 	ComplexType.slots.NE = &binaryOpSlot{complexNE}
 	ComplexType.slots.Neg = &unaryOpSlot{complexNeg}
 	ComplexType.slots.New = &newSlot{complexNew}
+	ComplexType.slots.Pos = &unaryOpSlot{complexPos}
 	ComplexType.slots.RAdd = &binaryOpSlot{complexRAdd}
 	ComplexType.slots.Repr = &unaryOpSlot{complexRepr}
 	ComplexType.slots.RSub = &binaryOpSlot{complexRSub}
