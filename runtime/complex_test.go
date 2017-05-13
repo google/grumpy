@@ -22,6 +22,36 @@ import (
 	"testing"
 )
 
+func TestComplexAbs(t *testing.T) {
+	cases := []invokeTestCase{
+		{args: wrapArgs(complex(0, 0)), want: NewFloat(0).ToObject()},
+		{args: wrapArgs(complex(1, 1)), want: NewFloat(1.4142135623730951).ToObject()},
+		{args: wrapArgs(complex(1, 2)), want: NewFloat(2.23606797749979).ToObject()},
+		{args: wrapArgs(complex(3, 4)), want: NewFloat(5).ToObject()},
+		{args: wrapArgs(complex(-3, 4)), want: NewFloat(5).ToObject()},
+		{args: wrapArgs(complex(3, -4)), want: NewFloat(5).ToObject()},
+		{args: wrapArgs(-complex(3, 4)), want: NewFloat(5).ToObject()},
+		{args: wrapArgs(complex(0.123456e-3, 0)), want: NewFloat(0.000123456).ToObject()},
+		{args: wrapArgs(complex(0.123456e-3, 3.14151692e+7)), want: NewFloat(31415169.2).ToObject()},
+		{args: wrapArgs(complex(math.Inf(-1), 1.2)), want: NewFloat(math.Inf(1)).ToObject()},
+		{args: wrapArgs(complex(3.4, math.Inf(1))), want: NewFloat(math.Inf(1)).ToObject()},
+		{args: wrapArgs(complex(math.Inf(1), math.Inf(-1))), want: NewFloat(math.Inf(1)).ToObject()},
+		{args: wrapArgs(complex(math.Inf(1), math.NaN())), want: NewFloat(math.Inf(1)).ToObject()},
+		{args: wrapArgs(complex(math.NaN(), math.Inf(1))), want: NewFloat(math.Inf(1)).ToObject()},
+		{args: wrapArgs(complex(math.NaN(), 5.6)), want: NewFloat(math.NaN()).ToObject()},
+		{args: wrapArgs(complex(7.8, math.NaN())), want: NewFloat(math.NaN()).ToObject()},
+	}
+	for _, cas := range cases {
+		switch got, match := checkInvokeResult(wrapFuncForTest(complexAbs), cas.args, cas.want, cas.wantExc); match {
+		case checkInvokeResultReturnValueMismatch:
+			if got == nil || cas.want == nil || !got.isInstance(FloatType) || !cas.want.isInstance(FloatType) ||
+				!floatsAreSame(toFloatUnsafe(got).Value(), toFloatUnsafe(cas.want).Value()) {
+				t.Errorf("complex.__abs__%v = %v, want %v", cas.args, got, cas.want)
+			}
+		}
+	}
+}
+
 func TestComplexEq(t *testing.T) {
 	cases := []invokeTestCase{
 		{args: wrapArgs(complex(0, 0), 0), want: True.ToObject()},
