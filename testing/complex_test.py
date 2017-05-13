@@ -71,3 +71,13 @@ except TypeError as e:
   assert str(e) == "complex() second arg can't be a string"
 else:
   raise AssertionError('this was supposed to raise an exception')
+
+# __nonzero__
+
+assert complex(0, 0).__nonzero__() == False
+assert complex(.0, .0).__nonzero__() == False
+assert complex(0.0, 0.1).__nonzero__() == True
+assert complex(1, 0).__nonzero__() == True
+assert complex(3.14, -0.001e+5).__nonzero__() == True
+assert complex(float('nan'), float('nan')).__nonzero__() == True
+assert complex(-float('inf'), float('inf')).__nonzero__() == True
