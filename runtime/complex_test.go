@@ -270,8 +270,8 @@ func TestComplexPos(t *testing.T) {
 				!complexesAreSame(toComplexUnsafe(got).Value(), toComplexUnsafe(cas.want).Value()) {
 				t.Errorf("complex.__pos__%v = %v, want %v", cas.args, got, cas.want)
 			}
-    }
-  }
+		}
+	}
 }
 
 func TestComplexRepr(t *testing.T) {
