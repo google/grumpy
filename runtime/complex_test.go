@@ -80,6 +80,20 @@ func TestComplexBinaryOps(t *testing.T) {
 		{Sub, NewFloat(math.NaN()).ToObject(), NewComplex(3i).ToObject(), NewComplex(complex(math.NaN(), -3)).ToObject(), nil},
 		{Sub, NewComplex(cmplx.NaN()).ToObject(), NewComplex(3i).ToObject(), NewComplex(cmplx.NaN()).ToObject(), nil},
 		{Sub, NewFloat(math.Inf(-1)).ToObject(), NewComplex(complex(math.Inf(-1), 3)).ToObject(), NewComplex(complex(math.NaN(), -3)).ToObject(), nil},
+		{Mul, NewComplex(1 + 3i).ToObject(), NewComplex(1 + 3i).ToObject(), NewComplex(-8 + 6i).ToObject(), nil},
+		{Mul, NewComplex(1 + 3i).ToObject(), NewComplex(3i).ToObject(), NewComplex(-9 + 3i).ToObject(), nil},
+		{Mul, NewComplex(1 + 3i).ToObject(), NewFloat(1).ToObject(), NewComplex(1 + 3i).ToObject(), nil},
+		{Mul, NewComplex(3i).ToObject(), NewFloat(1.2).ToObject(), NewComplex(3.5999999999999996i).ToObject(), nil},
+		{Mul, NewComplex(1 + 3i).ToObject(), NewComplex(1 + 3i).ToObject(), NewComplex(-8 + 6i).ToObject(), nil},
+		{Mul, NewComplex(4 + 3i).ToObject(), NewInt(1).ToObject(), NewComplex(4 + 3i).ToObject(), nil},
+		{Mul, NewComplex(4 + 3i).ToObject(), NewLong(big.NewInt(99994)).ToObject(), NewComplex(399976 + 299982i).ToObject(), nil},
+		{Mul, NewFloat(math.Inf(1)).ToObject(), NewComplex(3i).ToObject(), NewComplex(complex(math.NaN(), math.Inf(1))).ToObject(), nil},
+		{Mul, NewFloat(math.Inf(-1)).ToObject(), NewComplex(3i).ToObject(), NewComplex(complex(math.NaN(), math.Inf(-1))).ToObject(), nil},
+		{Mul, NewComplex(1 + 3i).ToObject(), None, nil, mustCreateException(TypeErrorType, "unsupported operand type(s) for *: 'complex' and 'NoneType'")},
+		{Mul, None, NewComplex(1 + 3i).ToObject(), nil, mustCreateException(TypeErrorType, "unsupported operand type(s) for *: 'NoneType' and 'complex'")},
+		{Mul, NewFloat(math.NaN()).ToObject(), NewComplex(3i).ToObject(), NewComplex(complex(math.NaN(), math.NaN())).ToObject(), nil},
+		{Mul, NewComplex(cmplx.NaN()).ToObject(), NewComplex(3i).ToObject(), NewComplex(cmplx.NaN()).ToObject(), nil},
+		{Mul, NewFloat(math.Inf(-1)).ToObject(), NewComplex(complex(math.Inf(-1), 3)).ToObject(), NewComplex(complex(math.Inf(1), math.NaN())).ToObject(), nil},
 	}
 
 	for _, cas := range cases {
