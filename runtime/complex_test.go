@@ -255,6 +255,25 @@ func TestComplexNonZero(t *testing.T) {
 	}
 }
 
+func TestComplexPos(t *testing.T) {
+	cases := []invokeTestCase{
+		{args: wrapArgs(complex(0, 0)), want: NewComplex(complex(0, 0)).ToObject()},
+		{args: wrapArgs(complex(42, -0.1)), want: NewComplex(complex(42, -0.1)).ToObject()},
+		{args: wrapArgs(complex(-1.2, 375E+2)), want: NewComplex(complex(-1.2, 37500)).ToObject()},
+		{args: wrapArgs(complex(5, math.NaN())), want: NewComplex(complex(5, math.NaN())).ToObject()},
+		{args: wrapArgs(complex(math.Inf(1), 0.618)), want: NewComplex(complex(math.Inf(1), 0.618)).ToObject()},
+	}
+	for _, cas := range cases {
+		switch got, match := checkInvokeResult(wrapFuncForTest(complexPos), cas.args, cas.want, cas.wantExc); match {
+		case checkInvokeResultReturnValueMismatch:
+			if got == nil || cas.want == nil || !got.isInstance(ComplexType) || !cas.want.isInstance(ComplexType) ||
+				!complexesAreSame(toComplexUnsafe(got).Value(), toComplexUnsafe(cas.want).Value()) {
+				t.Errorf("complex.__pos__%v = %v, want %v", cas.args, got, cas.want)
+			}
+		}
+	}
+}
+
 func TestComplexRepr(t *testing.T) {
 	cases := []invokeTestCase{
 		{args: wrapArgs(complex(0.0, 0.0)), want: NewStr("0j").ToObject()},
