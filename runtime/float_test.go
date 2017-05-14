@@ -303,7 +303,10 @@ func TestFloatStrRepr(t *testing.T) {
 		{args: wrapArgs(0.0), want: NewStr("0").ToObject()},
 		{args: wrapArgs(0.1), want: NewStr("0.1").ToObject()},
 		{args: wrapArgs(-303.5), want: NewStr("-303.5").ToObject()},
-		{args: wrapArgs(231095835.0), want: NewStr("2.31095835e+08").ToObject()},
+		{args: wrapArgs(231095835.0), want: NewStr("231095835").ToObject()},
+		{args: wrapArgs(math.Inf(1)), want: NewStr("inf").ToObject()},
+		{args: wrapArgs(math.Inf(-1)), want: NewStr("-inf").ToObject()},
+		{args: wrapArgs(math.NaN()), want: NewStr("nan").ToObject()},
 	}
 	for _, cas := range cases {
 		if err := runInvokeTestCase(wrapFuncForTest(ToStr), &cas); err != "" {

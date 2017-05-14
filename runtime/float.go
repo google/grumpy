@@ -20,6 +20,7 @@ import (
 	"math/big"
 	"reflect"
 	"strconv"
+	"strings"
 	"sync/atomic"
 	"unsafe"
 )
@@ -260,7 +261,8 @@ func floatRDivMod(f *Frame, v, w *Object) (*Object, *BaseException) {
 }
 
 func floatRepr(f *Frame, o *Object) (*Object, *BaseException) {
-	return NewStr(strconv.FormatFloat(toFloatUnsafe(o).Value(), 'g', -1, 64)).ToObject(), nil
+	v := unsignPositiveInf(strings.ToLower(strconv.FormatFloat(toFloatUnsafe(o).Value(), 'f', -1, 64)))
+	return NewStr(v).ToObject(), nil
 }
 
 func floatRFloorDiv(f *Frame, v, w *Object) (*Object, *BaseException) {
@@ -489,4 +491,11 @@ func floatModFunc(v, w float64) (float64, bool) {
 		x += w
 	}
 	return x, true
+}
+
+func unsignPositiveInf(s string) string {
+	if s == "+inf" {
+		return "inf"
+	}
+	return s
 }
