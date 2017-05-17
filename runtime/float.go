@@ -19,6 +19,7 @@ import (
 	"math"
 	"math/big"
 	"reflect"
+	"regexp"
 	"strconv"
 	"strings"
 	"sync/atomic"
@@ -260,8 +261,13 @@ func floatRDivMod(f *Frame, v, w *Object) (*Object, *BaseException) {
 	})
 }
 
+const floatReprPrecision = 16
+
 func floatRepr(f *Frame, o *Object) (*Object, *BaseException) {
-	v := unsignPositiveInf(strings.ToLower(strconv.FormatFloat(toFloatUnsafe(o).Value(), 'f', -1, 64)))
+	v := unsignPositiveInf(strings.ToLower(strconv.FormatFloat(toFloatUnsafe(o).Value(), 'g', floatReprPrecision, 64)))
+	if noDecimal, _ := regexp.MatchString(`^\d+$`, v); noDecimal {
+		v += ".0"
+	}
 	return NewStr(v).ToObject(), nil
 }
 
