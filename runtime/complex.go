@@ -395,10 +395,3 @@ func unsignNaN(s string) string {
 	}
 	return s
 }
-
-func unsignPositiveInf(s string) string {
-	if s == "+inf" {
-		return "inf"
-	}
-	return s
-}
