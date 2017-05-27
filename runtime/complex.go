@@ -86,6 +86,12 @@ func complexHash(f *Frame, o *Object) (*Object, *BaseException) {
 	return NewInt(hashCombined).ToObject(), nil
 }
 
+func complexMul(f *Frame, v, w *Object) (*Object, *BaseException) {
+	return complexArithmeticOp(f, "__mul__", v, w, func(lhs, rhs complex128) complex128 {
+		return lhs * rhs
+	})
+}
+
 func complexNE(f *Frame, v, w *Object) (*Object, *BaseException) {
 	e, ok := complexCompare(toComplexUnsafe(v), w)
 	if !ok {
@@ -196,6 +202,12 @@ func complexRepr(f *Frame, o *Object) (*Object, *BaseException) {
 	return NewStr(fmt.Sprintf("%s%s%s%sj%s", pre, rs, sign, is, post)).ToObject(), nil
 }
 
+func complexRMul(f *Frame, v, w *Object) (*Object, *BaseException) {
+	return complexArithmeticOp(f, "__rmul__", v, w, func(lhs, rhs complex128) complex128 {
+		return rhs * lhs
+	})
+}
+
 func complexRSub(f *Frame, v, w *Object) (*Object, *BaseException) {
 	return complexArithmeticOp(f, "__rsub__", v, w, func(lhs, rhs complex128) complex128 {
 		return rhs - lhs
@@ -203,7 +215,7 @@ func complexRSub(f *Frame, v, w *Object) (*Object, *BaseException) {
 }
 
 func complexSub(f *Frame, v, w *Object) (*Object, *BaseException) {
-	return complexArithmeticOp(f, "__rsub__", v, w, func(lhs, rhs complex128) complex128 {
+	return complexArithmeticOp(f, "__sub__", v, w, func(lhs, rhs complex128) complex128 {
 		return lhs - rhs
 	})
 }
@@ -217,6 +229,7 @@ func initComplexType(dict map[string]*Object) {
 	ComplexType.slots.Hash = &unaryOpSlot{complexHash}
 	ComplexType.slots.LE = &binaryOpSlot{complexCompareNotSupported}
 	ComplexType.slots.LT = &binaryOpSlot{complexCompareNotSupported}
+	ComplexType.slots.Mul = &binaryOpSlot{complexMul}
 	ComplexType.slots.NE = &binaryOpSlot{complexNE}
 	ComplexType.slots.Neg = &unaryOpSlot{complexNeg}
 	ComplexType.slots.New = &newSlot{complexNew}
@@ -224,6 +237,7 @@ func initComplexType(dict map[string]*Object) {
 	ComplexType.slots.Pos = &unaryOpSlot{complexPos}
 	ComplexType.slots.RAdd = &binaryOpSlot{complexRAdd}
 	ComplexType.slots.Repr = &unaryOpSlot{complexRepr}
+	ComplexType.slots.RMul = &binaryOpSlot{complexRMul}
 	ComplexType.slots.RSub = &binaryOpSlot{complexRSub}
 	ComplexType.slots.Sub = &binaryOpSlot{complexSub}
 }
