@@ -204,7 +204,7 @@ func nativeFuncGetName(f *Frame, args Args, _ KWArgs) (*Object, *BaseException) 
 }
 
 func nativeFuncRepr(f *Frame, o *Object) (*Object, *BaseException) {
-	name, raised := GetAttr(f, o, NewStr("__name__"), NewStr("<unknown>").ToObject())
+	name, raised := GetAttr(f, o, internedName, NewStr("<unknown>").ToObject())
 	if raised != nil {
 		return nil, raised
 	}
