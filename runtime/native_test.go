@@ -80,7 +80,7 @@ func TestNativeFuncCall(t *testing.T) {
 func TestNativeFuncName(t *testing.T) {
 	re := regexp.MustCompile(`(\w+\.)*\w+$`)
 	fun := wrapFuncForTest(func(f *Frame, o *Object) (string, *BaseException) {
-		desc, raised := GetItem(f, nativeFuncType.Dict().ToObject(), NewStr("__name__").ToObject())
+		desc, raised := GetItem(f, nativeFuncType.Dict().ToObject(), internedName.ToObject())
 		if raised != nil {
 			return "", raised
 		}

@@ -110,6 +110,20 @@ func TestComplexBinaryOps(t *testing.T) {
 		{Sub, NewFloat(math.NaN()).ToObject(), NewComplex(3i).ToObject(), NewComplex(complex(math.NaN(), -3)).ToObject(), nil},
 		{Sub, NewComplex(cmplx.NaN()).ToObject(), NewComplex(3i).ToObject(), NewComplex(cmplx.NaN()).ToObject(), nil},
 		{Sub, NewFloat(math.Inf(-1)).ToObject(), NewComplex(complex(math.Inf(-1), 3)).ToObject(), NewComplex(complex(math.NaN(), -3)).ToObject(), nil},
+		{Mul, NewComplex(1 + 3i).ToObject(), NewComplex(1 + 3i).ToObject(), NewComplex(-8 + 6i).ToObject(), nil},
+		{Mul, NewComplex(1 + 3i).ToObject(), NewComplex(3i).ToObject(), NewComplex(-9 + 3i).ToObject(), nil},
+		{Mul, NewComplex(1 + 3i).ToObject(), NewFloat(1).ToObject(), NewComplex(1 + 3i).ToObject(), nil},
+		{Mul, NewComplex(3i).ToObject(), NewFloat(1.2).ToObject(), NewComplex(3.5999999999999996i).ToObject(), nil},
+		{Mul, NewComplex(1 + 3i).ToObject(), NewComplex(1 + 3i).ToObject(), NewComplex(-8 + 6i).ToObject(), nil},
+		{Mul, NewComplex(4 + 3i).ToObject(), NewInt(1).ToObject(), NewComplex(4 + 3i).ToObject(), nil},
+		{Mul, NewComplex(4 + 3i).ToObject(), NewLong(big.NewInt(99994)).ToObject(), NewComplex(399976 + 299982i).ToObject(), nil},
+		{Mul, NewFloat(math.Inf(1)).ToObject(), NewComplex(3i).ToObject(), NewComplex(complex(math.NaN(), math.Inf(1))).ToObject(), nil},
+		{Mul, NewFloat(math.Inf(-1)).ToObject(), NewComplex(3i).ToObject(), NewComplex(complex(math.NaN(), math.Inf(-1))).ToObject(), nil},
+		{Mul, NewComplex(1 + 3i).ToObject(), None, nil, mustCreateException(TypeErrorType, "unsupported operand type(s) for *: 'complex' and 'NoneType'")},
+		{Mul, None, NewComplex(1 + 3i).ToObject(), nil, mustCreateException(TypeErrorType, "unsupported operand type(s) for *: 'NoneType' and 'complex'")},
+		{Mul, NewFloat(math.NaN()).ToObject(), NewComplex(3i).ToObject(), NewComplex(complex(math.NaN(), math.NaN())).ToObject(), nil},
+		{Mul, NewComplex(cmplx.NaN()).ToObject(), NewComplex(3i).ToObject(), NewComplex(cmplx.NaN()).ToObject(), nil},
+		{Mul, NewFloat(math.Inf(-1)).ToObject(), NewComplex(complex(math.Inf(-1), 3)).ToObject(), NewComplex(complex(math.Inf(1), math.NaN())).ToObject(), nil},
 	}
 
 	for _, cas := range cases {
@@ -263,6 +277,42 @@ func TestComplexNew(t *testing.T) {
 			if got == nil || cas.want == nil || !got.isInstance(ComplexType) || !cas.want.isInstance(ComplexType) ||
 				!cmplx.IsNaN(toComplexUnsafe(got).Value()) || !cmplx.IsNaN(toComplexUnsafe(cas.want).Value()) {
 				t.Errorf("complex.__new__%v = %v, want %v", cas.args, got, cas.want)
+			}
+		}
+	}
+}
+
+func TestComplexNonZero(t *testing.T) {
+	cases := []invokeTestCase{
+		{args: wrapArgs(complex(0, 0)), want: False.ToObject()},
+		{args: wrapArgs(complex(.0, .0)), want: False.ToObject()},
+		{args: wrapArgs(complex(0.0, 0.1)), want: True.ToObject()},
+		{args: wrapArgs(complex(1, 0)), want: True.ToObject()},
+		{args: wrapArgs(complex(3.14, -0.001e+5)), want: True.ToObject()},
+		{args: wrapArgs(complex(math.NaN(), math.NaN())), want: True.ToObject()},
+		{args: wrapArgs(complex(math.Inf(-1), math.Inf(1))), want: True.ToObject()},
+	}
+	for _, cas := range cases {
+		if err := runInvokeTestCase(wrapFuncForTest(complexNonZero), &cas); err != "" {
+			t.Error(err)
+		}
+	}
+}
+
+func TestComplexPos(t *testing.T) {
+	cases := []invokeTestCase{
+		{args: wrapArgs(complex(0, 0)), want: NewComplex(complex(0, 0)).ToObject()},
+		{args: wrapArgs(complex(42, -0.1)), want: NewComplex(complex(42, -0.1)).ToObject()},
+		{args: wrapArgs(complex(-1.2, 375E+2)), want: NewComplex(complex(-1.2, 37500)).ToObject()},
+		{args: wrapArgs(complex(5, math.NaN())), want: NewComplex(complex(5, math.NaN())).ToObject()},
+		{args: wrapArgs(complex(math.Inf(1), 0.618)), want: NewComplex(complex(math.Inf(1), 0.618)).ToObject()},
+	}
+	for _, cas := range cases {
+		switch got, match := checkInvokeResult(wrapFuncForTest(complexPos), cas.args, cas.want, cas.wantExc); match {
+		case checkInvokeResultReturnValueMismatch:
+			if got == nil || cas.want == nil || !got.isInstance(ComplexType) || !cas.want.isInstance(ComplexType) ||
+				!complexesAreSame(toComplexUnsafe(got).Value(), toComplexUnsafe(cas.want).Value()) {
+				t.Errorf("complex.__pos__%v = %v, want %v", cas.args, got, cas.want)
 			}
 		}
 	}

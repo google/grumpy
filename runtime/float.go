@@ -23,6 +23,7 @@ import (
 	"strconv"
 	"strings"
 	"sync/atomic"
+	"unicode"
 	"unsafe"
 )
 
@@ -265,7 +266,10 @@ const floatReprPrecision = 16
 
 func floatRepr(f *Frame, o *Object) (*Object, *BaseException) {
 	v := unsignPositiveInf(strings.ToLower(strconv.FormatFloat(toFloatUnsafe(o).Value(), 'g', floatReprPrecision, 64)))
-	if noDecimal, _ := regexp.MatchString(`^\d+$`, v); noDecimal {
+	fun := func(r rune) bool {
+		return !unicode.IsDigit(r)
+	}
+	if i := strings.IndexFunc(v, fun); i == -1 {
 		v += ".0"
 	}
 	return NewStr(v).ToObject(), nil

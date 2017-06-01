@@ -22,16 +22,10 @@ import (
 // Method represents Python 'instancemethod' objects.
 type Method struct {
 	Object
-	function *Function
-	self     *Object
-	class    *Type
-	name     string `attr:"__name__"`
-}
-
-// NewMethod returns a method wrapping the given function belonging to class.
-// When self is None the method is unbound, otherwise it is bound to self.
-func NewMethod(function *Function, self *Object, class *Type) *Method {
-	return &Method{Object{typ: MethodType}, function, self, class, function.Name()}
+	function *Object `attr:"im_func"`
+	self     *Object `attr:"im_self"`
+	class    *Object `attr:"im_class"`
+	name     string  `attr:"__name__"`
 }
 
 func toMethodUnsafe(o *Object) *Method {
@@ -52,12 +46,26 @@ func methodCall(f *Frame, callable *Object, args Args, kwargs KWArgs) (*Object, 
 	argc := len(args)
 	if m.self == None {
 		if argc < 1 {
-			format := "unbound method %s() must be called with %s instance as first argument (got nothing instead)"
-			return nil, f.RaiseType(TypeErrorType, fmt.Sprintf(format, m.name, m.class.Name()))
+			className, raised := methodGetMemberName(f, m.class)
+			if raised != nil {
+				return nil, raised
+			}
+			format := "unbound method %s() must be called with %s " +
+				"instance as first argument (got nothing instead)"
+			return nil, f.RaiseType(TypeErrorType, fmt.Sprintf(format, m.name, className))
 		}
-		if !args[0].isInstance(m.class) {
-			format := "unbound method %s() must be called with %s instance as first argument (got %s instance instead)"
-			return nil, f.RaiseType(TypeErrorType, fmt.Sprintf(format, m.name, m.class.Name(), args[0].typ.Name()))
+		isInst, raised := IsInstance(f, args[0], m.class)
+		if raised != nil {
+			return nil, raised
+		}
+		if !isInst {
+			className, raised := methodGetMemberName(f, m.class)
+			if raised != nil {
+				return nil, raised
+			}
+			format := "unbound method %s() must be called with %s " +
+				"instance as first argument (got %s instance instead)"
+			return nil, f.RaiseType(TypeErrorType, fmt.Sprintf(format, m.name, className, args[0].typ.Name()))
 		}
 		methodArgs = args
 	} else {
@@ -68,24 +76,62 @@ func methodCall(f *Frame, callable *Object, args Args, kwargs KWArgs) (*Object, 
 	return m.function.Call(f, methodArgs, kwargs)
 }
 
+func methodNew(f *Frame, t *Type, args Args, _ KWArgs) (*Object, *BaseException) {
+	if raised := checkFunctionArgs(f, "__new__", args, ObjectType, ObjectType, ObjectType); raised != nil {
+		return nil, raised
+	}
+	if args[0].Type().slots.Call == nil {
+		return nil, f.RaiseType(TypeErrorType, "first argument must be callable")
+	}
+	functionName, raised := methodGetMemberName(f, args[0])
+	if raised != nil {
+		return nil, raised
+	}
+	method := &Method{Object{typ: MethodType}, args[0], args[1], args[2], functionName}
+	return method.ToObject(), nil
+}
+
 func methodRepr(f *Frame, o *Object) (*Object, *BaseException) {
 	m := toMethodUnsafe(o)
 	s := ""
+	className, raised := methodGetMemberName(f, m.class)
+	if raised != nil {
+		return nil, raised
+	}
+	functionName, raised := methodGetMemberName(f, m.function)
+	if raised != nil {
+		return nil, raised
+	}
 	if m.self == None {
-		s = fmt.Sprintf("<unbound method %s.%s>", m.class.Name(), m.function.Name())
+		s = fmt.Sprintf("<unbound method %s.%s>", className, functionName)
 	} else {
 		repr, raised := Repr(f, m.self)
 		if raised != nil {
 			return nil, raised
 		}
-		s = fmt.Sprintf("<bound method %s.%s of %s>", m.class.Name(), m.function.Name(), repr.Value())
+		s = fmt.Sprintf("<bound method %s.%s of %s>", className, functionName, repr.Value())
 	}
 	return NewStr(s).ToObject(), nil
 }
 
 func initMethodType(map[string]*Object) {
-	// TODO: Should be instantiable.
-	MethodType.flags &= ^(typeFlagBasetype | typeFlagInstantiable)
+	MethodType.flags &= ^typeFlagBasetype
 	MethodType.slots.Call = &callSlot{methodCall}
 	MethodType.slots.Repr = &unaryOpSlot{methodRepr}
+	MethodType.slots.New = &newSlot{methodNew}
+}
+
+func methodGetMemberName(f *Frame, o *Object) (string, *BaseException) {
+	name, raised := GetAttr(f, o, internedName, None)
+	if raised != nil {
+		return "", raised
+	}
+	if !name.isInstance(BaseStringType) {
+		return "?", nil
+	}
+	nameStr, raised := ToStr(f, name)
+	if raised != nil {
+		return "", raised
+	}
+	return nameStr.Value(), nil
 }

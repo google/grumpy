@@ -35,6 +35,8 @@ var (
 	strInterpolationRegexp = regexp.MustCompile(`^%([#0 +-]?)((\*|[0-9]+)?)((\.(\*|[0-9]+))?)[hlL]?([diouxXeEfFgGcrs%])`)
 	internedStrs           = map[string]*Str{}
 	caseOffset             = byte('a' - 'A')
+
+	internedName = NewStr("__name__")
 )
 
 type stripSide int
