@@ -28,6 +28,16 @@ assert abs(3.4) == 3.4
 assert abs(-3.4) == 3.4
 assert isinstance(abs(-3.4), float)
 
+assert abs(complex(0, 0)) == 0.0
+assert abs(complex(3, 4)) == 5.0
+assert abs(-complex(3, 4)) == 5.0
+assert abs(complex(0.123456e-3, 0)) == 0.000123456
+assert abs(complex(0.123456e-3, 3.14151692e+7)) == 31415169.2
+assert isinstance(abs(complex(3, 4)), float)
+assert repr(abs(complex(-float('inf'), 1.2))) == 'inf'
+assert repr(abs(complex(float('nan'), float('inf')))) == 'inf'
+assert repr(abs(complex(3.14, float('nan')))) == 'nan'
+
 try:
   abs('a')
 except TypeError as e:

@@ -18,6 +18,7 @@ import (
 	"errors"
 	"fmt"
 	"math"
+	"math/cmplx"
 	"reflect"
 	"regexp"
 	"strconv"
@@ -50,6 +51,11 @@ func (c *Complex) ToObject() *Object {
 // Value returns the underlying complex value held by c.
 func (c *Complex) Value() complex128 {
 	return c.value
+}
+
+func complexAbs(f *Frame, o *Object) (*Object, *BaseException) {
+	c := toComplexUnsafe(o).Value()
+	return NewFloat(cmplx.Abs(c)).ToObject(), nil
 }
 
 func complexAdd(f *Frame, v, w *Object) (*Object, *BaseException) {
@@ -221,6 +227,7 @@ func complexSub(f *Frame, v, w *Object) (*Object, *BaseException) {
 }
 
 func initComplexType(dict map[string]*Object) {
+	ComplexType.slots.Abs = &unaryOpSlot{complexAbs}
 	ComplexType.slots.Add = &binaryOpSlot{complexAdd}
 	ComplexType.slots.Complex = &unaryOpSlot{complexComplex}
 	ComplexType.slots.Eq = &binaryOpSlot{complexEq}
