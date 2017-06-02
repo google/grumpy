@@ -32,6 +32,7 @@ py3kwarning = False
 warnoptions = []
 # TODO: Support actual byteorder
 byteorder = 'little'
+version = '2.7.13'
 
 class _Flags(object):
   """Container class for sys.flags."""
