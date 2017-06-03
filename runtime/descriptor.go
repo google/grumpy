@@ -105,7 +105,7 @@ func propertySet(f *Frame, desc, inst, value *Object) *BaseException {
 
 // makeStructFieldDescriptor creates a descriptor with a getter that returns
 // the field given by fieldName from t's basis structure.
-func makeStructFieldDescriptor(t *Type, fieldName, propertyName string, fieldType fieldDescriptorType) *Object {
+func makeStructFieldDescriptor(t *Type, fieldName, propertyName string, fieldMode fieldDescriptorType) *Object {
 	field, ok := t.basis.FieldByName(fieldName)
 	if !ok {
 		logFatal(fmt.Sprintf("no such field %q for basis %s", fieldName, nativeTypeName(t.basis)))
@@ -126,7 +126,7 @@ func makeStructFieldDescriptor(t *Type, fieldName, propertyName string, fieldTyp
 	}
 
 	setter := None
-	if fieldType == fieldDescriptorRW {
+	if fieldMode == fieldDescriptorRW {
 		if field.PkgPath != "" {
 			logFatal(fmt.Sprintf("field '%q' is not public on Golang code. Please fix it.", fieldName))
 		}
