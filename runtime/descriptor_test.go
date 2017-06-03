@@ -155,8 +155,6 @@ func TestMakeStructFieldDescriptorRW_set(t *testing.T) {
 		{args: wrapArgs(FileType, "Softspace", "softspace", newObject(FileType), NewInt(0)), want: None},
 		{args: wrapArgs(FileType, "Softspace", "softspace", newObject(FileType), "wrong"), wantExc: mustCreateException(TypeErrorType, "an int is required. Field 'file.softspace' cannot store a 'str' value")},
 		{args: wrapArgs(FileType, "Softspace", "softspace", 42, NewInt(0)), wantExc: mustCreateException(TypeErrorType, "descriptor 'softspace' for 'file' objects doesn't apply to 'int' objects")},
-		//{args: wrapArgs(StrType, "value", "value", 42), wantExc: mustCreateException(TypeErrorType, "field 'dict' is not public on Golang code. Please fix it.")},
-		//{args: wrapArgs(BaseExceptionType, "args", "args", e), want: None},
 	}
 	for _, cas := range cases {
 		if err := runInvokeTestCase(fun, &cas); err != "" {
