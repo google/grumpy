@@ -124,6 +124,7 @@ func makeStructFieldDescriptor(t *Type, fieldName, propertyName string, fieldMod
 
 		return WrapNative(f, t.slots.Basis.Fn(self).FieldByIndex(field.Index))
 	}
+	getter := newBuiltinFunction("_get"+fieldName, getterFunc).ToObject()
 
 	setter := None
 	if fieldMode == fieldDescriptorRW {
@@ -164,7 +165,5 @@ func makeStructFieldDescriptor(t *Type, fieldName, propertyName string, fieldMod
 
 		setter = newBuiltinFunction("_set"+fieldName, setterFunc).ToObject()
 	}
-	getter := newBuiltinFunction("_get"+fieldName, getterFunc).ToObject()
-
 	return newProperty(getter, setter, None).ToObject()
 }
