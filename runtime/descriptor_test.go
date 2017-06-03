@@ -111,7 +111,7 @@ func TestMakeStructFieldDescriptor(t *testing.T) {
 	}
 }
 
-func TestMakeStructFieldDescriptorRW_get(t *testing.T) {
+func TestMakeStructFieldDescriptorRWGet(t *testing.T) {
 	fun := newBuiltinFunction("TestMakeStructFieldDescriptorRW_get", func(f *Frame, args Args, kwargs KWArgs) (*Object, *BaseException) {
 		if raised := checkMethodArgs(f, "TestMakeStructFieldDescriptorRW_get", args, TypeType, StrType, StrType, ObjectType); raised != nil {
 			return nil, raised
@@ -136,7 +136,7 @@ func TestMakeStructFieldDescriptorRW_get(t *testing.T) {
 	}
 }
 
-func TestMakeStructFieldDescriptorRW_set(t *testing.T) {
+func TestMakeStructFieldDescriptorRWSet(t *testing.T) {
 	//e := mustNotRaise(RuntimeErrorType.Call(NewRootFrame(), wrapArgs("foo"), nil))
 	fun := newBuiltinFunction("TestMakeStructFieldDescriptorRW_set", func(f *Frame, args Args, kwargs KWArgs) (*Object, *BaseException) {
 		if raised := checkMethodArgs(f, "TestMakeStructFieldDescriptorRW_set", args, TypeType, StrType, StrType, ObjectType, ObjectType); raised != nil {
