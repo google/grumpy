@@ -145,17 +145,16 @@ func makeStructFieldDescriptor(t *Type, fieldName, propertyName string, fieldMod
 				return nil, f.RaiseType(TypeErrorType, fmt.Sprintf(format, propertyName, t.Name(), self.typ.Name()))
 			}
 
-			if !newValue.isInstance(getNativeType(field.Type)) {
-				format := "an %s is required. Field '%s.%s' cannot store a '%s' value"
-				return nil, f.RaiseType(TypeErrorType, fmt.Sprintf(format,
-					field.Type.Name(), t.Name(), propertyName, newValue.typ.Name()),
-				)
-			}
-
 			var converted reflect.Value
 			var raised *BaseException
 			val := t.slots.Basis.Fn(self).FieldByIndex(field.Index)
 			if converted, raised = maybeConvertValue(f, newValue, val.Type()); raised != nil {
+				if !newValue.isInstance(getNativeType(field.Type)) {
+					format := "an %s is required. Field '%s.%s' cannot store a '%s' value"
+					return nil, f.RaiseType(TypeErrorType, fmt.Sprintf(format,
+						field.Type.Name(), t.Name(), propertyName, newValue.typ.Name()),
+					)
+				}
 				return nil, raised
 			}
 
