@@ -16,6 +16,8 @@
 
 """Classes representing generated expressions."""
 
+from __future__ import unicode_literals
+
 import abc
 
 from grumpy.compiler import util

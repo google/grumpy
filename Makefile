@@ -53,6 +53,10 @@ export GOPATH := $(ROOT_DIR)/build
 export PYTHONPATH := $(ROOT_DIR)/$(PY_DIR)
 export PATH := $(ROOT_DIR)/build/bin:$(PATH)
 
+GOPATH_PY_ROOT := $(GOPATH)/src/__python__
+
+PYTHONPARSER_SRCS := $(patsubst third_party/%,$(PY_DIR)/grumpy/%,$(wildcard third_party/pythonparser/*.py))
+
 COMPILER_BIN := build/bin/grumpc
 COMPILER_SRCS := $(addprefix $(PY_DIR)/grumpy/compiler/,$(notdir $(shell find compiler -name '*.py' -not -name '*_test.py'))) $(PY_DIR)/grumpy/__init__.py
 COMPILER_TESTS := $(patsubst %.py,grumpy/%,$(filter-out compiler/expr_visitor_test.py compiler/stmt_test.py,$(wildcard compiler/*_test.py)))
@@ -62,7 +66,7 @@ COMPILER_PASS_FILES := $(patsubst %,$(PY_DIR)/%.pass,$(COMPILER_TESTS))
 COMPILER_EXPR_VISITOR_PASS_FILES := $(patsubst %,$(PY_DIR)/grumpy/compiler/expr_visitor_test.%of32.pass,$(shell seq 32))
 COMPILER_STMT_PASS_FILES := $(patsubst %,$(PY_DIR)/grumpy/compiler/stmt_test.%of16.pass,$(shell seq 16))
 COMPILER_D_FILES := $(patsubst %,$(PY_DIR)/%.d,$(COMPILER_TESTS))
-COMPILER := $(COMPILER_BIN) $(COMPILER_SRCS)
+COMPILER := $(COMPILER_BIN) $(COMPILER_SRCS) $(PYTHONPARSER_SRCS)
 
 RUNNER_BIN := build/bin/grumprun
 RUNTIME_SRCS := $(addprefix build/src/grumpy/,$(notdir $(wildcard runtime/*.go)))
@@ -71,13 +75,15 @@ RUNTIME_PASS_FILE := build/runtime.pass
 RUNTIME_COVER_FILE := $(PKG_DIR)/grumpy.cover
 RUNNER = $(RUNNER_BIN) $(COMPILER) $(RUNTIME) $(STDLIB)
 
-GRUMPY_STDLIB_SRCS := $(shell find lib -name '*.py')
-GRUMPY_STDLIB_PACKAGES := $(foreach x,$(GRUMPY_STDLIB_SRCS),$(patsubst lib/%.py,%,$(patsubst lib/%/__init__.py,%,$(x))))
-THIRD_PARTY_STDLIB_SRCS := $(shell find third_party -name '*.py')
-THIRD_PARTY_STDLIB_PACKAGES := $(foreach x,$(THIRD_PARTY_STDLIB_SRCS),$(patsubst third_party/stdlib/%.py,%,$(patsubst third_party/pypy/%.py,%,$(patsubst third_party/pypy/%/__init__.py,%,$(patsubst third_party/stdlib/%/__init__.py,%,$(x))))))
-STDLIB_SRCS := $(GRUMPY_STDLIB_SRCS) $(THIRD_PARTY_STDLIB_SRCS)
-STDLIB_PACKAGES := $(GRUMPY_STDLIB_PACKAGES) $(THIRD_PARTY_STDLIB_PACKAGES)
-STDLIB := $(patsubst %,$(PKG_DIR)/grumpy/lib/%.a,$(STDLIB_PACKAGES))
+LIB_SRCS := $(patsubst lib/%,$(GOPATH_PY_ROOT)/%,$(shell find lib -name '*.py'))
+THIRD_PARTY_STDLIB_SRCS := $(patsubst third_party/stdlib/%,$(GOPATH_PY_ROOT)/%,$(shell find third_party/stdlib -name '*.py'))
+THIRD_PARTY_PYPY_SRCS := $(patsubst third_party/pypy/%,$(GOPATH_PY_ROOT)/%,$(shell find third_party/pypy -name '*.py'))
+THIRD_PARTY_OUROBOROS_SRCS := $(patsubst third_party/ouroboros/%,$(GOPATH_PY_ROOT)/%,$(shell find third_party/ouroboros -name '*.py'))
+STDLIB_SRCS := $(LIB_SRCS) $(THIRD_PARTY_STDLIB_SRCS) $(THIRD_PARTY_PYPY_SRCS) $(THIRD_PARTY_OUROBOROS_SRCS)
+
+
+STDLIB_PACKAGES := $(patsubst $(GOPATH_PY_ROOT)/%.py,%,$(patsubst $(GOPATH_PY_ROOT)/%/__init__.py,%,$(STDLIB_SRCS)))
+STDLIB := $(patsubst %,$(PKG_DIR)/__python__/%.a,$(STDLIB_PACKAGES))
 STDLIB_TESTS := \
   itertools_test \
   math_test \
@@ -94,6 +100,9 @@ STDLIB_TESTS := \
   test/test_string \
   test/test_md5 \
   test/test_bisect \
+  test/test_datetime \
+  test/test_operator \
+  test/test_colorsys \
   threading_test \
   time_test \
   types_test \
@@ -107,12 +116,12 @@ ACCEPT_PY_PASS_FILES := $(patsubst %,build/%_py.pass,$(filter-out %/native_test,
 BENCHMARKS := $(patsubst %.py,%,$(wildcard benchmarks/*.py))
 BENCHMARK_BINS := $(patsubst %,build/%_benchmark,$(BENCHMARKS))
 
-TOOL_BINS = $(patsubst %,build/bin/%,benchcmp coverparse diffrange)
+TOOL_BINS = $(patsubst %,build/bin/%,benchcmp coverparse diffrange genmake pydeps)
 
 GOLINT_BIN = build/bin/golint
 PYLINT_BIN = build/bin/pylint
 
-all: $(COMPILER) $(RUNTIME) $(STDLIB) $(TOOL_BINS)
+all: $(COMPILER) $(RUNTIME) $(TOOL_BINS)
 
 benchmarks: $(BENCHMARK_BINS)
 
@@ -143,13 +152,15 @@ $(COMPILER_SRCS) $(COMPILER_TEST_SRCS) $(COMPILER_SHARDED_TEST_SRCS): $(PY_DIR)/
 	@mkdir -p $(PY_DIR)/grumpy/compiler
 	@cp -f $< $@
 
-$(COMPILER_PASS_FILES): %.pass: %.py $(COMPILER)
+$(COMPILER_PASS_FILES): %.pass: %.py $(COMPILER) $(COMPILER_TEST_SRCS)
 	@$(PYTHON) $< -q
 	@touch $@
 	@echo compiler/`basename $*` PASS
 
-$(COMPILER_D_FILES): $(PY_DIR)/%.d: $(PY_DIR)/%.py $(COMPILER_SRCS)
-	@$(PYTHON) -m modulefinder $< | awk '{if (match($$2, /^grumpy\>/)) { print "$(PY_DIR)/$*.pass: " substr($$3, length("$(ROOT_DIR)/") + 1) }}' > $@
+# NOTE: In the regex below we use (\.|$) instead of \> because the latter is
+# not available in the awk available on OS X.
+$(COMPILER_D_FILES): $(PY_DIR)/%.d: $(PY_DIR)/%.py $(COMPILER_SRCS) $(PYTHONPARSER_SRCS)
+	@$(PYTHON) -m modulefinder $< | awk '{if (match($$2, /^grumpy(\.|$$)/)) { print "$(PY_DIR)/$*.pass: " substr($$3, length("$(ROOT_DIR)/") + 1) }}' > $@
 
 -include $(COMPILER_D_FILES)
 
@@ -208,8 +219,8 @@ $(PYLINT_BIN):
 	@cd build/third_party && curl -sL https://pypi.io/packages/source/p/pylint/pylint-1.6.4.tar.gz | tar -zx
 	@cd build/third_party/pylint-1.6.4 && $(PYTHON) setup.py install --prefix $(ROOT_DIR)/build
 
-pylint: $(PYLINT_BIN)
-	@$(PYLINT_BIN) compiler/*.py $(addprefix tools/,benchcmp coverparse diffrange grumpc grumprun)
+pylint: $(PYLINT_BIN) $(COMPILER_SRCS) $(PYTHONPARSER_SRCS) $(COMPILER_BIN) $(RUNNER_BIN) $(TOOL_BINS)
+	@$(PYTHON) $(PYLINT_BIN) $(COMPILER_SRCS) $(COMPILER_BIN) $(RUNNER_BIN) $(TOOL_BINS)
 
 lint: golint pylint
 
@@ -217,24 +228,31 @@ lint: golint pylint
 # Standard library
 # ------------------------------------------------------------------------------
 
-define GRUMPY_STDLIB
-build/src/grumpy/lib/$(2)/module.go: $(1) $(COMPILER)
-	@mkdir -p build/src/grumpy/lib/$(2)
-	@$(COMPILER_BIN) -modname=$(notdir $(2)) $(1) > $$@
+$(LIB_SRCS): $(GOPATH_PY_ROOT)/%: lib/%
+	@mkdir -p $(@D)
+	@cp -f $< $@
 
-build/src/grumpy/lib/$(2)/module.d: $(1)
-	@mkdir -p build/src/grumpy/lib/$(2)
-	@$(PYTHON) -m modulefinder -p $(ROOT_DIR)/lib:$(ROOT_DIR)/third_party/stdlib:$(ROOT_DIR)/third_party/pypy $$< | awk '{if (($$$$1 == "m" || $$$$1 == "P") && $$$$2 != "__main__" && $$$$2 != "$(2)") {gsub(/\./, "/", $$$$2); print "$(PKG_DIR)/grumpy/lib/$(2).a: $(PKG_DIR)/grumpy/lib/" $$$$2 ".a"}}' > $$@
+$(THIRD_PARTY_STDLIB_SRCS): $(GOPATH_PY_ROOT)/%: third_party/stdlib/%
+	@mkdir -p $(@D)
+	@cp -f $< $@
 
-$(PKG_DIR)/grumpy/lib/$(2).a: build/src/grumpy/lib/$(2)/module.go $(RUNTIME)
-	@mkdir -p $(PKG_DIR)/grumpy/lib/$(dir $(2))
-	@go tool compile -o $$@ -p grumpy/lib/$(2) -complete -I $(PKG_DIR) -pack $$<
+$(THIRD_PARTY_PYPY_SRCS): $(GOPATH_PY_ROOT)/%: third_party/pypy/%
+	@mkdir -p $(@D)
+	@cp -f $< $@
 
--include build/src/grumpy/lib/$(2)/module.d
 
-endef
+$(THIRD_PARTY_OUROBOROS_SRCS): $(GOPATH_PY_ROOT)/%: third_party/ouroboros/%
+	@mkdir -p $(@D)
+	@cp -f $< $@
 
-$(eval $(foreach x,$(shell seq $(words $(STDLIB_SRCS))),$(call GRUMPY_STDLIB,$(word $(x),$(STDLIB_SRCS)),$(word $(x),$(STDLIB_PACKAGES)))))
+build/stdlib.mk: build/bin/genmake | $(STDLIB_SRCS)
+	@genmake build > $@
+
+-include build/stdlib.mk
+
+$(patsubst %,build/src/__python__/%/module.go,$(STDLIB_PACKAGES)): $(COMPILER)
+$(patsubst %,build/src/__python__/%/module.d,$(STDLIB_PACKAGES)): build/bin/pydeps $(PYTHONPARSER_SRCS) $(COMPILER)
+$(patsubst %,$(PKG_DIR)/__python__/%.a,$(STDLIB_PACKAGES)): $(RUNTIME)
 
 define GRUMPY_STDLIB_TEST
 build/testing/$(patsubst %_test,%_test_,$(notdir $(1))).go:
@@ -243,13 +261,13 @@ build/testing/$(patsubst %_test,%_test_,$(notdir $(1))).go:
 	@echo 'import (' >> $$@
 	@echo '	"os"' >> $$@
 	@echo '	"grumpy"' >> $$@
-	@echo '	mod "grumpy/lib/$(1)"' >> $$@
+	@echo '	mod "__python__/$(1)"' >> $$@
 	@echo ')' >> $$@
 	@echo 'func main() {' >> $$@
 	@echo '	os.Exit(grumpy.RunMain(mod.Code))' >> $$@
 	@echo '}' >> $$@
 
-build/testing/$(notdir $(1)): build/testing/$(patsubst %_test,%_test_,$(notdir $(1))).go $(RUNTIME) $(PKG_DIR)/grumpy/lib/$(1).a
+build/testing/$(notdir $(1)): build/testing/$(patsubst %_test,%_test_,$(notdir $(1))).go $(RUNTIME) $(PKG_DIR)/__python__/$(1).a
 	@go build -o $$@ $$<
 
 build/testing/$(notdir $(1)).pass: build/testing/$(notdir $(1))
@@ -266,6 +284,10 @@ $(eval $(foreach x,$(STDLIB_TESTS),$(call GRUMPY_STDLIB_TEST,$(x))))
 # ------------------------------------------------------------------------------
 
 $(PY_DIR)/weetest.py: lib/weetest.py
+	@cp -f $< $@
+
+$(PYTHONPARSER_SRCS): $(PY_DIR)/grumpy/%: third_party/%
+	@mkdir -p $(@D)
 	@cp -f $< $@
 
 $(patsubst %_test,build/%.go,$(ACCEPT_TESTS)): build/%.go: %_test.py $(COMPILER)
@@ -308,4 +330,5 @@ install: $(RUNNER_BIN) $(COMPILER) $(RUNTIME) $(STDLIB)
 	install -d "$(DESTDIR)"{/usr/lib/go,"$(PY_INSTALL_DIR)"}
 	cp -rv "$(PY_DIR)/grumpy" "$(DESTDIR)$(PY_INSTALL_DIR)"
 	# Go package and sources
+	install -d "$(DESTDIR)/usr/lib/go/"
 	cp -rv build/pkg build/src "$(DESTDIR)/usr/lib/go/"

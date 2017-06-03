@@ -204,7 +204,7 @@ func nativeFuncGetName(f *Frame, args Args, _ KWArgs) (*Object, *BaseException) 
 }
 
 func nativeFuncRepr(f *Frame, o *Object) (*Object, *BaseException) {
-	name, raised := GetAttr(f, o, NewStr("__name__"), NewStr("<unknown>").ToObject())
+	name, raised := GetAttr(f, o, internedName, NewStr("<unknown>").ToObject())
 	if raised != nil {
 		return nil, raised
 	}
@@ -316,10 +316,7 @@ func WrapNative(f *Frame, v reflect.Value) (*Object, *BaseException) {
 		return (&Int{Object{typ: t}, i}).ToObject(), nil
 	case reflect.Complex64:
 	case reflect.Complex128:
-		c := v.Complex()
-		// TODO: Switch this over to calling the type when `complex.__new__`
-		// gets implemented.
-		return NewComplex(c).ToObject(), nil
+		return t.Call(f, Args{NewComplex(v.Complex()).ToObject()}, nil)
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Uint8, reflect.Uint16:
 		return t.Call(f, Args{NewInt(int(v.Int())).ToObject()}, nil)
 	// Handle potentially large ints separately in case of overflow.

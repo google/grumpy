@@ -34,7 +34,6 @@ func TestFileInit(t *testing.T) {
 		{args: wrapArgs(newObject(FileType), f.path), want: None},
 		{args: wrapArgs(newObject(FileType)), wantExc: mustCreateException(TypeErrorType, "'__init__' requires 2 arguments")},
 		{args: wrapArgs(newObject(FileType), f.path, "abc"), wantExc: mustCreateException(ValueErrorType, `invalid mode string: "abc"`)},
-		{args: wrapArgs(newObject(FileType), f.path, "w+"), wantExc: mustCreateException(ValueErrorType, `invalid mode string: "w+"`)},
 		{args: wrapArgs(newObject(FileType), "nonexistent-file"), wantExc: mustCreateException(IOErrorType, "open nonexistent-file: no such file or directory")},
 	}
 	for _, cas := range cases {
@@ -303,7 +302,7 @@ func TestFileWrite(t *testing.T) {
 		t.Fatalf("Chdir(%q) failed: %s", dir, err)
 	}
 	defer os.Chdir(oldWd)
-	for _, filename := range []string{"truncate.txt", "readonly.txt", "append.txt", "rplus.txt"} {
+	for _, filename := range []string{"truncate.txt", "readonly.txt", "append.txt", "rplus.txt", "aplus.txt", "wplus.txt"} {
 		if err := ioutil.WriteFile(filename, []byte(filename), 0644); err != nil {
 			t.Fatalf("ioutil.WriteFile(%q) failed: %s", filename, err)
 		}
@@ -312,7 +311,16 @@ func TestFileWrite(t *testing.T) {
 		{args: wrapArgs("noexist.txt", "w", "foo\nbar"), want: NewStr("foo\nbar").ToObject()},
 		{args: wrapArgs("truncate.txt", "w", "new contents"), want: NewStr("new contents").ToObject()},
 		{args: wrapArgs("append.txt", "a", "\nbar"), want: NewStr("append.txt\nbar").ToObject()},
+
 		{args: wrapArgs("rplus.txt", "r+", "fooey"), want: NewStr("fooey.txt").ToObject()},
+		{args: wrapArgs("noexistplus1.txt", "r+", "pooey"), wantExc: mustCreateException(IOErrorType, "open noexistplus1.txt: no such file or directory")},
+
+		{args: wrapArgs("aplus.txt", "a+", "\napper"), want: NewStr("aplus.txt\napper").ToObject()},
+		{args: wrapArgs("noexistplus3.txt", "a+", "snappbacktoreality"), want: NewStr("snappbacktoreality").ToObject()},
+
+		{args: wrapArgs("wplus.txt", "w+", "destructo"), want: NewStr("destructo").ToObject()},
+		{args: wrapArgs("noexistplus2.txt", "w+", "wapper"), want: NewStr("wapper").ToObject()},
+
 		{args: wrapArgs("readonly.txt", "r", "foo"), wantExc: mustCreateException(IOErrorType, "write readonly.txt: bad file descriptor")},
 	}
 	for _, cas := range cases {

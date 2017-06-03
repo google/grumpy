@@ -90,6 +90,19 @@ func (f *File) readLine(maxBytes int) (string, error) {
 	return buf.String(), nil
 }
 
+func (f *File) writeString(s string) error {
+	f.mutex.Lock()
+	defer f.mutex.Unlock()
+	if !f.open {
+		return io.ErrClosedPipe
+	}
+	if _, err := f.file.Write([]byte(s)); err != nil {
+		return err
+	}
+
+	return nil
+}
+
 // FileType is the object representing the Python 'file' type.
 var FileType = newBasisType("file", reflect.TypeOf(File{}), toFileUnsafe, ObjectType)
 
@@ -115,6 +128,11 @@ func fileInit(f *Frame, o *Object, args Args, _ KWArgs) (*Object, *BaseException
 		flag = os.O_RDONLY
 	case "r+", "r+b":
 		flag = os.O_RDWR
+	// Difference between r+ and a+ is that a+ automatically creates file.
+	case "a+":
+		flag = os.O_RDWR | os.O_CREATE | os.O_APPEND
+	case "w+":
+		flag = os.O_RDWR | os.O_CREATE
 	case "w", "wb":
 		flag = os.O_WRONLY | os.O_CREATE | os.O_TRUNC
 	default:
@@ -343,3 +361,12 @@ func fileParseReadArgs(f *Frame, method string, args Args) (*File, int, *BaseExc
 	}
 	return toFileUnsafe(args[0]), size, nil
 }
+
+var (
+	// Stdin is an alias for sys.stdin.
+	Stdin = NewFileFromFD(os.Stdin.Fd())
+	// Stdout is an alias for sys.stdout.
+	Stdout = NewFileFromFD(os.Stdout.Fd())
+	// Stderr is an alias for sys.stderr.
+	Stderr = NewFileFromFD(os.Stderr.Fd())
+)

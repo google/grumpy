@@ -16,9 +16,13 @@
 
 """Utilities for generating Go code."""
 
+from __future__ import unicode_literals
+
+import codecs
 import contextlib
 import cStringIO
 import string
+import StringIO
 import textwrap
 
 
@@ -27,25 +31,42 @@ _ESCAPES = {'\t': r'\t', '\r': r'\r', '\n': r'\n', '"': r'\"', '\\': r'\\'}
 
 
 # This is the max length of a direct allocation tuple supported by the runtime.
-# This should match the number of specializations found in
-# runtime/tuple_direct.go.
+# This should match the number of specializations found in tuple.go.
 MAX_DIRECT_TUPLE = 6
 
 
-class ParseError(Exception):
+class CompileError(Exception):
 
   def __init__(self, node, msg):
     if hasattr(node, 'lineno'):
       msg = 'line {}: {}'.format(node.lineno, msg)
-    super(ParseError, self).__init__(msg)
+    super(CompileError, self).__init__(msg)
+
+
+class ParseError(CompileError):
+  pass
+
+
+class ImportError(CompileError):  # pylint: disable=redefined-builtin
+  pass
+
+
+class LateFutureError(ImportError):
+
+  def __init__(self, node):
+    msg = 'from __future__ imports must occur at the beginning of the file'
+    super(LateFutureError, self).__init__(node, msg)
 
 
 class Writer(object):
   """Utility class for writing blocks of Go code to a file-like object."""
 
   def __init__(self, out=None):
-    self.out = out or cStringIO.StringIO()
+    self.out = codecs.getwriter('utf8')(out or cStringIO.StringIO())
     self.indent_level = 0
+
+  def getvalue(self):
+    return self.out.getvalue().decode('utf8')
 
   @contextlib.contextmanager
   def indent_block(self, n=1):
@@ -127,7 +148,7 @@ class Writer(object):
 
 def go_str(value):
   """Returns value as a valid Go string literal."""
-  io = cStringIO.StringIO()
+  io = StringIO.StringIO()
   io.write('"')
   for c in value:
     if c in _ESCAPES:

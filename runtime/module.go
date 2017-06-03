@@ -209,7 +209,7 @@ func (m *Module) GetFilename(f *Frame) (*Str, *BaseException) {
 // GetName returns the __name__ attribute of m, raising SystemError if it does
 // not exist.
 func (m *Module) GetName(f *Frame) (*Str, *BaseException) {
-	nameAttr, raised := GetAttr(f, m.ToObject(), NewStr("__name__"), None)
+	nameAttr, raised := GetAttr(f, m.ToObject(), internedName, None)
 	if raised != nil {
 		return nil, raised
 	}
@@ -233,7 +233,7 @@ func moduleInit(f *Frame, o *Object, args Args, _ KWArgs) (*Object, *BaseExcepti
 	if raised := checkFunctionArgs(f, "__init__", args, expectedTypes...); raised != nil {
 		return nil, raised
 	}
-	if raised := SetAttr(f, o, NewStr("__name__"), args[0]); raised != nil {
+	if raised := SetAttr(f, o, internedName, args[0]); raised != nil {
 		return nil, raised
 	}
 	if argc > 1 {
@@ -289,7 +289,7 @@ func RunMain(code *Code) int {
 	m.state = moduleStateInitializing
 	f := NewRootFrame()
 	if raised := SysModules.SetItemString(f, "__main__", m.ToObject()); raised != nil {
-		fmt.Fprint(os.Stderr, raised.String())
+		Stderr.writeString(raised.String())
 	}
 	_, e := code.Eval(f, m.Dict(), nil, nil)
 	if e == nil {
@@ -300,7 +300,7 @@ func RunMain(code *Code) int {
 		if raised != nil {
 			s = e.String()
 		}
-		fmt.Fprint(os.Stderr, s)
+		Stderr.writeString(s)
 		return 1
 	}
 	f.RestoreExc(nil, nil)
@@ -315,7 +315,7 @@ func RunMain(code *Code) int {
 		return 0
 	}
 	if s, raised := ToStr(f, o); raised == nil {
-		fmt.Fprintln(os.Stderr, s.Value())
+		Stderr.writeString(s.Value() + "\n")
 	}
 	return 1
 }

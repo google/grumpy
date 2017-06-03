@@ -60,6 +60,16 @@ func TestFloatArithmeticOps(t *testing.T) {
 		{Div, True.ToObject(), NewFloat(0).ToObject(), nil, mustCreateException(ZeroDivisionErrorType, "float division or modulo by zero")},
 		{Div, NewFloat(math.Inf(1)).ToObject(), NewFloat(0).ToObject(), nil, mustCreateException(ZeroDivisionErrorType, "float division or modulo by zero")},
 		{Div, NewFloat(1.0).ToObject(), NewLong(bigLongNumber).ToObject(), nil, mustCreateException(OverflowErrorType, "long int too large to convert to float")},
+		{FloorDiv, NewFloat(12.5).ToObject(), NewFloat(4).ToObject(), NewFloat(3).ToObject(), nil},
+		{FloorDiv, NewFloat(-12.5).ToObject(), NewInt(4).ToObject(), NewFloat(-4).ToObject(), nil},
+		{FloorDiv, NewInt(25).ToObject(), NewFloat(5).ToObject(), NewFloat(5.0).ToObject(), nil},
+		{FloorDiv, NewFloat(math.Inf(1)).ToObject(), NewFloat(math.Inf(1)).ToObject(), NewFloat(math.NaN()).ToObject(), nil},
+		{FloorDiv, NewFloat(math.Inf(-1)).ToObject(), NewInt(-20).ToObject(), NewFloat(math.Inf(1)).ToObject(), nil},
+		{FloorDiv, NewInt(1).ToObject(), NewFloat(math.Inf(1)).ToObject(), NewFloat(0).ToObject(), nil},
+		{FloorDiv, newObject(ObjectType), NewFloat(1.1).ToObject(), nil, mustCreateException(TypeErrorType, "unsupported operand type(s) for //: 'object' and 'float'")},
+		{FloorDiv, NewFloat(1.0).ToObject(), NewLong(bigLongNumber).ToObject(), nil, mustCreateException(OverflowErrorType, "long int too large to convert to float")},
+		{FloorDiv, True.ToObject(), NewFloat(0).ToObject(), nil, mustCreateException(ZeroDivisionErrorType, "float division or modulo by zero")},
+		{FloorDiv, NewFloat(math.Inf(1)).ToObject(), NewFloat(0).ToObject(), nil, mustCreateException(ZeroDivisionErrorType, "float division or modulo by zero")},
 		{Mod, NewFloat(50.5).ToObject(), NewInt(10).ToObject(), NewFloat(0.5).ToObject(), nil},
 		{Mod, NewFloat(50.5).ToObject(), NewFloat(-10).ToObject(), NewFloat(-9.5).ToObject(), nil},
 		{Mod, NewFloat(-20.2).ToObject(), NewFloat(40).ToObject(), NewFloat(19.8).ToObject(), nil},
@@ -99,6 +109,48 @@ func TestFloatArithmeticOps(t *testing.T) {
 			}
 		}
 	}
+}
+
+func TestFloatDivMod(t *testing.T) {
+	cases := []invokeTestCase{
+		{args: wrapArgs(12.5, 4.0), want: NewTuple2(NewFloat(3).ToObject(), NewFloat(0.5).ToObject()).ToObject()},
+		{args: wrapArgs(-12.5, 4.0), want: NewTuple2(NewFloat(-4).ToObject(), NewFloat(3.5).ToObject()).ToObject()},
+		{args: wrapArgs(25.0, 5.0), want: NewTuple2(NewFloat(5).ToObject(), NewFloat(0).ToObject()).ToObject()},
+		{args: wrapArgs(-20.2, 40.0), want: NewTuple2(NewFloat(-1).ToObject(), NewFloat(19.8).ToObject()).ToObject()},
+		{args: wrapArgs(math.Inf(1), math.Inf(1)), want: NewTuple2(NewFloat(math.NaN()).ToObject(), NewFloat(math.NaN()).ToObject()).ToObject()},
+		{args: wrapArgs(math.Inf(1), math.Inf(-1)), want: NewTuple2(NewFloat(math.NaN()).ToObject(), NewFloat(math.NaN()).ToObject()).ToObject()},
+		{args: wrapArgs(math.Inf(-1), -20.0), want: NewTuple2(NewFloat(math.Inf(1)).ToObject(), NewFloat(math.NaN()).ToObject()).ToObject()},
+		{args: wrapArgs(1, math.Inf(1)), want: NewTuple2(NewFloat(0).ToObject(), NewFloat(1).ToObject()).ToObject()},
+		{args: wrapArgs(newObject(ObjectType), 1.1), wantExc: mustCreateException(TypeErrorType, "unsupported operand type(s) for divmod(): 'object' and 'float'")},
+		{args: wrapArgs(True.ToObject(), 0.0), wantExc: mustCreateException(ZeroDivisionErrorType, "float division or modulo by zero")},
+		{args: wrapArgs(math.Inf(1), 0.0), wantExc: mustCreateException(ZeroDivisionErrorType, "float division or modulo by zero")},
+		{args: wrapArgs(1.0, bigLongNumber), wantExc: mustCreateException(OverflowErrorType, "long int too large to convert to float")},
+	}
+	for _, cas := range cases {
+		switch got, result := checkInvokeResult(wrapFuncForTest(DivMod), cas.args, cas.want, cas.wantExc); result {
+		case checkInvokeResultExceptionMismatch:
+			t.Errorf("float.__divmod__%v raised %v, want %v", cas.args, got, cas.wantExc)
+		case checkInvokeResultReturnValueMismatch:
+			// Handle NaN specially, since NaN != NaN.
+			if got == nil || cas.want == nil || !got.isInstance(TupleType) || !cas.want.isInstance(TupleType) ||
+				!isNaNTupleFloat(got, cas.want) {
+				t.Errorf("float.__divmod__%v = %v, want %v", cas.args, got, cas.want)
+			}
+		}
+	}
+}
+
+func isNaNTupleFloat(got, want *Object) bool {
+	if toTupleUnsafe(got).Len() != toTupleUnsafe(want).Len() {
+		return false
+	}
+	for i := 0; i < toTupleUnsafe(got).Len(); i++ {
+		if math.IsNaN(toFloatUnsafe(toTupleUnsafe(got).GetItem(i)).Value()) &&
+			math.IsNaN(toFloatUnsafe(toTupleUnsafe(want).GetItem(i)).Value()) {
+			return true
+		}
+	}
+	return false
 }
 
 func TestFloatCompare(t *testing.T) {
@@ -151,6 +203,22 @@ func TestFloatLong(t *testing.T) {
 	}
 }
 
+func TestFloatHash(t *testing.T) {
+	cases := []invokeTestCase{
+		{args: wrapArgs(NewFloat(0.0)), want: NewInt(0).ToObject()},
+		{args: wrapArgs(NewFloat(3.14)), want: NewInt(3146129223).ToObject()},
+		{args: wrapArgs(NewFloat(42.0)), want: NewInt(42).ToObject()},
+		{args: wrapArgs(NewFloat(42.125)), want: NewInt(1413677056).ToObject()},
+		{args: wrapArgs(NewFloat(math.Inf(1))), want: NewInt(314159).ToObject()},
+		{args: wrapArgs(NewFloat(math.Inf(-1))), want: NewInt(-271828).ToObject()},
+		{args: wrapArgs(NewFloat(math.NaN())), want: NewInt(0).ToObject()},
+	}
+	for _, cas := range cases {
+		if err := runInvokeTestCase(wrapFuncForTest(floatHash), &cas); err != "" {
+			t.Error(err)
+		}
+	}
+}
 func TestFloatIsTrue(t *testing.T) {
 	cases := []invokeTestCase{
 		{args: wrapArgs(0.0), want: False.ToObject()},
@@ -167,6 +235,10 @@ func TestFloatIsTrue(t *testing.T) {
 func TestFloatNew(t *testing.T) {
 	floatNew := mustNotRaise(GetAttr(NewRootFrame(), FloatType.ToObject(), NewStr("__new__"), nil))
 	strictEqType := newTestClassStrictEq("StrictEq", FloatType)
+	newStrictEq := func(v float64) *Object {
+		f := Float{Object: Object{typ: strictEqType}, value: v}
+		return f.ToObject()
+	}
 	subType := newTestClass("SubType", []*Type{FloatType}, newStringDict(map[string]*Object{}))
 	subTypeObject := (&Float{Object: Object{typ: subType}, value: 3.14}).ToObject()
 	goodSlotType := newTestClass("GoodSlot", []*Type{ObjectType}, newStringDict(map[string]*Object{
@@ -203,8 +275,8 @@ func TestFloatNew(t *testing.T) {
 		{args: wrapArgs(FloatType, newObject(goodSlotType)), want: NewFloat(3.14).ToObject()},
 		{args: wrapArgs(FloatType, newObject(badSlotType)), wantExc: mustCreateException(TypeErrorType, "__float__ returned non-float (type object)")},
 		{args: wrapArgs(FloatType, newObject(slotSubTypeType)), want: subTypeObject},
-		{args: wrapArgs(strictEqType, 3.14), want: (&Float{Object{typ: strictEqType}, 3.14}).ToObject()},
-		{args: wrapArgs(strictEqType, newObject(goodSlotType)), want: (&Float{Object{typ: strictEqType}, 3.14}).ToObject()},
+		{args: wrapArgs(strictEqType, 3.14), want: newStrictEq(3.14)},
+		{args: wrapArgs(strictEqType, newObject(goodSlotType)), want: newStrictEq(3.14)},
 		{args: wrapArgs(strictEqType, newObject(badSlotType)), wantExc: mustCreateException(TypeErrorType, "__float__ returned non-float (type object)")},
 		{args: wrapArgs(), wantExc: mustCreateException(TypeErrorType, "'__new__' requires 1 arguments")},
 		{args: wrapArgs(IntType), wantExc: mustCreateException(TypeErrorType, "float.__new__(int): int is not a subtype of float")},
@@ -228,10 +300,18 @@ func TestFloatNew(t *testing.T) {
 
 func TestFloatStrRepr(t *testing.T) {
 	cases := []invokeTestCase{
-		{args: wrapArgs(0.0), want: NewStr("0").ToObject()},
+		{args: wrapArgs(0.0), want: NewStr("0.0").ToObject()},
 		{args: wrapArgs(0.1), want: NewStr("0.1").ToObject()},
 		{args: wrapArgs(-303.5), want: NewStr("-303.5").ToObject()},
-		{args: wrapArgs(231095835.0), want: NewStr("2.31095835e+08").ToObject()},
+		{args: wrapArgs(231095835.0), want: NewStr("231095835.0").ToObject()},
+		{args: wrapArgs(1e+6), want: NewStr("1000000.0").ToObject()},
+		{args: wrapArgs(1e+15), want: NewStr("1000000000000000.0").ToObject()},
+		{args: wrapArgs(1e+16), want: NewStr("1e+16").ToObject()},
+		{args: wrapArgs(1E16), want: NewStr("1e+16").ToObject()},
+		{args: wrapArgs(1e-6), want: NewStr("1e-06").ToObject()},
+		{args: wrapArgs(math.Inf(1)), want: NewStr("inf").ToObject()},
+		{args: wrapArgs(math.Inf(-1)), want: NewStr("-inf").ToObject()},
+		{args: wrapArgs(math.NaN()), want: NewStr("nan").ToObject()},
 	}
 	for _, cas := range cases {
 		if err := runInvokeTestCase(wrapFuncForTest(ToStr), &cas); err != "" {

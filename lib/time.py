@@ -14,7 +14,7 @@
 
 """Time access and conversions."""
 
-from __go__.time import Now, Second, Sleep, Unix, Date, UTC # pylint: disable=g-multiple-import
+from __go__.time import Local, Now, Second, Sleep, Unix, Date, UTC # pylint: disable=g-multiple-import
 
 
 _strftime_directive_map = {
@@ -81,7 +81,7 @@ def localtime(seconds=None):
 
 
 def mktime(t):
-  return float(Date(t[0], t[1], t[2], t[3], t[4], t[5], 0, UTC).Unix())
+  return float(Date(t[0], t[1], t[2], t[3], t[4], t[5], 0, Local).Unix())
 
 
 def sleep(secs):
@@ -93,7 +93,7 @@ def time():
 
 
 def strftime(format, tt=None):  # pylint: disable=missing-docstring,redefined-builtin
-  t = (Unix(int(mktime(tt)), 0) if tt else Now()).Local()
+  t = Unix(int(mktime(tt)), 0) if tt else Now()
   ret = []
   prev, n = 0, format.find('%', 0, -1)
   while n != -1:

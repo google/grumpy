@@ -16,8 +16,9 @@ package grumpy
 
 import (
 	"fmt"
+	"math"
 	"math/big"
-	"os"
+	"strings"
 	"unicode"
 )
 
@@ -57,6 +58,10 @@ func noneRepr(*Frame, *Object) (*Object, *BaseException) {
 	return NewStr("None").ToObject(), nil
 }
 
+func notImplementedRepr(*Frame, *Object) (*Object, *BaseException) {
+	return NewStr("NotImplemented").ToObject(), nil
+}
+
 func initEllipsisType(map[string]*Object) {
 	EllipsisType.flags &= ^(typeFlagInstantiable | typeFlagBasetype)
 	EllipsisType.slots.Repr = &unaryOpSlot{ellipsisRepr}
@@ -69,6 +74,7 @@ func initNoneType(map[string]*Object) {
 
 func initNotImplementedType(map[string]*Object) {
 	NotImplementedType.flags &= ^(typeFlagInstantiable | typeFlagBasetype)
+	NotImplementedType.slots.Repr = &unaryOpSlot{notImplementedRepr}
 }
 
 func initUnboundLocalType(map[string]*Object) {
@@ -110,6 +116,7 @@ var builtinTypes = map[*Type]*builtinTypeInfo{
 	EllipsisType:                  {init: initEllipsisType, global: true},
 	enumerateType:                 {init: initEnumerateType, global: true},
 	EnvironmentErrorType:          {global: true},
+	EOFErrorType:                  {global: true},
 	ExceptionType:                 {global: true},
 	FileType:                      {init: initFileType, global: true},
 	FloatType:                     {init: initFloatType, global: true},
@@ -356,6 +363,13 @@ func builtinDir(f *Frame, args Args, kwargs KWArgs) (*Object, *BaseException) {
 	return l.ToObject(), nil
 }
 
+func builtinDivMod(f *Frame, args Args, kwargs KWArgs) (*Object, *BaseException) {
+	if raised := checkFunctionArgs(f, "divmod", args, ObjectType, ObjectType); raised != nil {
+		return nil, raised
+	}
+	return DivMod(f, args[0], args[1])
+}
+
 func builtinFrame(f *Frame, args Args, _ KWArgs) (*Object, *BaseException) {
 	if raised := checkFunctionArgs(f, "__frame__", args); raised != nil {
 		return nil, raised
@@ -527,7 +541,7 @@ func builtinOrd(f *Frame, args Args, _ KWArgs) (*Object, *BaseException) {
 func builtinPrint(f *Frame, args Args, kwargs KWArgs) (*Object, *BaseException) {
 	sep := " "
 	end := "\n"
-	file := os.Stdout
+	file := Stdout
 	for _, kwarg := range kwargs {
 		switch kwarg.Name {
 		case "sep":
@@ -559,6 +573,37 @@ func builtinRange(f *Frame, args Args, kwargs KWArgs) (*Object, *BaseException) 
 	return ListType.Call(f, []*Object{r}, nil)
 }
 
+func builtinRawInput(f *Frame, args Args, kwargs KWArgs) (*Object, *BaseException) {
+	if len(args) > 1 {
+		msg := fmt.Sprintf("[raw_]input expcted at most 1 arguments, got %d", len(args))
+		return nil, f.RaiseType(TypeErrorType, msg)
+	}
+
+	if Stdin == nil {
+		msg := fmt.Sprintf("[raw_]input: lost sys.stdin")
+		return nil, f.RaiseType(RuntimeErrorType, msg)
+	}
+
+	if Stdout == nil {
+		msg := fmt.Sprintf("[raw_]input: lost sys.stdout")
+		return nil, f.RaiseType(RuntimeErrorType, msg)
+	}
+
+	if len(args) == 1 {
+		err := pyPrint(f, args, "", "", Stdout)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	line, err := Stdin.reader.ReadString('\n')
+	if err != nil {
+		return nil, f.RaiseType(EOFErrorType, "EOF when reading a line")
+	}
+	line = strings.TrimRight(line, "\n")
+	return NewStr(line).ToObject(), nil
+}
+
 func builtinRepr(f *Frame, args Args, kwargs KWArgs) (*Object, *BaseException) {
 	if raised := checkFunctionArgs(f, "repr", args, ObjectType); raised != nil {
 		return nil, raised
@@ -568,6 +613,45 @@ func builtinRepr(f *Frame, args Args, kwargs KWArgs) (*Object, *BaseException) {
 		return nil, raised
 	}
 	return s.ToObject(), nil
+}
+
+func builtinRound(f *Frame, args Args, _ KWArgs) (*Object, *BaseException) {
+	argc := len(args)
+	expectedTypes := []*Type{ObjectType, ObjectType}
+	if argc == 1 {
+		expectedTypes = expectedTypes[:1]
+	}
+	if raised := checkFunctionArgs(f, "round", args, expectedTypes...); raised != nil {
+		return nil, raised
+	}
+	ndigits := 0
+	if argc > 1 {
+		var raised *BaseException
+		if ndigits, raised = IndexInt(f, args[1]); raised != nil {
+			return nil, raised
+		}
+	}
+	number, isFloat := floatCoerce(args[0])
+
+	if !isFloat {
+		return nil, f.RaiseType(TypeErrorType, "a float is required")
+	}
+
+	if math.IsNaN(number) || math.IsInf(number, 0) || number == 0.0 {
+		return NewFloat(number).ToObject(), nil
+	}
+
+	neg := false
+	if number < 0 {
+		neg = true
+		number = -number
+	}
+	pow := math.Pow(10.0, float64(ndigits))
+	result := math.Floor(number*pow+0.5) / pow
+	if neg {
+		result = -result
+	}
+	return NewFloat(result).ToObject(), nil
 }
 
 func builtinSetAttr(f *Frame, args Args, _ KWArgs) (*Object, *BaseException) {
@@ -587,6 +671,35 @@ func builtinSorted(f *Frame, args Args, _ KWArgs) (*Object, *BaseException) {
 		return nil, raised
 	}
 	toListUnsafe(result).Sort(f)
+	return result, nil
+}
+
+func builtinSum(f *Frame, args Args, _ KWArgs) (*Object, *BaseException) {
+	argc := len(args)
+	expectedTypes := []*Type{ObjectType, ObjectType}
+	if argc == 1 {
+		expectedTypes = expectedTypes[:1]
+	}
+	if raised := checkFunctionArgs(f, "sum", args, expectedTypes...); raised != nil {
+		return nil, raised
+	}
+	var result *Object
+	if argc > 1 {
+		if args[1].typ == StrType {
+			return nil, f.RaiseType(TypeErrorType, "sum() can't sum strings [use ''.join(seq) instead]")
+		}
+		result = args[1]
+	} else {
+		result = NewInt(0).ToObject()
+	}
+	raised := seqForEach(f, args[0], func(o *Object) (raised *BaseException) {
+		result, raised = Add(f, result, o)
+		return raised
+	})
+
+	if raised != nil {
+		return nil, raised
+	}
 	return result, nil
 }
 
@@ -619,9 +732,9 @@ Outer:
 			elem, raised := Next(f, iter)
 			if raised != nil {
 				if raised.isInstance(StopIterationType) {
+					f.RestoreExc(nil, nil)
 					break Outer
 				}
-				f.RestoreExc(nil, nil)
 				return nil, raised
 			}
 			elems[i] = elem
@@ -643,6 +756,7 @@ func init() {
 		"cmp":            newBuiltinFunction("cmp", builtinCmp).ToObject(),
 		"delattr":        newBuiltinFunction("delattr", builtinDelAttr).ToObject(),
 		"dir":            newBuiltinFunction("dir", builtinDir).ToObject(),
+		"divmod":         newBuiltinFunction("divmod", builtinDivMod).ToObject(),
 		"Ellipsis":       Ellipsis,
 		"False":          False.ToObject(),
 		"getattr":        newBuiltinFunction("getattr", builtinGetAttr).ToObject(),
@@ -666,9 +780,12 @@ func init() {
 		"ord":            newBuiltinFunction("ord", builtinOrd).ToObject(),
 		"print":          newBuiltinFunction("print", builtinPrint).ToObject(),
 		"range":          newBuiltinFunction("range", builtinRange).ToObject(),
+		"raw_input":      newBuiltinFunction("raw_input", builtinRawInput).ToObject(),
 		"repr":           newBuiltinFunction("repr", builtinRepr).ToObject(),
+		"round":          newBuiltinFunction("round", builtinRound).ToObject(),
 		"setattr":        newBuiltinFunction("setattr", builtinSetAttr).ToObject(),
 		"sorted":         newBuiltinFunction("sorted", builtinSorted).ToObject(),
+		"sum":            newBuiltinFunction("sum", builtinSum).ToObject(),
 		"True":           True.ToObject(),
 		"unichr":         newBuiltinFunction("unichr", builtinUniChr).ToObject(),
 		"zip":            newBuiltinFunction("zip", builtinZip).ToObject(),
@@ -812,9 +929,9 @@ func zipLongest(f *Frame, args Args) ([][]*Object, *BaseException) {
 				if raised.isInstance(StopIterationType) {
 					iters[i] = nil
 					elems[i] = None
+					f.RestoreExc(nil, nil)
 					continue
 				}
-				f.RestoreExc(nil, nil)
 				return nil, raised
 			}
 			noItems = false

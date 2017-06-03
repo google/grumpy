@@ -90,6 +90,10 @@ func intDiv(f *Frame, v, w *Object) (*Object, *BaseException) {
 	return intDivModOp(f, "__div__", v, w, intCheckedDiv, longDiv)
 }
 
+func intDivMod(f *Frame, v, w *Object) (*Object, *BaseException) {
+	return intDivAndModOp(f, "__divmod__", v, w, intCheckedDivMod, longDivAndMod)
+}
+
 func intEq(f *Frame, v, w *Object) (*Object, *BaseException) {
 	return intCompare(compareOpEq, toIntUnsafe(v), w), nil
 }
@@ -264,6 +268,10 @@ func intOr(f *Frame, v, w *Object) (*Object, *BaseException) {
 	return NewInt(toIntUnsafe(v).Value() | toIntUnsafe(w).Value()).ToObject(), nil
 }
 
+func intPos(f *Frame, o *Object) (*Object, *BaseException) {
+	return o, nil
+}
+
 func intPow(f *Frame, v, w *Object) (*Object, *BaseException) {
 	if w.isInstance(IntType) {
 		// First try to use the faster floating point arithmetic
@@ -310,6 +318,14 @@ func intRDiv(f *Frame, v, w *Object) (*Object, *BaseException) {
 		return intCheckedDiv(w, v)
 	}, func(z, x, y *big.Int) {
 		longDiv(z, y, x)
+	})
+}
+
+func intRDivMod(f *Frame, v, w *Object) (*Object, *BaseException) {
+	return intDivAndModOp(f, "__rdivmod__", v, w, func(v, w int) (int, int, divModResult) {
+		return intCheckedDivMod(w, v)
+	}, func(z, m, x, y *big.Int) {
+		longDivAndMod(z, m, y, x)
 	})
 }
 
@@ -366,7 +382,9 @@ func initIntType(dict map[string]*Object) {
 	IntType.slots.Add = &binaryOpSlot{intAdd}
 	IntType.slots.And = &binaryOpSlot{intAnd}
 	IntType.slots.Div = &binaryOpSlot{intDiv}
+	IntType.slots.DivMod = &binaryOpSlot{intDivMod}
 	IntType.slots.Eq = &binaryOpSlot{intEq}
+	IntType.slots.FloorDiv = &binaryOpSlot{intDiv}
 	IntType.slots.GE = &binaryOpSlot{intGE}
 	IntType.slots.GT = &binaryOpSlot{intGT}
 	IntType.slots.Float = &unaryOpSlot{intFloat}
@@ -388,11 +406,14 @@ func initIntType(dict map[string]*Object) {
 	IntType.slots.NonZero = &unaryOpSlot{intNonZero}
 	IntType.slots.Oct = &unaryOpSlot{intOct}
 	IntType.slots.Or = &binaryOpSlot{intOr}
+	IntType.slots.Pos = &unaryOpSlot{intPos}
 	IntType.slots.Pow = &binaryOpSlot{intPow}
 	IntType.slots.RAdd = &binaryOpSlot{intRAdd}
 	IntType.slots.RAnd = &binaryOpSlot{intAnd}
 	IntType.slots.RDiv = &binaryOpSlot{intRDiv}
+	IntType.slots.RDivMod = &binaryOpSlot{intRDivMod}
 	IntType.slots.Repr = &unaryOpSlot{intRepr}
+	IntType.slots.RFloorDiv = &binaryOpSlot{intRDiv}
 	IntType.slots.RMod = &binaryOpSlot{intRMod}
 	IntType.slots.RMul = &binaryOpSlot{intRMul}
 	IntType.slots.ROr = &binaryOpSlot{intOr}
@@ -529,6 +550,20 @@ func intDivModOp(f *Frame, method string, v, w *Object, fun func(v, w int) (int,
 		return nil, f.RaiseType(ZeroDivisionErrorType, "integer division or modulo by zero")
 	}
 	return NewInt(x).ToObject(), nil
+}
+
+func intDivAndModOp(f *Frame, method string, v, w *Object, fun func(v, w int) (int, int, divModResult), bigFun func(z, m, x, y *big.Int)) (*Object, *BaseException) {
+	if !w.isInstance(IntType) {
+		return NotImplemented, nil
+	}
+	q, m, r := fun(toIntUnsafe(v).Value(), toIntUnsafe(w).Value())
+	switch r {
+	case divModOverflow:
+		return longCallBinaryTuple(bigFun, intToLong(toIntUnsafe(v)), intToLong(toIntUnsafe(w))), nil
+	case divModZeroDivision:
+		return nil, f.RaiseType(ZeroDivisionErrorType, "integer division or modulo by zero")
+	}
+	return NewTuple2(NewInt(q).ToObject(), NewInt(m).ToObject()).ToObject(), nil
 }
 
 func intShiftOp(f *Frame, v, w *Object, fun func(int, int) (int, int, bool)) (*Object, *BaseException) {

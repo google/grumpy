@@ -288,7 +288,7 @@ type invokeTestCase struct {
 
 func runInvokeTestCase(callable *Object, cas *invokeTestCase) string {
 	f := NewRootFrame()
-	name := mustNotRaise(GetAttr(f, callable, NewStr("__name__"), NewStr("<unknown>").ToObject()))
+	name := mustNotRaise(GetAttr(f, callable, internedName, NewStr("<unknown>").ToObject()))
 	if !name.isInstance(StrType) {
 		return fmt.Sprintf("%v.__name__ is not a string", callable)
 	}

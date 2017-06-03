@@ -15,7 +15,6 @@
 package grumpy
 
 import (
-	"bytes"
 	"fmt"
 	"math/big"
 	"reflect"
@@ -84,6 +83,9 @@ func TestBinaryOps(t *testing.T) {
 		"__idiv__": newBuiltinFunction("__idiv__", func(f *Frame, args Args, kwargs KWArgs) (*Object, *BaseException) {
 			return args[1], nil
 		}).ToObject(),
+		"__ilshift__": newBuiltinFunction("__ilshift__", func(f *Frame, args Args, kwargs KWArgs) (*Object, *BaseException) {
+			return args[1], nil
+		}).ToObject(),
 		"__imod__": newBuiltinFunction("__imod__", func(f *Frame, args Args, kwargs KWArgs) (*Object, *BaseException) {
 			return args[1], nil
 		}).ToObject(),
@@ -91,6 +93,9 @@ func TestBinaryOps(t *testing.T) {
 			return args[1], nil
 		}).ToObject(),
 		"__ior__": newBuiltinFunction("__ior__", func(f *Frame, args Args, kwargs KWArgs) (*Object, *BaseException) {
+			return args[1], nil
+		}).ToObject(),
+		"__irshift__": newBuiltinFunction("__irshift__", func(f *Frame, args Args, kwargs KWArgs) (*Object, *BaseException) {
 			return args[1], nil
 		}).ToObject(),
 		"__isub__": newBuiltinFunction("__isub__", func(f *Frame, args Args, kwargs KWArgs) (*Object, *BaseException) {
@@ -122,6 +127,7 @@ func TestBinaryOps(t *testing.T) {
 		{IAnd, newObject(ObjectType), newObject(fooType), nil, mustCreateException(TypeErrorType, "unsupported operand type(s) for &: 'object' and 'Foo'")},
 		{IDiv, NewInt(123).ToObject(), newObject(bazType), NewStr("123").ToObject(), nil},
 		{IDiv, newObject(inplaceType), NewInt(42).ToObject(), NewInt(42).ToObject(), nil},
+		{ILShift, newObject(inplaceType), NewInt(123).ToObject(), NewInt(123).ToObject(), nil},
 		{IMod, NewInt(24).ToObject(), NewInt(6).ToObject(), NewInt(0).ToObject(), nil},
 		{IMod, newObject(inplaceType), NewFloat(3.14).ToObject(), NewFloat(3.14).ToObject(), nil},
 		{IMul, NewStr("foo").ToObject(), NewInt(3).ToObject(), NewStr("foofoofoo").ToObject(), nil},
@@ -130,6 +136,7 @@ func TestBinaryOps(t *testing.T) {
 		{IOr, newObject(inplaceType), NewInt(42).ToObject(), NewInt(42).ToObject(), nil},
 		{IOr, NewInt(9).ToObject(), NewInt(12).ToObject(), NewInt(13).ToObject(), nil},
 		{IOr, newObject(ObjectType), newObject(fooType), nil, mustCreateException(TypeErrorType, "unsupported operand type(s) for |: 'object' and 'Foo'")},
+		{IRShift, newObject(inplaceType), NewInt(123).ToObject(), NewInt(123).ToObject(), nil},
 		{ISub, NewInt(3).ToObject(), NewInt(-3).ToObject(), NewInt(6).ToObject(), nil},
 		{ISub, newObject(inplaceType), None, None, nil},
 		{IXor, newObject(inplaceType), None, None, nil},
@@ -788,14 +795,31 @@ func TestOct(t *testing.T) {
 	}
 }
 
+func TestPos(t *testing.T) {
+	pos := newTestClass("pos", []*Type{ObjectType}, newStringDict(map[string]*Object{
+		"__pos__": newBuiltinFunction("__pos__", func(f *Frame, _ Args, _ KWArgs) (*Object, *BaseException) {
+			return NewInt(-42).ToObject(), nil
+		}).ToObject(),
+	}))
+	cases := []invokeTestCase{
+		{args: wrapArgs(42), want: NewInt(42).ToObject()},
+		{args: wrapArgs(1.2), want: NewFloat(1.2).ToObject()},
+		{args: wrapArgs(NewLong(big.NewInt(123))), want: NewLong(big.NewInt(123)).ToObject()},
+		{args: wrapArgs(newObject(pos)), want: NewInt(-42).ToObject()},
+		{args: wrapArgs("foo"), wantExc: mustCreateException(TypeErrorType, "bad operand type for unary +: 'str'")},
+	}
+	for _, cas := range cases {
+		if err := runInvokeTestCase(wrapFuncForTest(Pos), &cas); err != "" {
+			t.Error(err)
+		}
+	}
+}
+
 func TestPyPrint(t *testing.T) {
 	fun := wrapFuncForTest(func(f *Frame, args *Tuple, sep, end string) (string, *BaseException) {
-		var buf bytes.Buffer
-		raised := pyPrint(NewRootFrame(), args.elems, sep, end, &buf)
-		if raised != nil {
-			return "", raised
-		}
-		return buf.String(), nil
+		return captureStdout(f, func() *BaseException {
+			return pyPrint(NewRootFrame(), args.elems, sep, end, Stdout)
+		})
 	})
 	cases := []invokeTestCase{
 		{args: wrapArgs(NewTuple(), "", "\n"), want: NewStr("\n").ToObject()},
@@ -810,7 +834,8 @@ func TestPyPrint(t *testing.T) {
 	}
 }
 
-func TestPrint(t *testing.T) {
+// TODO(corona10): Re-enable once #282 is addressed.
+/*func TestPrint(t *testing.T) {
 	fun := wrapFuncForTest(func(f *Frame, args *Tuple, nl bool) (string, *BaseException) {
 		return captureStdout(f, func() *BaseException {
 			return Print(NewRootFrame(), args.elems, nl)
@@ -827,7 +852,7 @@ func TestPrint(t *testing.T) {
 			t.Error(err)
 		}
 	}
-}
+}*/
 
 func TestReprRaise(t *testing.T) {
 	testTypes := []*Type{

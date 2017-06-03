@@ -16,9 +16,7 @@ package grumpy
 
 import (
 	"fmt"
-	"io"
 	"log"
-	"os"
 	"reflect"
 )
 
@@ -161,6 +159,12 @@ func Div(f *Frame, v, w *Object) (*Object, *BaseException) {
 	return binaryOp(f, v, w, v.typ.slots.Div, v.typ.slots.RDiv, w.typ.slots.RDiv, "/")
 }
 
+// DivMod returns the result (quotient and remainder tuple) of dividing v by w
+// according to the __divmod/rdivmod__ operator.
+func DivMod(f *Frame, v, w *Object) (*Object, *BaseException) {
+	return binaryOp(f, v, w, v.typ.slots.DivMod, v.typ.slots.RDivMod, w.typ.slots.RDivMod, "divmod()")
+}
+
 // Eq returns the equality of v and w according to the __eq__ operator.
 func Eq(f *Frame, v, w *Object) (*Object, *BaseException) {
 	r, raised := compareRich(f, compareOpEq, v, w)
@@ -171,6 +175,11 @@ func Eq(f *Frame, v, w *Object) (*Object, *BaseException) {
 		return r, nil
 	}
 	return GetBool(compareDefault(f, v, w) == 0).ToObject(), nil
+}
+
+// FloorDiv returns the equality of v and w according to the __floordiv/rfloordiv__ operator.
+func FloorDiv(f *Frame, v, w *Object) (*Object, *BaseException) {
+	return binaryOp(f, v, w, v.typ.slots.FloorDiv, v.typ.slots.RFloorDiv, w.typ.slots.RFloorDiv, "//")
 }
 
 // FormatException returns a single-line exception string for the given
@@ -288,6 +297,18 @@ func IDiv(f *Frame, v, w *Object) (*Object, *BaseException) {
 	return inplaceOp(f, v, w, v.typ.slots.IDiv, Div)
 }
 
+// IFloorDiv returns the result of v.__ifloordiv__ if defined, otherwise falls back to
+// floordiv.
+func IFloorDiv(f *Frame, v, w *Object) (*Object, *BaseException) {
+	return inplaceOp(f, v, w, v.typ.slots.IFloorDiv, FloorDiv)
+}
+
+// ILShift returns the result of v.__ilshift__ if defined, otherwise falls back
+// to lshift.
+func ILShift(f *Frame, v, w *Object) (*Object, *BaseException) {
+	return inplaceOp(f, v, w, v.typ.slots.ILShift, LShift)
+}
+
 // IMod returns the result of v.__imod__ if defined, otherwise falls back to
 // mod.
 func IMod(f *Frame, v, w *Object) (*Object, *BaseException) {
@@ -313,6 +334,17 @@ func Invert(f *Frame, o *Object) (*Object, *BaseException) {
 // IOr returns the result of v.__ior__ if defined, otherwise falls back to Or.
 func IOr(f *Frame, v, w *Object) (*Object, *BaseException) {
 	return inplaceOp(f, v, w, v.typ.slots.IOr, Or)
+}
+
+// IPow returns the result of v.__pow__ if defined, otherwise falls back to IPow.
+func IPow(f *Frame, v, w *Object) (*Object, *BaseException) {
+	return inplaceOp(f, v, w, v.typ.slots.IPow, Pow)
+}
+
+// IRShift returns the result of v.__irshift__ if defined, otherwise falls back
+// to rshift.
+func IRShift(f *Frame, v, w *Object) (*Object, *BaseException) {
+	return inplaceOp(f, v, w, v.typ.slots.IRShift, RShift)
 }
 
 // IsInstance returns true if the type o is an instance of classinfo, or an
@@ -630,6 +662,16 @@ func Oct(f *Frame, o *Object) (*Object, *BaseException) {
 	return o, nil
 }
 
+// Pos returns the result of o.__pos__ and is equivalent to the Python
+// expression "+o".
+func Pos(f *Frame, o *Object) (*Object, *BaseException) {
+	pos := o.typ.slots.Pos
+	if pos == nil {
+		return nil, f.RaiseType(TypeErrorType, fmt.Sprintf("bad operand type for unary +: '%s'", o.typ.Name()))
+	}
+	return pos.Fn(f, o)
+}
+
 // Print implements the Python print statement. It calls str() on the given args
 // and outputs the results to stdout separated by spaces. Similar to the Python
 // print statement.
@@ -641,7 +683,7 @@ func Print(f *Frame, args Args, nl bool) *BaseException {
 	} else if len(args) > 0 {
 		end = " "
 	}
-	return pyPrint(f, args, " ", end, os.Stdout)
+	return pyPrint(f, args, " ", end, Stdout)
 }
 
 // Repr returns a string containing a printable representation of o. This is
@@ -745,7 +787,7 @@ func StartThread(callable *Object) {
 			if raised != nil {
 				s = raised.String()
 			}
-			fmt.Fprintf(os.Stderr, s)
+			Stderr.writeString(s)
 		}
 	}()
 }
@@ -1216,17 +1258,30 @@ func hashNotImplemented(f *Frame, o *Object) (*Object, *BaseException) {
 }
 
 // pyPrint encapsulates the logic of the Python print function.
-func pyPrint(f *Frame, args Args, sep, end string, file io.Writer) *BaseException {
+func pyPrint(f *Frame, args Args, sep, end string, file *File) *BaseException {
 	for i, arg := range args {
 		if i > 0 {
-			fmt.Fprint(file, sep)
+			err := file.writeString(sep)
+			if err != nil {
+				return f.RaiseType(IOErrorType, err.Error())
+			}
 		}
+
 		s, raised := ToStr(f, arg)
 		if raised != nil {
 			return raised
 		}
-		fmt.Fprint(file, s.Value())
+
+		err := file.writeString(s.Value())
+		if err != nil {
+			return f.RaiseType(IOErrorType, err.Error())
+		}
 	}
-	fmt.Fprint(file, end)
+
+	err := file.writeString(end)
+	if err != nil {
+		return f.RaiseType(IOErrorType, err.Error())
+	}
+
 	return nil
 }

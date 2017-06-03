@@ -75,11 +75,6 @@ func TestBuiltinFuncs(t *testing.T) {
 			return NewStr("0octal").ToObject(), nil
 		}).ToObject(),
 	}))
-	indexType := newTestClass("Index", []*Type{ObjectType}, newStringDict(map[string]*Object{
-		"__index__": newBuiltinFunction("__index__", func(f *Frame, _ Args, _ KWArgs) (*Object, *BaseException) {
-			return NewInt(123).ToObject(), nil
-		}).ToObject(),
-	}))
 	badNonZeroType := newTestClass("BadNonZeroType", []*Type{ObjectType}, newStringDict(map[string]*Object{
 		"__nonzero__": newBuiltinFunction("__nonzero__", func(f *Frame, args Args, kwargs KWArgs) (*Object, *BaseException) {
 			return nil, f.RaiseType(RuntimeErrorType, "foo")
@@ -93,6 +88,11 @@ func TestBuiltinFuncs(t *testing.T) {
 	badIterType := newTestClass("BadIterType", []*Type{ObjectType}, newStringDict(map[string]*Object{
 		"__iter__": newBuiltinFunction("__iter__", func(f *Frame, args Args, kwargs KWArgs) (*Object, *BaseException) {
 			return newObject(badNextType), nil
+		}).ToObject(),
+	}))
+	addType := newTestClass("Add", []*Type{ObjectType}, newStringDict(map[string]*Object{
+		"__add__": newBuiltinFunction("__add__", func(f *Frame, _ Args, _ KWArgs) (*Object, *BaseException) {
+			return NewInt(1).ToObject(), nil
 		}).ToObject(),
 	}))
 	fooBuiltinFunc := newBuiltinFunction("foo", func(f *Frame, args Args, kwargs KWArgs) (*Object, *BaseException) {
@@ -140,7 +140,7 @@ func TestBuiltinFuncs(t *testing.T) {
 		{f: "bin", args: wrapArgs("foo"), wantExc: mustCreateException(TypeErrorType, "str object cannot be interpreted as an index")},
 		{f: "bin", args: wrapArgs(0.1), wantExc: mustCreateException(TypeErrorType, "float object cannot be interpreted as an index")},
 		{f: "bin", args: wrapArgs(1, 2, 3), wantExc: mustCreateException(TypeErrorType, "'bin' requires 1 arguments")},
-		{f: "bin", args: wrapArgs(newObject(indexType)), want: NewStr("0b1111011").ToObject()},
+		{f: "bin", args: wrapArgs(newTestIndexObject(123)), want: NewStr("0b1111011").ToObject()},
 		{f: "callable", args: wrapArgs(fooBuiltinFunc), want: True.ToObject()},
 		{f: "callable", args: wrapArgs(fooFunc), want: True.ToObject()},
 		{f: "callable", args: wrapArgs(0), want: False.ToObject()},
@@ -159,6 +159,23 @@ func TestBuiltinFuncs(t *testing.T) {
 		{f: "dir", args: wrapArgs(newObject(fooType)), want: fooTypeDir.ToObject()},
 		{f: "dir", args: wrapArgs(foo), want: fooDir.ToObject()},
 		{f: "dir", args: wrapArgs(), wantExc: mustCreateException(TypeErrorType, "'dir' requires 1 arguments")},
+		{f: "divmod", args: wrapArgs(12, 7), want: NewTuple2(NewInt(1).ToObject(), NewInt(5).ToObject()).ToObject()},
+		{f: "divmod", args: wrapArgs(-12, 7), want: NewTuple2(NewInt(-2).ToObject(), NewInt(2).ToObject()).ToObject()},
+		{f: "divmod", args: wrapArgs(12, -7), want: NewTuple2(NewInt(-2).ToObject(), NewInt(-2).ToObject()).ToObject()},
+		{f: "divmod", args: wrapArgs(-12, -7), want: NewTuple2(NewInt(1).ToObject(), NewInt(-5).ToObject()).ToObject()},
+		{f: "divmod", args: wrapArgs(MaxInt, MinInt), want: NewTuple2(NewInt(-1).ToObject(), NewInt(-1).ToObject()).ToObject()},
+		{f: "divmod", args: wrapArgs(MinInt, MaxInt), want: NewTuple2(NewInt(-2).ToObject(), NewInt(MaxInt-1).ToObject()).ToObject()},
+		{f: "divmod", args: wrapArgs(MinInt, -1), want: NewTuple2(NewLong(new(big.Int).Neg(minIntBig)).ToObject(), NewLong(big.NewInt(0)).ToObject()).ToObject()},
+		{f: "divmod", args: wrapArgs(big.NewInt(12), big.NewInt(7)), want: NewTuple2(NewLong(big.NewInt(1)).ToObject(), NewLong(big.NewInt(5)).ToObject()).ToObject()},
+		{f: "divmod", args: wrapArgs(big.NewInt(-12), big.NewInt(7)), want: NewTuple2(NewLong(big.NewInt(-2)).ToObject(), NewLong(big.NewInt(2)).ToObject()).ToObject()},
+		{f: "divmod", args: wrapArgs(big.NewInt(12), big.NewInt(-7)), want: NewTuple2(NewLong(big.NewInt(-2)).ToObject(), NewLong(big.NewInt(-2)).ToObject()).ToObject()},
+		{f: "divmod", args: wrapArgs(big.NewInt(-12), big.NewInt(-7)), want: NewTuple2(NewLong(big.NewInt(1)).ToObject(), NewLong(big.NewInt(-5)).ToObject()).ToObject()},
+		{f: "divmod", args: wrapArgs(3.25, 1.0), want: NewTuple2(NewFloat(3.0).ToObject(), NewFloat(0.25).ToObject()).ToObject()},
+		{f: "divmod", args: wrapArgs(-3.25, 1.0), want: NewTuple2(NewFloat(-4.0).ToObject(), NewFloat(0.75).ToObject()).ToObject()},
+		{f: "divmod", args: wrapArgs(3.25, -1.0), want: NewTuple2(NewFloat(-4.0).ToObject(), NewFloat(-0.75).ToObject()).ToObject()},
+		{f: "divmod", args: wrapArgs(-3.25, -1.0), want: NewTuple2(NewFloat(3.0).ToObject(), NewFloat(-0.25).ToObject()).ToObject()},
+		{f: "divmod", args: wrapArgs(NewStr("a"), NewStr("b")), wantExc: mustCreateException(TypeErrorType, "unsupported operand type(s) for divmod(): 'str' and 'str'")},
+		{f: "divmod", args: wrapArgs(), wantExc: mustCreateException(TypeErrorType, "'divmod' requires 2 arguments")},
 		{f: "getattr", args: wrapArgs(None, NewStr("foo").ToObject(), NewStr("bar").ToObject()), want: NewStr("bar").ToObject()},
 		{f: "getattr", args: wrapArgs(None, NewStr("foo").ToObject()), wantExc: mustCreateException(AttributeErrorType, "'NoneType' object has no attribute 'foo'")},
 		{f: "hasattr", args: wrapArgs(newObject(ObjectType), NewStr("foo").ToObject()), want: False.ToObject()},
@@ -275,6 +292,23 @@ func TestBuiltinFuncs(t *testing.T) {
 		{f: "repr", args: wrapArgs(NewUnicode("abc")), want: NewStr("u'abc'").ToObject()},
 		{f: "repr", args: wrapArgs(newTestTuple("foo", "bar")), want: NewStr("('foo', 'bar')").ToObject()},
 		{f: "repr", args: wrapArgs("a", "b", "c"), wantExc: mustCreateException(TypeErrorType, "'repr' requires 1 arguments")},
+		{f: "round", args: wrapArgs(1234.567), want: NewFloat(1235).ToObject()},
+		{f: "round", args: wrapArgs(1234.111), want: NewFloat(1234).ToObject()},
+		{f: "round", args: wrapArgs(-1234.567), want: NewFloat(-1235).ToObject()},
+		{f: "round", args: wrapArgs(-1234.111), want: NewFloat(-1234).ToObject()},
+		{f: "round", args: wrapArgs(1234.567, newTestIndexObject(0)), want: NewFloat(1235).ToObject()},
+		{f: "round", args: wrapArgs("foo"), wantExc: mustCreateException(TypeErrorType, "a float is required")},
+		{f: "round", args: wrapArgs(12.5, 0), want: NewFloat(13.0).ToObject()},
+		{f: "round", args: wrapArgs(-12.5, 0), want: NewFloat(-13.0).ToObject()},
+		{f: "round", args: wrapArgs(12.5, 3), want: NewFloat(12.5).ToObject()},
+		{f: "round", args: wrapArgs(1234.5, 1), want: NewFloat(1234.5).ToObject()},
+		{f: "round", args: wrapArgs(1234.5, 1), want: NewFloat(1234.5).ToObject()},
+		{f: "round", args: wrapArgs(1234.56, 1), want: NewFloat(1234.6).ToObject()},
+		{f: "round", args: wrapArgs(-1234.56, 1), want: NewFloat(-1234.6).ToObject()},
+		{f: "round", args: wrapArgs(-1234.56, -2), want: NewFloat(-1200.0).ToObject()},
+		{f: "round", args: wrapArgs(-1234.56, -8), want: NewFloat(0.0).ToObject()},
+		{f: "round", args: wrapArgs(63.4, -3), want: NewFloat(0.0).ToObject()},
+		{f: "round", args: wrapArgs(63.4, -2), want: NewFloat(100.0).ToObject()},
 		{f: "sorted", args: wrapArgs(NewList()), want: NewList().ToObject()},
 		{f: "sorted", args: wrapArgs(newTestList("foo", "bar")), want: newTestList("bar", "foo").ToObject()},
 		{f: "sorted", args: wrapArgs(newTestList(true, false)), want: newTestList(false, true).ToObject()},
@@ -284,6 +318,13 @@ func TestBuiltinFuncs(t *testing.T) {
 		{f: "sorted", args: wrapArgs(newTestDict("foo", 1, "bar", 2)), want: newTestList("bar", "foo").ToObject()},
 		{f: "sorted", args: wrapArgs(1), wantExc: mustCreateException(TypeErrorType, "'int' object is not iterable")},
 		{f: "sorted", args: wrapArgs(newTestList("foo", "bar"), 2), wantExc: mustCreateException(TypeErrorType, "'sorted' requires 1 arguments")},
+		{f: "sum", args: wrapArgs(newTestList(1, 2, 3, 4)), want: NewInt(10).ToObject()},
+		{f: "sum", args: wrapArgs(newTestList(1, 2), 3), want: NewFloat(6).ToObject()},
+		{f: "sum", args: wrapArgs(newTestList(2, 1.1)), want: NewFloat(3.1).ToObject()},
+		{f: "sum", args: wrapArgs(newTestList(2, 1.1, 2)), want: NewFloat(5.1).ToObject()},
+		{f: "sum", args: wrapArgs(newTestList(2, 1.1, 2.0)), want: NewFloat(5.1).ToObject()},
+		{f: "sum", args: wrapArgs(newTestList(1), newObject(addType)), want: NewInt(1).ToObject()},
+		{f: "sum", args: wrapArgs(newTestList(newObject(addType)), newObject(addType)), want: NewInt(1).ToObject()},
 		{f: "unichr", args: wrapArgs(0), want: NewUnicode("\x00").ToObject()},
 		{f: "unichr", args: wrapArgs(65), want: NewStr("A").ToObject()},
 		{f: "unichr", args: wrapArgs(0x120000), wantExc: mustCreateException(ValueErrorType, "unichr() arg not in range(0x10ffff)")},
@@ -341,6 +382,13 @@ func TestNoneRepr(t *testing.T) {
 	}
 }
 
+func TestNotImplementedRepr(t *testing.T) {
+	cas := invokeTestCase{args: wrapArgs(NotImplemented), want: NewStr("NotImplemented").ToObject()}
+	if err := runInvokeMethodTestCase(NotImplementedType, "__repr__", &cas); err != "" {
+		t.Error(err)
+	}
+}
+
 // captureStdout invokes a function closure which writes to stdout and captures
 // its output as string.
 func captureStdout(f *Frame, fn func() *BaseException) (string, *BaseException) {
@@ -348,10 +396,10 @@ func captureStdout(f *Frame, fn func() *BaseException) (string, *BaseException) 
 	if err != nil {
 		return "", f.RaiseType(RuntimeErrorType, fmt.Sprintf("failed to open pipe: %v", err))
 	}
-	oldStdout := os.Stdout
-	os.Stdout = w
+	oldStdout := Stdout
+	Stdout = NewFileFromFD(w.Fd())
 	defer func() {
-		os.Stdout = oldStdout
+		Stdout = oldStdout
 	}()
 	done := make(chan struct{})
 	var raised *BaseException
@@ -421,4 +469,68 @@ func TestBuiltinSetAttr(t *testing.T) {
 			t.Error(err)
 		}
 	}
+}
+
+// TODO(corona10): Re-enable once #282 is addressed.
+/*func TestRawInput(t *testing.T) {
+	fun := wrapFuncForTest(func(f *Frame, s string, args ...*Object) (*Object, *BaseException) {
+		// Create a fake Stdin for input test.
+		stdinFile, w, err := os.Pipe()
+		if err != nil {
+			return nil, f.RaiseType(RuntimeErrorType, fmt.Sprintf("failed to open pipe: %v", err))
+		}
+
+		go func() {
+			w.Write([]byte(s))
+			w.Close()
+		}()
+
+		oldStdin := Stdin
+		Stdin = NewFileFromFD(stdinFile.Fd())
+		defer func() {
+			Stdin = oldStdin
+			stdinFile.Close()
+		}()
+
+		var input *Object
+		output, raised := captureStdout(f, func() *BaseException {
+			in, raised := builtinRawInput(f, args, nil)
+			input = in
+			return raised
+		})
+
+		if raised != nil {
+			return nil, raised
+		}
+
+		return newTestTuple(input, output).ToObject(), nil
+	})
+
+	cases := []invokeTestCase{
+		{args: wrapArgs("HelloGrumpy\n", ""), want: newTestTuple("HelloGrumpy", "").ToObject()},
+		{args: wrapArgs("HelloGrumpy\n", "ShouldBeShown\nShouldBeShown\t"), want: newTestTuple("HelloGrumpy", "ShouldBeShown\nShouldBeShown\t").ToObject()},
+		{args: wrapArgs("HelloGrumpy\n", 5, 4), wantExc: mustCreateException(TypeErrorType, "[raw_]input expcted at most 1 arguments, got 2")},
+		{args: wrapArgs("HelloGrumpy\nHelloGrumpy\n", ""), want: newTestTuple("HelloGrumpy", "").ToObject()},
+		{args: wrapArgs("HelloGrumpy\nHelloGrumpy\n", "ShouldBeShown\nShouldBeShown\t"), want: newTestTuple("HelloGrumpy", "ShouldBeShown\nShouldBeShown\t").ToObject()},
+		{args: wrapArgs("HelloGrumpy\nHelloGrumpy\n", 5, 4), wantExc: mustCreateException(TypeErrorType, "[raw_]input expcted at most 1 arguments, got 2")},
+		{args: wrapArgs("", ""), wantExc: mustCreateException(EOFErrorType, "EOF when reading a line")},
+		{args: wrapArgs("", "ShouldBeShown\nShouldBeShown\t"), wantExc: mustCreateException(EOFErrorType, "EOF when reading a line")},
+		{args: wrapArgs("", 5, 4), wantExc: mustCreateException(TypeErrorType, "[raw_]input expcted at most 1 arguments, got 2")},
+	}
+
+	for _, cas := range cases {
+		if err := runInvokeTestCase(fun, &cas); err != "" {
+			t.Error(err)
+		}
+	}
+
+}*/
+
+func newTestIndexObject(index int) *Object {
+	indexType := newTestClass("Index", []*Type{ObjectType}, newStringDict(map[string]*Object{
+		"__index__": newBuiltinFunction("__index__", func(f *Frame, _ Args, _ KWArgs) (*Object, *BaseException) {
+			return NewInt(index).ToObject(), nil
+		}).ToObject(),
+	}))
+	return newObject(indexType)
 }

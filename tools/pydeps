@@ -1,0 +1,96 @@
+#!/usr/bin/env python
+
+# Copyright 2016 Google Inc. All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+"""Outputs names of modules imported by a script."""
+
+import argparse
+import os
+import sys
+
+from grumpy.compiler import imputil
+from grumpy.compiler import util
+from grumpy import pythonparser
+from grumpy.pythonparser import algorithm
+
+
+parser = argparse.ArgumentParser()
+parser.add_argument('script', help='Python source filename')
+parser.add_argument('-modname', default='__main__', help='Python module name')
+
+
+class ImportCollector(algorithm.Visitor):
+
+  # pylint: disable=invalid-name
+
+  def __init__(self, importer, future_node):
+    self.importer = importer
+    self.future_node = future_node
+    self.imports = []
+
+  def visit_Import(self, node):
+    self.imports.extend(self.importer.visit(node))
+
+  def visit_ImportFrom(self, node):
+    if node.module == '__future__':
+      if node != self.future_node:
+        raise util.LateFutureError(node)
+      return
+    self.imports.extend(self.importer.visit(node))
+
+
+def main(args):
+  gopath = os.getenv('GOPATH', None)
+  if not gopath:
+    print >> sys.stderr, 'GOPATH not set'
+    return 1
+
+  with open(args.script) as py_file:
+    py_contents = py_file.read()
+  try:
+    mod = pythonparser.parse(py_contents)
+  except SyntaxError as e:
+    print >> sys.stderr, '{}: line {}: invalid syntax: {}'.format(
+        e.filename, e.lineno, e.text)
+    return 2
+
+  try:
+    future_node, future_features = imputil.parse_future_features(mod)
+  except util.CompileError as e:
+    print >> sys.stderr, str(e)
+    return 2
+
+  importer = imputil.Importer(gopath, args.modname, args.script,
+                              future_features.absolute_import)
+  collector = ImportCollector(importer, future_node)
+  try:
+    collector.visit(mod)
+  except util.CompileError as e:
+    print >> sys.stderr, str(e)
+    return 2
+  imports = set([args.modname])
+  for imp in collector.imports:
+    if not imp.is_native:
+      parts = imp.name.split('.')
+      # Iterate over all packages and the leaf module.
+      for i in xrange(len(parts)):
+        name = '.'.join(parts[:i+1])
+        if name not in imports:
+          imports.add(name)
+          print name
+
+
+if __name__ == '__main__':
+  main(parser.parse_args())

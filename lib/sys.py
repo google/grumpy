@@ -14,8 +14,8 @@
 
 """System-specific parameters and functions."""
 
-from __go__.os import Args, Stdin, Stdout, Stderr
-from __go__.grumpy import SysModules, MaxInt, NewFileFromFD  # pylint: disable=g-multiple-import
+from __go__.os import Args
+from __go__.grumpy import SysModules, MaxInt, Stdin as stdin, Stdout as stdout, Stderr as stderr  # pylint: disable=g-multiple-import
 from __go__.runtime import Version
 from __go__.unicode import MaxRune
 
@@ -32,11 +32,7 @@ py3kwarning = False
 warnoptions = []
 # TODO: Support actual byteorder
 byteorder = 'little'
-
-stdin = NewFileFromFD(Stdin.Fd())
-stdout = NewFileFromFD(Stdout.Fd())
-stderr = NewFileFromFD(Stderr.Fd())
-
+version = '2.7.13'
 
 class _Flags(object):
   """Container class for sys.flags."""
@@ -59,6 +55,10 @@ class _Flags(object):
 
 
 flags = _Flags()
+
+
+def exc_clear():
+  __frame__().__exc_clear__()
 
 
 def exc_info():

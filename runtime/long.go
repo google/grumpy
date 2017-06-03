@@ -112,6 +112,10 @@ func longDiv(z, x, y *big.Int) {
 	longDivMod(x, y, z, &m)
 }
 
+func longDivAndMod(z, m, x, y *big.Int) {
+	longDivMod(x, y, z, m)
+}
+
 func longEq(x, y *big.Int) bool {
 	return x.Cmp(y) == 0
 }
@@ -307,6 +311,10 @@ func longOr(z, x, y *big.Int) {
 	z.Or(x, y)
 }
 
+func longPos(z, x *big.Int) {
+	z.Set(x)
+}
+
 func longRepr(f *Frame, o *Object) (*Object, *BaseException) {
 	return NewStr(toLongUnsafe(o).value.Text(10) + "L").ToObject(), nil
 }
@@ -333,8 +341,10 @@ func initLongType(dict map[string]*Object) {
 	LongType.slots.Add = longBinaryOpSlot(longAdd)
 	LongType.slots.And = longBinaryOpSlot(longAnd)
 	LongType.slots.Div = longDivModOpSlot(longDiv)
+	LongType.slots.DivMod = longDivAndModOpSlot(longDivAndMod)
 	LongType.slots.Eq = longBinaryBoolOpSlot(longEq)
 	LongType.slots.Float = &unaryOpSlot{longFloat}
+	LongType.slots.FloorDiv = longDivModOpSlot(longDiv)
 	LongType.slots.GE = longBinaryBoolOpSlot(longGE)
 	LongType.slots.GT = longBinaryBoolOpSlot(longGT)
 	LongType.slots.Hash = &unaryOpSlot{longHash}
@@ -355,12 +365,15 @@ func initLongType(dict map[string]*Object) {
 	LongType.slots.NonZero = longUnaryBoolOpSlot(longNonZero)
 	LongType.slots.Oct = &unaryOpSlot{longOct}
 	LongType.slots.Or = longBinaryOpSlot(longOr)
+	LongType.slots.Pos = longUnaryOpSlot(longPos)
 	// This operation can return a float, it must use binaryOpSlot directly.
 	LongType.slots.Pow = &binaryOpSlot{longPow}
 	LongType.slots.RAdd = longRBinaryOpSlot(longAdd)
 	LongType.slots.RAnd = longRBinaryOpSlot(longAnd)
 	LongType.slots.RDiv = longRDivModOpSlot(longDiv)
+	LongType.slots.RDivMod = longRDivAndModOpSlot(longDivAndMod)
 	LongType.slots.Repr = &unaryOpSlot{longRepr}
+	LongType.slots.RFloorDiv = longRDivModOpSlot(longDiv)
 	LongType.slots.RMod = longRDivModOpSlot(longMod)
 	LongType.slots.RMul = longRBinaryOpSlot(longMul)
 	LongType.slots.ROr = longRBinaryOpSlot(longOr)
@@ -392,6 +405,13 @@ func longCallBinary(fun func(z, x, y *big.Int), v, w *Long) *Object {
 	return l.ToObject()
 }
 
+func longCallBinaryTuple(fun func(z, m, x, y *big.Int), v, w *Long) *Object {
+	l := Long{Object: Object{typ: LongType}}
+	ll := Long{Object: Object{typ: LongType}}
+	fun(&l.value, &ll.value, &v.value, &w.value)
+	return NewTuple2(l.ToObject(), ll.ToObject()).ToObject()
+}
+
 func longCallBinaryBool(fun func(x, y *big.Int) bool, v, w *Long) *Object {
 	return GetBool(fun(&v.value, &w.value)).ToObject()
 }
@@ -413,6 +433,13 @@ func longCallDivMod(fun func(z, x, y *big.Int), f *Frame, v, w *Long) (*Object, 
 		return nil, f.RaiseType(ZeroDivisionErrorType, "integer division or modulo by zero")
 	}
 	return longCallBinary(fun, v, w), nil
+}
+
+func longCallDivAndMod(fun func(z, m, x, y *big.Int), f *Frame, v, w *Long) (*Object, *BaseException) {
+	if w.value.Sign() == 0 {
+		return nil, f.RaiseType(ZeroDivisionErrorType, "integer division or modulo by zero")
+	}
+	return longCallBinaryTuple(fun, v, w), nil
 }
 
 func longUnaryOpSlot(fun func(z, x *big.Int)) *unaryOpSlot {
@@ -473,6 +500,30 @@ func longRDivModOpSlot(fun func(z, x, y *big.Int)) *binaryOpSlot {
 			return NotImplemented, nil
 		}
 		return longCallDivMod(fun, f, toLongUnsafe(w), toLongUnsafe(v))
+	}
+	return &binaryOpSlot{f}
+}
+
+func longDivAndModOpSlot(fun func(z, m, x, y *big.Int)) *binaryOpSlot {
+	f := func(f *Frame, v, w *Object) (*Object, *BaseException) {
+		if w.isInstance(IntType) {
+			w = intToLong(toIntUnsafe(w)).ToObject()
+		} else if !w.isInstance(LongType) {
+			return NotImplemented, nil
+		}
+		return longCallDivAndMod(fun, f, toLongUnsafe(v), toLongUnsafe(w))
+	}
+	return &binaryOpSlot{f}
+}
+
+func longRDivAndModOpSlot(fun func(z, m, x, y *big.Int)) *binaryOpSlot {
+	f := func(f *Frame, v, w *Object) (*Object, *BaseException) {
+		if w.isInstance(IntType) {
+			w = intToLong(toIntUnsafe(w)).ToObject()
+		} else if !w.isInstance(LongType) {
+			return NotImplemented, nil
+		}
+		return longCallDivAndMod(fun, f, toLongUnsafe(w), toLongUnsafe(v))
 	}
 	return &binaryOpSlot{f}
 }

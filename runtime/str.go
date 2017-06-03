@@ -35,6 +35,8 @@ var (
 	strInterpolationRegexp = regexp.MustCompile(`^%([#0 +-]?)((\*|[0-9]+)?)((\.(\*|[0-9]+))?)[hlL]?([diouxXeEfFgGcrs%])`)
 	internedStrs           = map[string]*Str{}
 	caseOffset             = byte('a' - 'A')
+
+	internedName = NewStr("__name__")
 )
 
 type stripSide int
@@ -333,6 +335,140 @@ func strHash(f *Frame, o *Object) (*Object, *BaseException) {
 	h := NewInt(hashString(toStrUnsafe(o).Value()))
 	atomic.StorePointer(p, unsafe.Pointer(h))
 	return h.ToObject(), nil
+}
+
+func strIsAlNum(f *Frame, args Args, kwargs KWArgs) (*Object, *BaseException) {
+	if raised := checkMethodArgs(f, "isalnum", args, StrType); raised != nil {
+		return nil, raised
+	}
+	s := toStrUnsafe(args[0]).Value()
+	if len(s) == 0 {
+		return False.ToObject(), nil
+	}
+	for i := range s {
+		if !isAlNum(s[i]) {
+			return False.ToObject(), nil
+		}
+	}
+	return True.ToObject(), nil
+}
+
+func strIsAlpha(f *Frame, args Args, kwargs KWArgs) (*Object, *BaseException) {
+	if raised := checkMethodArgs(f, "isalpha", args, StrType); raised != nil {
+		return nil, raised
+	}
+	s := toStrUnsafe(args[0]).Value()
+	if len(s) == 0 {
+		return False.ToObject(), nil
+	}
+	for i := range s {
+		if !isAlpha(s[i]) {
+			return False.ToObject(), nil
+		}
+	}
+	return True.ToObject(), nil
+}
+
+func strIsDigit(f *Frame, args Args, kwargs KWArgs) (*Object, *BaseException) {
+	if raised := checkMethodArgs(f, "isdigit", args, StrType); raised != nil {
+		return nil, raised
+	}
+	s := toStrUnsafe(args[0]).Value()
+	if len(s) == 0 {
+		return False.ToObject(), nil
+	}
+	for i := range s {
+		if !isDigit(s[i]) {
+			return False.ToObject(), nil
+		}
+	}
+	return True.ToObject(), nil
+}
+
+func strIsLower(f *Frame, args Args, kwargs KWArgs) (*Object, *BaseException) {
+	if raised := checkMethodArgs(f, "islower", args, StrType); raised != nil {
+		return nil, raised
+	}
+	s := toStrUnsafe(args[0]).Value()
+	if len(s) == 0 {
+		return False.ToObject(), nil
+	}
+	for i := range s {
+		if !isLower(s[i]) {
+			return False.ToObject(), nil
+		}
+	}
+	return True.ToObject(), nil
+}
+
+func strIsSpace(f *Frame, args Args, kwargs KWArgs) (*Object, *BaseException) {
+	if raised := checkMethodArgs(f, "isspace", args, StrType); raised != nil {
+		return nil, raised
+	}
+	s := toStrUnsafe(args[0]).Value()
+	if len(s) == 0 {
+		return False.ToObject(), nil
+	}
+	for i := range s {
+		if !isSpace(s[i]) {
+			return False.ToObject(), nil
+		}
+	}
+	return True.ToObject(), nil
+}
+
+func strIsTitle(f *Frame, args Args, kwargs KWArgs) (*Object, *BaseException) {
+	if raised := checkMethodArgs(f, "istitle", args, StrType); raised != nil {
+		return nil, raised
+	}
+
+	s := toStrUnsafe(args[0]).Value()
+	if len(s) == 0 {
+		return False.ToObject(), nil
+	}
+
+	if len(s) == 1 {
+		return GetBool(isUpper(s[0])).ToObject(), nil
+	}
+
+	cased := false
+	previousIsCased := false
+
+	for i := range s {
+		if isUpper(s[i]) {
+			if previousIsCased {
+				return False.ToObject(), nil
+			}
+			previousIsCased = true
+			cased = true
+		} else if isLower(s[i]) {
+			if !previousIsCased {
+				return False.ToObject(), nil
+			}
+			previousIsCased = true
+			cased = true
+		} else {
+			previousIsCased = false
+		}
+	}
+
+	return GetBool(cased).ToObject(), nil
+}
+
+func strIsUpper(f *Frame, args Args, kwargs KWArgs) (*Object, *BaseException) {
+	if raised := checkMethodArgs(f, "isupper", args, StrType); raised != nil {
+		return nil, raised
+	}
+	s := toStrUnsafe(args[0]).Value()
+	if len(s) == 0 {
+		return False.ToObject(), nil
+	}
+	for i := range s {
+		if !isUpper(s[i]) {
+			return False.ToObject(), nil
+		}
+	}
+	return True.ToObject(), nil
 }
 
 func strJoin(f *Frame, args Args, _ KWArgs) (*Object, *BaseException) {
@@ -759,9 +895,9 @@ func strSwapCase(f *Frame, args Args, kwargs KWArgs) (*Object, *BaseException) {
 	}
 	b := make([]byte, numBytes)
 	for i := 0; i < numBytes; i++ {
-		if s[i] >= 'a' && s[i] <= 'z' {
+		if isLower(s[i]) {
 			b[i] = toUpper(s[i])
-		} else if s[i] >= 'A' && s[i] <= 'Z' {
+		} else if isUpper(s[i]) {
 			b[i] = toLower(s[i])
 		} else {
 			b[i] = s[i]
@@ -777,6 +913,13 @@ func initStrType(dict map[string]*Object) {
 	dict["decode"] = newBuiltinFunction("decode", strDecode).ToObject()
 	dict["endswith"] = newBuiltinFunction("endswith", strEndsWith).ToObject()
 	dict["find"] = newBuiltinFunction("find", strFind).ToObject()
+	dict["isalnum"] = newBuiltinFunction("isalnum", strIsAlNum).ToObject()
+	dict["isalpha"] = newBuiltinFunction("isalpha", strIsAlpha).ToObject()
+	dict["isdigit"] = newBuiltinFunction("isdigit", strIsDigit).ToObject()
+	dict["islower"] = newBuiltinFunction("islower", strIsLower).ToObject()
+	dict["isspace"] = newBuiltinFunction("isspace", strIsSpace).ToObject()
+	dict["istitle"] = newBuiltinFunction("istitle", strIsTitle).ToObject()
+	dict["isupper"] = newBuiltinFunction("isupper", strIsUpper).ToObject()
 	dict["join"] = newBuiltinFunction("join", strJoin).ToObject()
 	dict["lower"] = newBuiltinFunction("lower", strLower).ToObject()
 	dict["lstrip"] = newBuiltinFunction("lstrip", strLStrip).ToObject()
@@ -1068,12 +1211,12 @@ func strTitle(f *Frame, args Args, kwargs KWArgs) (*Object, *BaseException) {
 	for i := 0; i < numBytes; i++ {
 		c := s[i]
 		switch {
-		case s[i] >= 'a' && s[i] <= 'z':
+		case isLower(c):
 			if !previousIsCased {
 				c = toUpper(c)
 			}
 			previousIsCased = true
-		case s[i] >= 'A' && s[i] <= 'Z':
+		case isUpper(c):
 			if previousIsCased {
 				c = toLower(c)
 			}
@@ -1123,17 +1266,46 @@ func init() {
 }
 
 func toLower(b byte) byte {
-	if b >= 'A' && b <= 'Z' {
+	if isUpper(b) {
 		return b + caseOffset
 	}
 	return b
 }
 
 func toUpper(b byte) byte {
-	if b >= 'a' && b <= 'z' {
+	if isLower(b) {
 		return b - caseOffset
 	}
 	return b
+}
+
+func isAlNum(c byte) bool {
+	return isAlpha(c) || isDigit(c)
+}
+
+func isAlpha(c byte) bool {
+	return isUpper(c) || isLower(c)
+}
+
+func isDigit(c byte) bool {
+	return '0' <= c && c <= '9'
+}
+
+func isLower(c byte) bool {
+	return 'a' <= c && c <= 'z'
+}
+
+func isSpace(c byte) bool {
+	switch c {
+	case ' ', '\n', '\t', '\v', '\f', '\r':
+		return true
+	default:
+		return false
+	}
+}
+
+func isUpper(c byte) bool {
+	return 'A' <= c && c <= 'Z'
 }
 
 // strLeftPad returns s padded with fillchar so that its length is at least width.
