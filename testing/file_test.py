@@ -5,6 +5,11 @@ f.softspace = 1
 assert f.softspace == 1
 
 try:
-    f.softspace = 'deadbeef'
+    f.softspace = '321'     # should not be converted automatically
 except TypeError as e:
-    pass
+    if False and 'is required' not in str(e):
+        raise e     # Wrong exception arrived to us!
+else:
+    raise RuntimeError('a TypeError should had raised.')
+
+assert f.softspace == 1
