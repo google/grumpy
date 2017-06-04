@@ -42,6 +42,8 @@ var (
 	IndexErrorType = newSimpleType("IndexError", LookupErrorType)
 	// IOErrorType corresponds to the Python type 'IOError'.
 	IOErrorType = newSimpleType("IOError", EnvironmentErrorType)
+	// KeyboardInterruptType corresponds to the Python type 'KeyboardInterrupt'.
+	KeyboardInterruptType = newSimpleType("KeyboardInterrupt", BaseExceptionType)
 	// KeyErrorType corresponds to the Python type 'KeyError'.
 	KeyErrorType = newSimpleType("KeyError", LookupErrorType)
 	// LookupErrorType corresponds to the Python type 'LookupError'.

@@ -93,16 +93,17 @@ STDLIB_TESTS := \
   re_tests \
   sys_test \
   tempfile_test \
-  test/test_tuple \
+  test/test_bisect \
+  test/test_colorsys \
+  test/test_datetime \
   test/test_dict \
   test/test_list \
+  test/test_md5 \
+  test/test_operator \
   test/test_slice \
   test/test_string \
-  test/test_md5 \
-  test/test_bisect \
-  test/test_datetime \
-  test/test_operator \
-  test/test_colorsys \
+  test/test_tuple \
+  test/test_uu \
   threading_test \
   time_test \
   types_test \
