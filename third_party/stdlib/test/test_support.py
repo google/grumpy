@@ -188,67 +188,67 @@ verbose = 1              # Flag set to 0 by regrtest.py
 #     except KeyError:
 #         pass
 
-# if sys.platform.startswith("win"):
-#     def _waitfor(func, pathname, waitall=False):
-#         # Perform the operation
-#         func(pathname)
-#         # Now setup the wait loop
-#         if waitall:
-#             dirname = pathname
-#         else:
-#             dirname, name = os.path.split(pathname)
-#             dirname = dirname or '.'
-#         # Check for `pathname` to be removed from the filesystem.
-#         # The exponential backoff of the timeout amounts to a total
-#         # of ~1 second after which the deletion is probably an error
-#         # anyway.
-#         # Testing on a i7@4.3GHz shows that usually only 1 iteration is
-#         # required when contention occurs.
-#         timeout = 0.001
-#         while timeout < 1.0:
-#             # Note we are only testing for the existence of the file(s) in
-#             # the contents of the directory regardless of any security or
-#             # access rights.  If we have made it this far, we have sufficient
-#             # permissions to do that much using Python's equivalent of the
-#             # Windows API FindFirstFile.
-#             # Other Windows APIs can fail or give incorrect results when
-#             # dealing with files that are pending deletion.
-#             L = os.listdir(dirname)
-#             if not (L if waitall else name in L):
-#                 return
-#             # Increase the timeout and try again
-#             time.sleep(timeout)
-#             timeout *= 2
-#         warnings.warn('tests may fail, delete still pending for ' + pathname,
-#                       RuntimeWarning, stacklevel=4)
+if sys.platform.startswith("win"):
+    def _waitfor(func, pathname, waitall=False):
+        # Perform the operation
+        func(pathname)
+        # Now setup the wait loop
+        if waitall:
+            dirname = pathname
+        else:
+            dirname, name = os.path.split(pathname)
+            dirname = dirname or '.'
+        # Check for `pathname` to be removed from the filesystem.
+        # The exponential backoff of the timeout amounts to a total
+        # of ~1 second after which the deletion is probably an error
+        # anyway.
+        # Testing on a i7@4.3GHz shows that usually only 1 iteration is
+        # required when contention occurs.
+        timeout = 0.001
+        while timeout < 1.0:
+            # Note we are only testing for the existence of the file(s) in
+            # the contents of the directory regardless of any security or
+            # access rights.  If we have made it this far, we have sufficient
+            # permissions to do that much using Python's equivalent of the
+            # Windows API FindFirstFile.
+            # Other Windows APIs can fail or give incorrect results when
+            # dealing with files that are pending deletion.
+            L = os.listdir(dirname)
+            if not (L if waitall else name in L):
+                return
+            # Increase the timeout and try again
+            time.sleep(timeout)
+            timeout *= 2
+        warnings.warn('tests may fail, delete still pending for ' + pathname,
+                      RuntimeWarning, stacklevel=4)
 
-#     def _unlink(filename):
-#         _waitfor(os.unlink, filename)
+    def _unlink(filename):
+        _waitfor(os.unlink, filename)
 
-#     def _rmdir(dirname):
-#         _waitfor(os.rmdir, dirname)
+    def _rmdir(dirname):
+        _waitfor(os.rmdir, dirname)
 
-#     def _rmtree(path):
-#         def _rmtree_inner(path):
-#             for name in os.listdir(path):
-#                 fullname = os.path.join(path, name)
-#                 if os.path.isdir(fullname):
-#                     _waitfor(_rmtree_inner, fullname, waitall=True)
-#                     os.rmdir(fullname)
-#                 else:
-#                     os.unlink(fullname)
-#         _waitfor(_rmtree_inner, path, waitall=True)
-#         _waitfor(os.rmdir, path)
-# else:
-#     _unlink = os.unlink
-#     _rmdir = os.rmdir
-#     _rmtree = shutil.rmtree
+    def _rmtree(path):
+        def _rmtree_inner(path):
+            for name in os.listdir(path):
+                fullname = os.path.join(path, name)
+                if os.path.isdir(fullname):
+                    _waitfor(_rmtree_inner, fullname, waitall=True)
+                    os.rmdir(fullname)
+                else:
+                    os.unlink(fullname)
+        _waitfor(_rmtree_inner, path, waitall=True)
+        _waitfor(os.rmdir, path)
+else:
+    _unlink = os.unlink
+    _rmdir = os.rmdir
+#    _rmtree = shutil.rmtree
 
-# def unlink(filename):
-#     try:
-#         _unlink(filename)
-#     except OSError:
-#         pass
+def unlink(filename):
+    try:
+        _unlink(filename)
+    except OSError:
+        pass
 
 # def rmdir(dirname):
 #     try:
@@ -620,14 +620,14 @@ except NameError:
 #             FS_NONASCII = character
 #             break
 
-# # Filename used for testing
-# if os.name == 'java':
-#     # Jython disallows @ in module names
-#     TESTFN = '$test'
-# elif os.name == 'riscos':
-#     TESTFN = 'testfile'
-# else:
-#     TESTFN = '@test'
+# Filename used for testing
+if os.name == 'java':
+    # Jython disallows @ in module names
+    TESTFN = '$test'
+elif os.name == 'riscos':
+    TESTFN = 'testfile'
+else:
+    TESTFN = '@test'
 #     # Unicode name only used if TEST_FN_ENCODING exists for the platform.
 #     if have_unicode:
 #         # Assuming sys.getfilesystemencoding()!=sys.getdefaultencoding()
@@ -666,10 +666,9 @@ except NameError:
 #                 'Unicode filename tests may not be effective' \
 #                 % TESTFN_UNENCODABLE
 
-
-# # Disambiguate TESTFN for parallel testing, while letting it remain a valid
-# # module name.
-# TESTFN = "{}_{}_tmp".format(TESTFN, os.getpid())
+# Disambiguate TESTFN for parallel testing, while letting it remain a valid
+# module name.
+TESTFN = "%s_%s_tmp" % (TESTFN, os.getpid())
 
 # # Save the initial cwd
 # SAVEDCWD = os.getcwd()

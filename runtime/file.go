@@ -53,6 +53,14 @@ func toFileUnsafe(o *Object) *File {
 	return (*File)(o.toPointer())
 }
 
+func (f *File) name() string {
+	name := "<uninitialized file>"
+	if f.file != nil {
+		name = f.file.Name()
+	}
+	return name
+}
+
 // ToObject upcasts f to an Object.
 func (f *File) ToObject() *Object {
 	return &f.Object
@@ -190,6 +198,17 @@ func fileClose(f *Frame, args Args, _ KWArgs) (*Object, *BaseException) {
 	return None, nil
 }
 
+func fileGetName(f *Frame, args Args, _ KWArgs) (*Object, *BaseException) {
+	if raised := checkMethodArgs(f, "_get_name", args, FileType); raised != nil {
+		return nil, raised
+	}
+	file := toFileUnsafe(args[0])
+	file.mutex.Lock()
+	name := file.name()
+	file.mutex.Unlock()
+	return NewStr(name).ToObject(), nil
+}
+
 func fileIter(f *Frame, o *Object) (*Object, *BaseException) {
 	return o, nil
 }
@@ -231,7 +250,7 @@ func fileRead(f *Frame, args Args, _ KWArgs) (*Object, *BaseException) {
 		n, err = file.reader.Read(data)
 		data = data[:n]
 	}
-	if err != nil {
+	if err != nil && err != io.EOF {
 		return nil, f.RaiseType(IOErrorType, err.Error())
 	}
 	return NewStr(string(data)).ToObject(), nil
@@ -295,19 +314,13 @@ func fileRepr(f *Frame, o *Object) (*Object, *BaseException) {
 	} else {
 		openState = "closed"
 	}
-	var name string
-	if file.file != nil {
-		name = file.file.Name()
-	} else {
-		name = "<uninitialized file>"
-	}
 	var mode string
 	if file.mode != "" {
 		mode = file.mode
 	} else {
 		mode = "<uninitialized file>"
 	}
-	return NewStr(fmt.Sprintf("<%s file %q, mode %q at %p>", openState, name, mode, file)).ToObject(), nil
+	return NewStr(fmt.Sprintf("<%s file %q, mode %q at %p>", openState, file.name(), mode, file)).ToObject(), nil
 }
 
 func fileWrite(f *Frame, args Args, _ KWArgs) (*Object, *BaseException) {
@@ -331,6 +344,7 @@ func initFileType(dict map[string]*Object) {
 	dict["__enter__"] = newBuiltinFunction("__enter__", fileEnter).ToObject()
 	dict["__exit__"] = newBuiltinFunction("__exit__", fileExit).ToObject()
 	dict["close"] = newBuiltinFunction("close", fileClose).ToObject()
+	dict["name"] = newProperty(newBuiltinFunction("_get_name", fileGetName).ToObject(), nil, nil).ToObject()
 	dict["read"] = newBuiltinFunction("read", fileRead).ToObject()
 	dict["readline"] = newBuiltinFunction("readline", fileReadLine).ToObject()
 	dict["readlines"] = newBuiltinFunction("readlines", fileReadLines).ToObject()

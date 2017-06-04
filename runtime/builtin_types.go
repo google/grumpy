@@ -130,6 +130,7 @@ var builtinTypes = map[*Type]*builtinTypeInfo{
 	IndexErrorType:                {global: true},
 	IntType:                       {init: initIntType, global: true},
 	IOErrorType:                   {global: true},
+	KeyboardInterruptType:         {global: true},
 	KeyErrorType:                  {global: true},
 	listIteratorType:              {init: initListIteratorType},
 	ListType:                      {init: initListType, global: true},
