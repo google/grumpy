@@ -43,10 +43,44 @@ func TestMethodCall(t *testing.T) {
 	}
 }
 
+func TestMethodGet(t *testing.T) {
+	get := mustNotRaise(GetAttr(NewRootFrame(), MethodType.ToObject(), NewStr("__get__"), nil))
+	fun := wrapFuncForTest(func(f *Frame, args ...*Object) (*Object, *BaseException) {
+		o, raised := get.Call(f, args, nil)
+		if raised != nil {
+			return nil, raised
+		}
+		m := toMethodUnsafe(o)
+		self, class := m.self, m.class
+		if self == nil {
+			self = None
+		}
+		if class == nil {
+			class = None
+		}
+		return newTestTuple(m.function, self, class).ToObject(), nil
+	})
+	dummyFunc := wrapFuncForTest(func() {})
+	bound := mustNotRaise(MethodType.Call(NewRootFrame(), wrapArgs(dummyFunc, "foo"), nil))
+	unbound := newTestMethod(dummyFunc, None, IntType.ToObject())
+	cases := []invokeTestCase{
+		{args: wrapArgs(bound, "bar", StrType), want: newTestTuple(dummyFunc, "foo", None).ToObject()},
+		{args: wrapArgs(unbound, "bar", StrType), want: newTestTuple(dummyFunc, None, IntType).ToObject()},
+		{args: wrapArgs(unbound, 123, IntType), want: newTestTuple(dummyFunc, 123, IntType).ToObject()},
+		{args: wrapArgs(newTestMethod(dummyFunc, None, None), "bar", StrType), wantExc: mustCreateException(TypeErrorType, "classinfo must be a type or tuple of types")},
+	}
+	for _, cas := range cases {
+		if err := runInvokeTestCase(fun, &cas); err != "" {
+			t.Error(err)
+		}
+	}
+}
+
 func TestMethodNew(t *testing.T) {
 	cases := []invokeTestCase{
 		{wantExc: mustCreateException(TypeErrorType, "'__new__' requires 3 arguments")},
 		{args: Args{None, None, None}, wantExc: mustCreateException(TypeErrorType, "first argument must be callable")},
+		{args: Args{wrapFuncForTest(func() {}), None}, wantExc: mustCreateException(TypeErrorType, "unbound methods must have non-NULL im_class")},
 	}
 	for _, cas := range cases {
 		if err := runInvokeTestCase(MethodType.ToObject(), &cas); err != "" {
