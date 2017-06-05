@@ -131,6 +131,10 @@ func functionGet(f *Frame, desc, instance *Object, owner *Type) (*Object, *BaseE
 	return ret, raised
 }
 
+func functionNative(f *Frame, o *Object) (reflect.Value, *BaseException) {
+	return reflect.ValueOf(o.Call), nil
+}
+
 func functionRepr(_ *Frame, o *Object) (*Object, *BaseException) {
 	fun := toFunctionUnsafe(o)
 	return NewStr(fmt.Sprintf("<%s %s at %p>", fun.typ.Name(), fun.Name(), fun)).ToObject(), nil
@@ -140,6 +144,7 @@ func initFunctionType(map[string]*Object) {
 	FunctionType.flags &= ^(typeFlagInstantiable | typeFlagBasetype)
 	FunctionType.slots.Call = &callSlot{functionCall}
 	FunctionType.slots.Get = &getSlot{functionGet}
+	FunctionType.slots.Native = &nativeSlot{functionNative}
 	FunctionType.slots.Repr = &unaryOpSlot{functionRepr}
 }
 

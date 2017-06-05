@@ -422,6 +422,122 @@ func TestMaybeConvertValue(t *testing.T) {
 	}
 }
 
+func TestNativveToPyFuncBridge(t *testing.T) {
+	tests := []struct {
+		name string
+		fn   func(*testing.T, *Frame, Args, KWArgs) (*Object, *BaseException)
+		typ  reflect.Type
+		args []interface{}
+		ret  []interface{}
+		panc *BaseException
+	}{
+		{
+			name: "no args",
+			fn: func(t *testing.T, f *Frame, a Args, k KWArgs) (*Object, *BaseException) {
+				if f == nil || len(a) != 0 || len(k) != 0 {
+					t.Errorf("fn called with (%v, %v, %v), want (non-nil, %v, %v)", f, a, k, Args{}, KWArgs{})
+				}
+				return nil, nil
+			},
+			typ: reflect.TypeOf(func() {}),
+			ret: []interface{}{},
+		},
+		{
+			name: "return wrong size",
+			fn: func(*testing.T, *Frame, Args, KWArgs) (*Object, *BaseException) {
+				return NewInt(1).ToObject(), nil
+			},
+			typ:  reflect.TypeOf(func() {}),
+			panc: mustCreateException(TypeErrorType, "unexpected return of 1 when None expected"),
+		},
+		{
+			name: "single return value",
+			fn: func(*testing.T, *Frame, Args, KWArgs) (*Object, *BaseException) {
+				return NewInt(1).ToObject(), nil
+			},
+			typ: reflect.TypeOf((*func() int)(nil)).Elem(),
+			ret: []interface{}{1},
+		},
+		{
+			name: "wrong size multiple return value",
+			fn: func(*testing.T, *Frame, Args, KWArgs) (*Object, *BaseException) {
+				return NewTuple(NewInt(1).ToObject(), NewInt(2).ToObject(), NewInt(3).ToObject()).ToObject(), nil
+			},
+			typ:  reflect.TypeOf((*func() (int, int))(nil)).Elem(),
+			panc: mustCreateException(TypeErrorType, "return value too long, want 2 items"),
+		},
+		{
+			name: "multiple return value",
+			fn: func(*testing.T, *Frame, Args, KWArgs) (*Object, *BaseException) {
+				return NewTuple(NewInt(1).ToObject(), NewInt(2).ToObject(), NewInt(3).ToObject()).ToObject(), nil
+			},
+			typ: reflect.TypeOf((*func() (int, int, int))(nil)).Elem(),
+			ret: []interface{}{1, 2, 3},
+		},
+
+		{
+			name: "func takes args",
+			fn: func(t *testing.T, f *Frame, a Args, k KWArgs) (*Object, *BaseException) {
+				want := Args{
+					NewInt(1).ToObject(),
+					NewInt(2).ToObject(),
+				}
+				if f == nil || !reflect.DeepEqual(a, want) || len(k) != 0 {
+					t.Errorf("fn called with (%v, %v, %v), want (non-nil, %v, %v)", f, a, k, want, KWArgs{})
+				}
+				return nil, nil
+			},
+			typ:  reflect.TypeOf(func(int, int) {}),
+			args: []interface{}{1, 2},
+			ret:  []interface{}{},
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			called := false
+			fn := func(f *Frame, a Args, k KWArgs) (*Object, *BaseException) {
+				called = true
+				return test.fn(t, f, a, k)
+			}
+
+			args := make([]reflect.Value, len(test.args))
+			for i, a := range test.args {
+				args[i] = reflect.ValueOf(a)
+			}
+
+			nativeFn := nativeToPyFuncBridge(fn, test.typ)
+			ret := func() []reflect.Value {
+				if test.panc != nil {
+					defer func() {
+						r := recover()
+						raised, ok := r.(*BaseException)
+						if r == nil || !ok || !exceptionsAreEquivalent(raised, test.panc) {
+							t.Errorf("recover()=%v (type %T), want %v", r, r, test.panc)
+						}
+					}()
+				}
+				return nativeFn.Call(args)
+			}()
+
+			if test.panc == nil {
+				got := make([]interface{}, 0, len(test.ret))
+				for _, v := range ret {
+					got = append(got, v.Interface())
+				}
+
+				if !reflect.DeepEqual(got, test.ret) {
+					t.Errorf("fn returned %v, want %v", got, test.ret)
+				}
+			}
+
+			if !called {
+				t.Errorf("fn not called, want to be called")
+			}
+		})
+	}
+}
+
 func TestNativeTypedefNative(t *testing.T) {
 	fun := wrapFuncForTest(func(f *Frame, o *Object, wantType reflect.Type) (bool, *BaseException) {
 		val, raised := ToNative(f, o)
