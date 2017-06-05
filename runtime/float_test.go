@@ -298,7 +298,7 @@ func TestFloatNew(t *testing.T) {
 	}
 }
 
-func TestFloatStrRepr(t *testing.T) {
+func TestFloatRepr(t *testing.T) {
 	cases := []invokeTestCase{
 		{args: wrapArgs(0.0), want: NewStr("0.0").ToObject()},
 		{args: wrapArgs(0.1), want: NewStr("0.1").ToObject()},
@@ -314,10 +314,27 @@ func TestFloatStrRepr(t *testing.T) {
 		{args: wrapArgs(math.NaN()), want: NewStr("nan").ToObject()},
 	}
 	for _, cas := range cases {
-		if err := runInvokeTestCase(wrapFuncForTest(ToStr), &cas); err != "" {
+		if err := runInvokeTestCase(wrapFuncForTest(Repr), &cas); err != "" {
 			t.Error(err)
 		}
-		if err := runInvokeTestCase(wrapFuncForTest(Repr), &cas); err != "" {
+	}
+}
+
+func TestFloatStr(t *testing.T) {
+	cases := []invokeTestCase{
+		{args: wrapArgs(1.0), want: NewStr("1.0").ToObject()},
+		{args: wrapArgs(-847.373), want: NewStr("-847.373").ToObject()},
+		{args: wrapArgs(0.123456789123456789), want: NewStr("0.123456789123").ToObject()},
+		{args: wrapArgs(1e+11), want: NewStr("100000000000.0").ToObject()},
+		{args: wrapArgs(1e+12), want: NewStr("1e+12").ToObject()},
+		{args: wrapArgs(1e-4), want: NewStr("0.0001").ToObject()},
+		{args: wrapArgs(1e-5), want: NewStr("1e-05").ToObject()},
+		{args: wrapArgs(math.Inf(1)), want: NewStr("inf").ToObject()},
+		{args: wrapArgs(math.Inf(-1)), want: NewStr("-inf").ToObject()},
+		{args: wrapArgs(math.NaN()), want: NewStr("nan").ToObject()},
+	}
+	for _, cas := range cases {
+		if err := runInvokeTestCase(wrapFuncForTest(floatStr), &cas); err != "" {
 			t.Error(err)
 		}
 	}
