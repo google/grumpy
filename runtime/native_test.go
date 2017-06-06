@@ -397,7 +397,7 @@ func TestMaybeConvertValue(t *testing.T) {
 		{NewFloat(0.5).ToObject(), reflect.TypeOf(float32(0)), float32(0.5), nil},
 		{fooNative.ToObject(), reflect.TypeOf(&fooStruct{}), foo, nil},
 		{None, reflect.TypeOf((*int)(nil)), (*int)(nil), nil},
-		{None, reflect.TypeOf(""), nil, mustCreateException(TypeErrorType, "cannot convert None to string")},
+		{None, reflect.TypeOf(""), nil, mustCreateException(TypeErrorType, "an string is required")},
 	}
 	for _, cas := range cases {
 		fun := wrapFuncForTest(func(f *Frame) *BaseException {

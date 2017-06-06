@@ -35,6 +35,7 @@ type File struct {
 	mutex       sync.Mutex
 	mode        string
 	open        bool
+	Softspace   int `attr:"softspace" attr_mode:"rw"`
 	reader      *bufio.Reader
 	file        *os.File
 	skipNextLF  bool
