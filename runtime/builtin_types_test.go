@@ -323,7 +323,7 @@ func TestBuiltinFuncs(t *testing.T) {
 		{f: "str", args: wrapArgs(0.123456789123456789), want: NewStr("0.123456789123").ToObject()},
 		{f: "str", args: wrapArgs(math.Inf(-1)), want: NewStr("-inf").ToObject()},
 		{f: "str", args: wrapArgs(math.NaN()), want: NewStr("nan").ToObject()},
-		{f: "str", args: wrapAirgs(1 + 2i), want: NewStr("(1+2j)").ToObject()},
+		{f: "str", args: wrapArgs(1 + 2i), want: NewStr("(1+2j)").ToObject()},
 		{f: "str", args: wrapArgs(NewUnicode("abc")), want: NewStr("abc").ToObject()},
 		{f: "str", args: wrapArgs(newTestTuple("foo", "bar")), want: NewStr("('foo', 'bar')").ToObject()},
 		{f: "str", args: wrapArgs("a", "b", "c"), wantExc: mustCreateException(TypeErrorType, "str() takes at most 1 argument (3 given)")},
