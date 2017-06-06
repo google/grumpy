@@ -404,3 +404,22 @@ zip((1, 3), (2, 4))
 assert not any(sys.exc_info())
 map(int, (1, 2, 3))
 assert not any(sys.exc_info())
+
+# str(o)
+
+assert str(123) == '123'
+assert str(1e-7) == '1e-07'
+assert str(0.123456789123456789) == '0.123456789123'
+assert str(u'foo') == 'foo'
+assert str(float('nan')) == 'nan'
+assert str(float('inf')) == 'inf'
+assert str(1-2j) == '(1-2j)'
+assert str((1,2)) == '(1, 2)'
+assert str([1,2,3]) == '[1, 2, 3]'
+
+try:
+  str('a', 'b')
+except TypeError as e:
+  assert str(e) == "str() takes at most 1 argument (2 given)"
+else:
+  assert AssertionError

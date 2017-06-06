@@ -409,7 +409,7 @@ func getNativeType(rtype reflect.Type) *Type {
 		case reflect.String:
 			base = StrType
 		}
-		d := map[string]*Object{"__module__": builtinStr.ToObject()}
+		d := map[string]*Object{"__module__": builtinString.ToObject()}
 		numMethod := rtype.NumMethod()
 		for i := 0; i < numMethod; i++ {
 			meth := rtype.Method(i)

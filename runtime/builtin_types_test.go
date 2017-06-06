@@ -18,6 +18,7 @@ import (
 	"bytes"
 	"fmt"
 	"io"
+	"math"
 	"math/big"
 	"os"
 	"testing"
@@ -318,6 +319,14 @@ func TestBuiltinFuncs(t *testing.T) {
 		{f: "sorted", args: wrapArgs(newTestDict("foo", 1, "bar", 2)), want: newTestList("bar", "foo").ToObject()},
 		{f: "sorted", args: wrapArgs(1), wantExc: mustCreateException(TypeErrorType, "'int' object is not iterable")},
 		{f: "sorted", args: wrapArgs(newTestList("foo", "bar"), 2), wantExc: mustCreateException(TypeErrorType, "'sorted' requires 1 arguments")},
+		{f: "str", args: wrapArgs(123), want: NewStr("123").ToObject()},
+		{f: "str", args: wrapArgs(0.123456789123456789), want: NewStr("0.123456789123").ToObject()},
+		{f: "str", args: wrapArgs(math.Inf(-1)), want: NewStr("-inf").ToObject()},
+		{f: "str", args: wrapArgs(math.NaN()), want: NewStr("nan").ToObject()},
+		{f: "str", args: wrapAirgs(1 + 2i), want: NewStr("(1+2j)").ToObject()},
+		{f: "str", args: wrapArgs(NewUnicode("abc")), want: NewStr("abc").ToObject()},
+		{f: "str", args: wrapArgs(newTestTuple("foo", "bar")), want: NewStr("('foo', 'bar')").ToObject()},
+		{f: "str", args: wrapArgs("a", "b", "c"), wantExc: mustCreateException(TypeErrorType, "str() takes at most 1 argument (3 given)")},
 		{f: "sum", args: wrapArgs(newTestList(1, 2, 3, 4)), want: NewInt(10).ToObject()},
 		{f: "sum", args: wrapArgs(newTestList(1, 2), 3), want: NewFloat(6).ToObject()},
 		{f: "sum", args: wrapArgs(newTestList(2, 1.1)), want: NewFloat(3.1).ToObject()},
