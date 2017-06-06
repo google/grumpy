@@ -148,10 +148,7 @@ func makeStructFieldDescriptor(t *Type, fieldName, propertyName string, fieldMod
 			val := t.slots.Basis.Fn(self).FieldByIndex(field.Index)
 			converted, raised := maybeConvertValue(f, newValue, field.Type)
 			if raised != nil {
-				format := "an %s is required. Field '%s.%s' cannot store a '%s' value"
-				return nil, f.RaiseType(TypeErrorType, fmt.Sprintf(format,
-					field.Type.Name(), t.Name(), propertyName, newValue.typ.Name()),
-				)
+				return nil, raised
 			}
 
 			val.Set(converted)
