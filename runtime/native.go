@@ -479,7 +479,7 @@ func maybeConvertValue(f *Frame, o *Object, expectedRType reflect.Type) (reflect
 		case reflect.Chan, reflect.Func, reflect.Interface, reflect.Map, reflect.Ptr, reflect.Slice, reflect.UnsafePointer:
 			return reflect.Zero(expectedRType), nil
 		default:
-			return reflect.Value{}, f.RaiseType(TypeErrorType, fmt.Sprintf("cannot convert None to %s", expectedRType))
+			return reflect.Value{}, f.RaiseType(TypeErrorType, fmt.Sprintf("an %s is required", expectedRType))
 		}
 	}
 	val, raised := ToNative(f, o)
@@ -501,7 +501,7 @@ func maybeConvertValue(f *Frame, o *Object, expectedRType reflect.Type) (reflect
 		}
 		break
 	}
-	return reflect.Value{}, f.RaiseType(TypeErrorType, fmt.Sprintf("cannot convert %s to %s", rtype, expectedRType))
+	return reflect.Value{}, f.RaiseType(TypeErrorType, fmt.Sprintf("an %s is required", expectedRType))
 }
 
 func nativeFuncTypeName(rtype reflect.Type) string {
