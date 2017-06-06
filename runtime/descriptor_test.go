@@ -151,7 +151,7 @@ func TestMakeStructFieldDescriptorRWSet(t *testing.T) {
 	cases := []invokeTestCase{
 		{args: wrapArgs(FileType, "Softspace", "softspace", newObject(FileType), NewInt(0).ToObject()), want: None},
 		{args: wrapArgs(FileType, "Softspace", "softspace", newObject(FileType), NewInt(0)), want: None},
-		{args: wrapArgs(FileType, "Softspace", "softspace", newObject(FileType), "wrong"), wantExc: mustCreateException(TypeErrorType, "an int is required. Field 'file.softspace' cannot store a 'str' value")},
+		{args: wrapArgs(FileType, "Softspace", "softspace", newObject(FileType), "wrong"), wantExc: mustCreateException(TypeErrorType, "an int is required")},
 		{args: wrapArgs(FileType, "Softspace", "softspace", 42, NewInt(0)), wantExc: mustCreateException(TypeErrorType, "descriptor 'softspace' for 'file' objects doesn't apply to 'int' objects")},
 	}
 	for _, cas := range cases {
