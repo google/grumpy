@@ -64,6 +64,23 @@ func TestFileCloseExit(t *testing.T) {
 	}
 }
 
+func TestFileGetName(t *testing.T) {
+	fun := wrapFuncForTest(func(f *Frame, file *File) (*Object, *BaseException) {
+		return GetAttr(f, file.ToObject(), NewStr("name"), nil)
+	})
+	foo := newTestFile("foo")
+	defer foo.cleanup()
+	cases := []invokeTestCase{
+		{args: wrapArgs(foo.open("r")), want: NewStr(foo.path).ToObject()},
+		{args: wrapArgs(newObject(FileType)), want: NewStr("<uninitialized file>").ToObject()},
+	}
+	for _, cas := range cases {
+		if err := runInvokeTestCase(fun, &cas); err != "" {
+			t.Error(err)
+		}
+	}
+}
+
 func TestFileIter(t *testing.T) {
 	files := makeTestFiles()
 	defer files.cleanup()
