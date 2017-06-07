@@ -124,6 +124,19 @@ func TestComplexBinaryOps(t *testing.T) {
 		{Mul, NewFloat(math.NaN()).ToObject(), NewComplex(3i).ToObject(), NewComplex(complex(math.NaN(), math.NaN())).ToObject(), nil},
 		{Mul, NewComplex(cmplx.NaN()).ToObject(), NewComplex(3i).ToObject(), NewComplex(cmplx.NaN()).ToObject(), nil},
 		{Mul, NewFloat(math.Inf(-1)).ToObject(), NewComplex(complex(math.Inf(-1), 3)).ToObject(), NewComplex(complex(math.Inf(1), math.NaN())).ToObject(), nil},
+		{Pow, NewComplex(0i).ToObject(), NewComplex(0i).ToObject(), NewComplex(1 + 0i).ToObject(), nil},
+		{Pow, NewComplex(-1 + 0i).ToObject(), NewComplex(1i).ToObject(), NewComplex(0.04321391826377226 + 0i).ToObject(), nil},
+		{Pow, NewComplex(1 + 2i).ToObject(), NewComplex(1 + 2i).ToObject(), NewComplex(-0.22251715680177264 + 0.10070913113607538i).ToObject(), nil},
+		{Pow, NewComplex(0i).ToObject(), NewComplex(-1 + 0i).ToObject(), NewComplex(complex(math.Inf(1), 0)).ToObject(), nil},
+		{Pow, NewComplex(0i).ToObject(), NewComplex(-1 + 1i).ToObject(), NewComplex(complex(math.Inf(1), math.Inf(1))).ToObject(), nil},
+		{Pow, NewComplex(complex(math.Inf(-1), 2)).ToObject(), NewComplex(1 + 2i).ToObject(), NewComplex(complex(math.NaN(), math.NaN())).ToObject(), nil},
+		{Pow, NewComplex(1 + 2i).ToObject(), NewComplex(complex(1, math.Inf(1))).ToObject(), NewComplex(complex(math.NaN(), math.NaN())).ToObject(), nil},
+		{Pow, NewComplex(complex(math.NaN(), 1)).ToObject(), NewComplex(3 + 4i).ToObject(), NewComplex(complex(math.NaN(), math.NaN())).ToObject(), nil},
+		{Pow, NewComplex(3 + 4i).ToObject(), NewInt(3).ToObject(), NewComplex(-117 + 44.000000000000036i).ToObject(), nil},
+		{Pow, NewComplex(3 + 4i).ToObject(), NewFloat(3.1415).ToObject(), NewComplex(-152.8892667678244 + 35.55533513049651i).ToObject(), nil},
+		{Pow, NewComplex(3 + 4i).ToObject(), NewLong(big.NewInt(123)).ToObject(), NewComplex(5.393538720276193e+85 + 7.703512580443326e+85i).ToObject(), nil},
+		{Pow, NewComplex(1 + 2i).ToObject(), NewStr("foo").ToObject(), nil, mustCreateException(TypeErrorType, "unsupported operand type(s) for **: 'complex' and 'str'")},
+		{Pow, NewStr("foo").ToObject(), NewComplex(1 + 2i).ToObject(), nil, mustCreateException(TypeErrorType, "unsupported operand type(s) for **: 'str' and 'complex'")},
 	}
 
 	for _, cas := range cases {

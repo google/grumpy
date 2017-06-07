@@ -181,6 +181,12 @@ func complexPos(f *Frame, o *Object) (*Object, *BaseException) {
 	return o, nil
 }
 
+func complexPow(f *Frame, v, w *Object) (*Object, *BaseException) {
+	return complexArithmeticOp(f, "__pow__", v, w, func(lhs, rhs complex128) complex128 {
+		return cmplx.Pow(lhs, rhs)
+	})
+}
+
 func complexRAdd(f *Frame, v, w *Object) (*Object, *BaseException) {
 	return complexArithmeticOp(f, "__radd__", v, w, func(lhs, rhs complex128) complex128 {
 		return lhs + rhs
@@ -214,6 +220,12 @@ func complexRMul(f *Frame, v, w *Object) (*Object, *BaseException) {
 	})
 }
 
+func complexRPow(f *Frame, v, w *Object) (*Object, *BaseException) {
+	return complexArithmeticOp(f, "__rpow__", v, w, func(lhs, rhs complex128) complex128 {
+		return cmplx.Pow(rhs, lhs)
+	})
+}
+
 func complexRSub(f *Frame, v, w *Object) (*Object, *BaseException) {
 	return complexArithmeticOp(f, "__rsub__", v, w, func(lhs, rhs complex128) complex128 {
 		return rhs - lhs
@@ -242,9 +254,11 @@ func initComplexType(dict map[string]*Object) {
 	ComplexType.slots.New = &newSlot{complexNew}
 	ComplexType.slots.NonZero = &unaryOpSlot{complexNonZero}
 	ComplexType.slots.Pos = &unaryOpSlot{complexPos}
+	ComplexType.slots.Pow = &binaryOpSlot{complexPow}
 	ComplexType.slots.RAdd = &binaryOpSlot{complexRAdd}
 	ComplexType.slots.Repr = &unaryOpSlot{complexRepr}
 	ComplexType.slots.RMul = &binaryOpSlot{complexRMul}
+	ComplexType.slots.RPow = &binaryOpSlot{complexRPow}
 	ComplexType.slots.RSub = &binaryOpSlot{complexRSub}
 	ComplexType.slots.Sub = &binaryOpSlot{complexSub}
 }
