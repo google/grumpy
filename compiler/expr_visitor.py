@@ -50,9 +50,37 @@ class ExprVisitor(algorithm.Visitor):
     return attr
 
   def visit_BinOp(self, node):
+    op_type = type(node.op)
+    if isinstance(node.left, ast.Num) and isinstance(node.right, ast.Num):
+      lhs = node.left
+      rhs = node.right
+      fold_node = lhs
+      fold_success = True
+      try:
+        folding_value = {
+            ast.BitAnd: lhs.n & rhs.n,
+            ast.BitOr: lhs.n | rhs.n,
+            ast.BitXor: lhs.n ^ rhs.n,
+            ast.Add: lhs.n + rhs.n,
+            ast.Div: lhs.n / rhs.n,
+            ast.FloorDiv: lhs.n // rhs.n,
+            ast.LShift: lhs.n << rhs.n,
+            ast.Mod: lhs.n % rhs.n,
+            ast.Mult: lhs.n * rhs.n,
+            ast.Pow: lhs.n ** rhs.n,
+            ast.RShift: lhs.n >> rhs.n,
+            ast.Sub: lhs.n - rhs.n,
+        }[op_type]
+        fold_node.n = folding_value
+        result = self.visit(fold_node)
+      except (ArithmeticError, TypeError):
+        fold_success = False
+
+      if fold_success:
+        return result
+
     result = self.block.alloc_temp()
     with self.visit(node.left) as lhs, self.visit(node.right) as rhs:
-      op_type = type(node.op)
       if op_type in ExprVisitor._BIN_OP_TEMPLATES:
         tmpl = ExprVisitor._BIN_OP_TEMPLATES[op_type]
         self.writer.write_checked_call2(
