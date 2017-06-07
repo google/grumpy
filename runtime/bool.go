@@ -62,6 +62,7 @@ func initBoolType(map[string]*Object) {
 	BoolType.slots.Native = &nativeSlot{boolNative}
 	BoolType.slots.New = &newSlot{boolNew}
 	BoolType.slots.Repr = &unaryOpSlot{boolRepr}
+	BoolType.slots.Str = &unaryOpSlot{boolRepr}
 }
 
 var (

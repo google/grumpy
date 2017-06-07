@@ -92,7 +92,7 @@ func newClass(f *Frame, meta *Type, name string, bases []*Type, dict *Dict) (*Ty
 		return nil, raised
 	}
 	if mod == nil {
-		if raised := dict.SetItemString(f, "__module__", builtinStr.ToObject()); raised != nil {
+		if raised := dict.SetItemString(f, "__module__", builtinString.ToObject()); raised != nil {
 			return nil, raised
 		}
 	}
@@ -143,7 +143,7 @@ func newSimpleType(name string, base *Type) *Type {
 // prepareBuiltinType initializes the builtin typ by populating dict with
 // struct field descriptors and slot wrappers, and then calling prepareType.
 func prepareBuiltinType(typ *Type, init builtinTypeInit) {
-	dict := map[string]*Object{"__module__": builtinStr.ToObject()}
+	dict := map[string]*Object{"__module__": builtinString.ToObject()}
 	if init != nil {
 		init(dict)
 	}

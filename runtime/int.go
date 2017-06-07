@@ -422,6 +422,7 @@ func initIntType(dict map[string]*Object) {
 	IntType.slots.RShift = &binaryOpSlot{intRShift}
 	IntType.slots.RSub = &binaryOpSlot{intRSub}
 	IntType.slots.RXor = &binaryOpSlot{intXor}
+	IntType.slots.Str = &unaryOpSlot{intRepr}
 	IntType.slots.Sub = &binaryOpSlot{intSub}
 	IntType.slots.Xor = &binaryOpSlot{intXor}
 }

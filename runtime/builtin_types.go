@@ -24,8 +24,8 @@ import (
 
 var (
 	// Builtins contains all of the Python built-in identifiers.
-	Builtins   = NewDict()
-	builtinStr = NewStr("__builtin__")
+	Builtins      = NewDict()
+	builtinString = NewStr("__builtin__")
 	// ExceptionTypes contains all builtin exception types.
 	ExceptionTypes []*Type
 	// EllipsisType is the object representing the Python 'ellipsis' type
@@ -675,6 +675,17 @@ func builtinSorted(f *Frame, args Args, _ KWArgs) (*Object, *BaseException) {
 	return result, nil
 }
 
+func builtinStr(f *Frame, args Args, kwargs KWArgs) (*Object, *BaseException) {
+	if raised := checkFunctionArgs(f, "str", args, ObjectType); raised != nil {
+		return nil, raised
+	}
+	s, raised := ToStr(f, args[0])
+	if raised != nil {
+		return nil, raised
+	}
+	return s.ToObject(), nil
+}
+
 func builtinSum(f *Frame, args Args, _ KWArgs) (*Object, *BaseException) {
 	argc := len(args)
 	expectedTypes := []*Type{ObjectType, ObjectType}
@@ -786,6 +797,7 @@ func init() {
 		"round":          newBuiltinFunction("round", builtinRound).ToObject(),
 		"setattr":        newBuiltinFunction("setattr", builtinSetAttr).ToObject(),
 		"sorted":         newBuiltinFunction("sorted", builtinSorted).ToObject(),
+		"str":            newBuiltinFunction("str", builtinStr).ToObject(),
 		"sum":            newBuiltinFunction("sum", builtinSum).ToObject(),
 		"True":           True.ToObject(),
 		"unichr":         newBuiltinFunction("unichr", builtinUniChr).ToObject(),
