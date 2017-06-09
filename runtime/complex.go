@@ -84,21 +84,6 @@ func complexDiv(f *Frame, v, w *Object) (*Object, *BaseException) {
 	})
 }
 
-func complexDivModOp(f *Frame, method string, v, w *Object, fun func(v, w complex128) (complex128, bool)) (*Object, *BaseException) {
-	complexW, ok := complexCoerce(w)
-	if !ok {
-		if cmplx.IsInf(complexW) {
-			return nil, f.RaiseType(OverflowErrorType, "long int too large to convert to complex")
-		}
-		return NotImplemented, nil
-	}
-	x, ok := fun(toComplexUnsafe(v).Value(), complexW)
-	if !ok {
-		return nil, f.RaiseType(ZeroDivisionErrorType, "complex division or modulo by zero")
-	}
-	return NewComplex(x).ToObject(), nil
-}
-
 func complexEq(f *Frame, v, w *Object) (*Object, *BaseException) {
 	e, ok := complexCompare(toComplexUnsafe(v), w)
 	if !ok {
@@ -371,6 +356,21 @@ func complexConvert(complexSlot *unaryOpSlot, f *Frame, o *Object) (*Complex, *B
 		return nil, f.RaiseType(TypeErrorType, exc)
 	}
 	return toComplexUnsafe(result), nil
+}
+
+func complexDivModOp(f *Frame, method string, v, w *Object, fun func(v, w complex128) (complex128, bool)) (*Object, *BaseException) {
+	complexW, ok := complexCoerce(w)
+	if !ok {
+		if cmplx.IsInf(complexW) {
+			return nil, f.RaiseType(OverflowErrorType, "long int too large to convert to complex")
+		}
+		return NotImplemented, nil
+	}
+	x, ok := fun(toComplexUnsafe(v).Value(), complexW)
+	if !ok {
+		return nil, f.RaiseType(ZeroDivisionErrorType, "complex division or modulo by zero")
+	}
+	return NewComplex(x).ToObject(), nil
 }
 
 const (
