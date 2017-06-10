@@ -35,6 +35,20 @@ def TestEvent():
   e.set()
   t.join()
   assert target_result == ['ready']
+  target_result[:] = []
+  t = threading.Thread(target=Target)
+  t.start()
+  t.join()
+  assert target_result == ['ready']
+  target_result[:] = []
+  e.clear()
+  t = threading.Thread(target=Target)
+  t.start()
+  time.sleep(0.1)
+  assert not target_result
+  e.set()
+  t.join()
+  assert target_result == ['ready']
 
 
 def TestThread():

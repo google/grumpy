@@ -49,7 +49,7 @@ func TestFunctionGet(t *testing.T) {
 func TestFunctionName(t *testing.T) {
 	fun := newBuiltinFunction("TestFunctionName", func(f *Frame, _ Args, _ KWArgs) (*Object, *BaseException) {
 		foo := newBuiltinFunction("foo", func(*Frame, Args, KWArgs) (*Object, *BaseException) { return None, nil })
-		return GetAttr(f, foo.ToObject(), NewStr("__name__"), nil)
+		return GetAttr(f, foo.ToObject(), internedName, nil)
 	}).ToObject()
 	if err := runInvokeTestCase(fun, &invokeTestCase{want: NewStr("foo").ToObject()}); err != "" {
 		t.Error(err)
@@ -126,12 +126,27 @@ func TestStaticMethodInit(t *testing.T) {
 }
 
 func TestClassMethodGet(t *testing.T) {
+	fun := wrapFuncForTest(func(f *Frame, meth *classMethod, args ...*Object) (*Object, *BaseException) {
+		get, raised := GetAttr(f, meth.ToObject(), NewStr("__get__"), nil)
+		if raised != nil {
+			return nil, raised
+		}
+		callable, raised := get.Call(f, args, nil)
+		if raised != nil {
+			return nil, raised
+		}
+		return callable.Call(f, nil, nil)
+	})
+	echoFunc := wrapFuncForTest(func(f *Frame, args ...*Object) *Tuple {
+		return NewTuple(args...)
+	})
 	cases := []invokeTestCase{
-		// {args: wrapArgs(newClassMethod(NewStr("abc").ToObject()), 123, IntType), want: NewStr("abc").ToObject()},
+		{args: wrapArgs(newClassMethod(echoFunc), ObjectType, ObjectType), want: NewTuple(ObjectType.ToObject()).ToObject()},
+		{args: wrapArgs(newClassMethod(NewStr("abc").ToObject()), 123, IntType), wantExc: mustCreateException(TypeErrorType, "first argument must be callable")},
 		{args: wrapArgs(newClassMethod(nil), 123, IntType), wantExc: mustCreateException(RuntimeErrorType, "uninitialized classmethod object")},
 	}
 	for _, cas := range cases {
-		if err := runInvokeMethodTestCase(ClassMethodType, "__get__", &cas); err != "" {
+		if err := runInvokeTestCase(fun, &cas); err != "" {
 			t.Error(err)
 		}
 	}

@@ -20,7 +20,9 @@ import (
 	"math/big"
 	"reflect"
 	"strconv"
+	"strings"
 	"sync/atomic"
+	"unicode"
 	"unsafe"
 )
 
@@ -207,15 +209,11 @@ func floatNew(f *Frame, t *Type, args Args, _ KWArgs) (*Object, *BaseException) 
 	}
 	o := args[0]
 	if floatSlot := o.typ.slots.Float; floatSlot != nil {
-		result, raised := floatSlot.Fn(f, o)
+		fl, raised := floatConvert(floatSlot, f, o)
 		if raised != nil {
 			return nil, raised
 		}
-		if raised == nil && !result.isInstance(FloatType) {
-			exc := fmt.Sprintf("__float__ returned non-float (type %s)", result.typ.Name())
-			return nil, f.RaiseType(TypeErrorType, exc)
-		}
-		return result, nil
+		return fl.ToObject(), nil
 	}
 	if !o.isInstance(StrType) {
 		return nil, f.RaiseType(TypeErrorType, "float() argument must be a string or a number")
@@ -263,8 +261,13 @@ func floatRDivMod(f *Frame, v, w *Object) (*Object, *BaseException) {
 	})
 }
 
+const (
+	floatReprPrecision = 16
+	floatStrPrecision  = 12
+)
+
 func floatRepr(f *Frame, o *Object) (*Object, *BaseException) {
-	return NewStr(strconv.FormatFloat(toFloatUnsafe(o).Value(), 'g', -1, 64)).ToObject(), nil
+	return NewStr(floatToString(toFloatUnsafe(o).Value(), floatReprPrecision)).ToObject(), nil
 }
 
 func floatRFloorDiv(f *Frame, v, w *Object) (*Object, *BaseException) {
@@ -292,6 +295,10 @@ func floatRPow(f *Frame, v, w *Object) (*Object, *BaseException) {
 
 func floatRSub(f *Frame, v, w *Object) (*Object, *BaseException) {
 	return floatArithmeticOp(f, "__rsub__", v, w, func(v, w float64) float64 { return w - v })
+}
+
+func floatStr(f *Frame, o *Object) (*Object, *BaseException) {
+	return NewStr(floatToString(toFloatUnsafe(o).Value(), floatStrPrecision)).ToObject(), nil
 }
 
 func floatSub(f *Frame, v, w *Object) (*Object, *BaseException) {
@@ -332,6 +339,7 @@ func initFloatType(dict map[string]*Object) {
 	FloatType.slots.RMul = &binaryOpSlot{floatRMul}
 	FloatType.slots.RPow = &binaryOpSlot{floatRPow}
 	FloatType.slots.RSub = &binaryOpSlot{floatRSub}
+	FloatType.slots.Str = &unaryOpSlot{floatStr}
 	FloatType.slots.Sub = &binaryOpSlot{floatSub}
 }
 
@@ -400,6 +408,18 @@ func floatCoerce(o *Object) (float64, bool) {
 	default:
 		return 0, false
 	}
+}
+
+func floatConvert(floatSlot *unaryOpSlot, f *Frame, o *Object) (*Float, *BaseException) {
+	result, raised := floatSlot.Fn(f, o)
+	if raised != nil {
+		return nil, raised
+	}
+	if !result.isInstance(FloatType) {
+		exc := fmt.Sprintf("__float__ returned non-float (type %s)", result.typ.Name())
+		return nil, f.RaiseType(TypeErrorType, exc)
+	}
+	return toFloatUnsafe(result), nil
 }
 
 func floatDivModOp(f *Frame, method string, v, w *Object, fun func(v, w float64) (float64, bool)) (*Object, *BaseException) {
@@ -481,4 +501,22 @@ func floatModFunc(v, w float64) (float64, bool) {
 		x += w
 	}
 	return x, true
+}
+
+func floatToString(f float64, p int) string {
+	s := unsignPositiveInf(strings.ToLower(strconv.FormatFloat(f, 'g', p, 64)))
+	fun := func(r rune) bool {
+		return !unicode.IsDigit(r)
+	}
+	if i := strings.IndexFunc(s, fun); i == -1 {
+		s += ".0"
+	}
+	return s
+}
+
+func unsignPositiveInf(s string) string {
+	if s == "+inf" {
+		return "inf"
+	}
+	return s
 }

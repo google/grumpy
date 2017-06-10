@@ -61,20 +61,61 @@ func (l *List) Append(o *Object) {
 	l.mutex.Unlock()
 }
 
+// DelItem removes the index'th element of l.
+func (l *List) DelItem(f *Frame, index int) *BaseException {
+	l.mutex.Lock()
+	numElems := len(l.elems)
+	i, raised := seqCheckedIndex(f, numElems, index)
+	if raised == nil {
+		copy(l.elems[i:numElems-1], l.elems[i+1:numElems])
+		l.elems = l.elems[:numElems-1]
+	}
+	l.mutex.Unlock()
+	return raised
+}
+
+// DelSlice removes the slice of l specified by s.
+func (l *List) DelSlice(f *Frame, s *Slice) *BaseException {
+	l.mutex.Lock()
+	numListElems := len(l.elems)
+	start, stop, step, numSliceElems, raised := s.calcSlice(f, numListElems)
+	if raised == nil {
+		if step == 1 {
+			copy(l.elems[start:numListElems-numSliceElems], l.elems[stop:numListElems])
+		} else {
+			j := 0
+			for i := start; i != stop; i += step {
+				next := i + step
+				if next > numListElems {
+					next = numListElems
+				}
+				dest := l.elems[i-j : next-j-1]
+				src := l.elems[i+1 : next]
+				copy(dest, src)
+				j++
+			}
+		}
+		l.elems = l.elems[:numListElems-numSliceElems]
+	}
+	l.mutex.Unlock()
+	return raised
+}
+
 // SetItem sets the index'th element of l to value.
 func (l *List) SetItem(f *Frame, index int, value *Object) *BaseException {
-	l.mutex.RLock()
+	l.mutex.Lock()
 	i, raised := seqCheckedIndex(f, len(l.elems), index)
 	if raised == nil {
 		l.elems[i] = value
 	}
-	l.mutex.RUnlock()
+	l.mutex.Unlock()
 	return raised
 }
 
 // SetSlice replaces the slice of l specified by s with the contents of value
 // (an iterable).
 func (l *List) SetSlice(f *Frame, s *Slice, value *Object) *BaseException {
+	l.mutex.Lock()
 	numListElems := len(l.elems)
 	start, stop, step, numSliceElems, raised := s.calcSlice(f, numListElems)
 	if raised == nil {
@@ -98,6 +139,7 @@ func (l *List) SetSlice(f *Frame, s *Slice, value *Object) *BaseException {
 			return nil
 		})
 	}
+	l.mutex.Unlock()
 	return raised
 }
 
@@ -168,6 +210,22 @@ func listCount(f *Frame, args Args, kwargs KWArgs) (*Object, *BaseException) {
 		return nil, raised
 	}
 	return seqCount(f, args[0], args[1])
+}
+
+func listDelItem(f *Frame, o *Object, key *Object) *BaseException {
+	l := toListUnsafe(o)
+	if key.isInstance(SliceType) {
+		return l.DelSlice(f, toSliceUnsafe(key))
+	}
+	if key.typ.slots.Index == nil {
+		format := "list indices must be integers, not %s"
+		return f.RaiseType(TypeErrorType, fmt.Sprintf(format, key.Type().Name()))
+	}
+	index, raised := IndexInt(f, key)
+	if raised != nil {
+		return raised
+	}
+	return l.DelItem(f, index)
 }
 
 func listRemove(f *Frame, args Args, kwargs KWArgs) (*Object, *BaseException) {
@@ -439,7 +497,7 @@ func listReverse(f *Frame, args Args, _ KWArgs) (*Object, *BaseException) {
 
 func listSetItem(f *Frame, o, key, value *Object) *BaseException {
 	l := toListUnsafe(o)
-	if key.typ.slots.Int != nil {
+	if key.typ.slots.Index != nil {
 		i, raised := IndexInt(f, key)
 		if raised != nil {
 			return raised
@@ -474,6 +532,7 @@ func initListType(dict map[string]*Object) {
 	dict["sort"] = newBuiltinFunction("sort", listSort).ToObject()
 	ListType.slots.Add = &binaryOpSlot{listAdd}
 	ListType.slots.Contains = &binaryOpSlot{listContains}
+	ListType.slots.DelItem = &delItemSlot{listDelItem}
 	ListType.slots.Eq = &binaryOpSlot{listEq}
 	ListType.slots.GE = &binaryOpSlot{listGE}
 	ListType.slots.GetItem = &binaryOpSlot{listGetItem}
