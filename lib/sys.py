@@ -15,13 +15,13 @@
 """System-specific parameters and functions."""
 
 from __go__.os import Args
-from __go__.grumpy import SysmoduleDict, SysModules, MaxInt, Stdin, Stdout, Stderr  # pylint: disable=g-multiple-import
+from __go__.grumpy import SysmoduleDict, SysModules, MaxInt  # pylint: disable=g-multiple-import
 from __go__.runtime import Version
 from __go__.unicode import MaxRune
 
 
 __all__ = ('stdin', 'stdout', 'stderr', 'argv', 'goversion',
-           'maxint', 'maxsize', 'maxunicode', 'modules', 'py3kwarning',
+           'maxint', 'maxsize', 'maxunicode', 'modules', 'platform', 'py3kwarning',
            'warnoptions', 'byteorder', 'flags', 'exc_info', 'exit')
 
 
