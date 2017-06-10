@@ -1280,9 +1280,9 @@ func pyPrint(f *Frame, args Args, sep, end string, filelike *Object) *BaseExcept
 			}
 		}
 
-		s, raised_ := ToStr(f, arg)
-		if raised_ != nil {
-			return raised_
+		s, raised2 := ToStr(f, arg)
+		if raised2 != nil {
+			return raised2
 		}
 
 		callArgs[0] = s.ToObject()
