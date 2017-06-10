@@ -15,13 +15,14 @@
 """System-specific parameters and functions."""
 
 from __go__.os import Args
-from __go__.grumpy import SysmoduleDict, SysModules, MaxInt, Stdin, Stdout, Stderr  # pylint: disable=g-multiple-import
+from __go__.grumpy import SysmoduleDict, SysModules, MaxInt  # pylint: disable=g-multiple-import
 from __go__.runtime import (GOOS as platform, Version)
 from __go__.unicode import MaxRune
+import _gomodulehacks
 
 
 __all__ = ('stdin', 'stdout', 'stderr', 'argv', 'goversion',
-           'maxint', 'maxsize', 'maxunicode', 'modules', 'py3kwarning',
+           'maxint', 'maxsize', 'maxunicode', 'modules', 'platform', 'py3kwarning',
            'warnoptions', 'byteorder', 'flags', 'exc_info', 'exit')
 
 
@@ -86,18 +87,5 @@ def exit(code=None):  # pylint: disable=redefined-builtin
     raise SystemExit(code)
 
 
-# TODO: Clear this HACK: Should be the last lines of the python part of hybrid stuff
-class _SysModule(object):
-    def __init__(self):
-        for k in ('__name__', '__file__') + __all__:
-            SysmoduleDict[k] = globals()[k]
-    def __setattr__(self, name, value):
-        SysmoduleDict[name] = value
-    def __getattribute__(self, name):   # TODO: replace w/ __getattr__ when implemented
-        resp = SysmoduleDict.get(name)
-        if resp is None and name not in SysmoduleDict:
-            return super(_SysModule, self).__getattribute__(name)
-        return resp
-
-modules = SysModules
-modules['sys'] = _SysModule()
+# Should be the last line of the python part of hybrid stuff
+_gomodulehacks.hybrid_module(__name__, __file__, SysmoduleDict, __all__, globals())
