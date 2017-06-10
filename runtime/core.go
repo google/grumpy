@@ -1292,7 +1292,7 @@ func pyPrint(f *Frame, args Args, sep, end string, filelike *Object) *BaseExcept
 	}
 
 	callArgs[0] = pyEnd.ToObject()
-	if 	_, raised := writeFunc.Call(f, callArgs, nil); raised != nil {
+	if _, raised := writeFunc.Call(f, callArgs, nil); raised != nil {
 		return raised
 	}
 
