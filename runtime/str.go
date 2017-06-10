@@ -238,44 +238,9 @@ func strEq(f *Frame, v, w *Object) (*Object, *BaseException) {
 // strFind returns the lowest index in s where the substring sub is found such
 // that sub is wholly contained in s[start:end]. Return -1 on failure.
 func strFind(f *Frame, args Args, _ KWArgs) (*Object, *BaseException) {
-	var raised *BaseException
-	// TODO: Support for unicode substring.
-	expectedTypes := []*Type{StrType, StrType, ObjectType, ObjectType}
-	argc := len(args)
-	if argc == 2 || argc == 3 {
-		expectedTypes = expectedTypes[:argc]
-	}
-	if raised := checkMethodArgs(f, "find/index", args, expectedTypes...); raised != nil {
-		return nil, raised
-	}
-	s := toStrUnsafe(args[0]).Value()
-	l := len(s)
-	start, end := 0, l
-	if argc >= 3 && args[2] != None {
-		start, raised = IndexInt(f, args[2])
-		if raised != nil {
-			return nil, raised
-		}
-	}
-	if argc == 4 && args[3] != None {
-		end, raised = IndexInt(f, args[3])
-		if raised != nil {
-			return nil, raised
-		}
-	}
-	if start > l {
-		return NewInt(-1).ToObject(), nil
-	}
-	start, end = adjustIndex(start, end, l)
-	if start > end {
-		return NewInt(-1).ToObject(), nil
-	}
-	sub := toStrUnsafe(args[1]).Value()
-	index := strings.Index(s[start:end], sub)
-	if index != -1 {
-		index += start
-	}
-	return NewInt(index).ToObject(), nil
+	return strFindOrIndex(f, args, func(s, sub string) (int, *BaseException) {
+		return strings.Index(s, sub), nil
+	})
 }
 
 func strGE(f *Frame, v, w *Object) (*Object, *BaseException) {
@@ -335,6 +300,16 @@ func strHash(f *Frame, o *Object) (*Object, *BaseException) {
 	h := NewInt(hashString(toStrUnsafe(o).Value()))
 	atomic.StorePointer(p, unsafe.Pointer(h))
 	return h.ToObject(), nil
+}
+
+func strIndex(f *Frame, args Args, _ KWArgs) (*Object, *BaseException) {
+	return strFindOrIndex(f, args, func(s, sub string) (i int, raised *BaseException) {
+		i = strings.Index(s, sub)
+		if i == -1 {
+			raised = f.RaiseType(ValueErrorType, "substring not found")
+		}
+		return i, raised
+	})
 }
 
 func strIsAlNum(f *Frame, args Args, kwargs KWArgs) (*Object, *BaseException) {
@@ -708,6 +683,22 @@ func strRepr(_ *Frame, o *Object) (*Object, *BaseException) {
 	return NewStr(buf.String()).ToObject(), nil
 }
 
+func strRFind(f *Frame, args Args, _ KWArgs) (*Object, *BaseException) {
+	return strFindOrIndex(f, args, func(s, sub string) (int, *BaseException) {
+		return strings.LastIndex(s, sub), nil
+	})
+}
+
+func strRIndex(f *Frame, args Args, _ KWArgs) (*Object, *BaseException) {
+	return strFindOrIndex(f, args, func(s, sub string) (i int, raised *BaseException) {
+		i = strings.LastIndex(s, sub)
+		if i == -1 {
+			raised = f.RaiseType(ValueErrorType, "substring not found")
+		}
+		return i, raised
+	})
+}
+
 func strSplit(f *Frame, args Args, kwargs KWArgs) (*Object, *BaseException) {
 	expectedTypes := []*Type{StrType, ObjectType, IntType}
 	argc := len(args)
@@ -913,6 +904,7 @@ func initStrType(dict map[string]*Object) {
 	dict["decode"] = newBuiltinFunction("decode", strDecode).ToObject()
 	dict["endswith"] = newBuiltinFunction("endswith", strEndsWith).ToObject()
 	dict["find"] = newBuiltinFunction("find", strFind).ToObject()
+	dict["index"] = newBuiltinFunction("index", strIndex).ToObject()
 	dict["isalnum"] = newBuiltinFunction("isalnum", strIsAlNum).ToObject()
 	dict["isalpha"] = newBuiltinFunction("isalpha", strIsAlpha).ToObject()
 	dict["isdigit"] = newBuiltinFunction("isdigit", strIsDigit).ToObject()
@@ -923,6 +915,8 @@ func initStrType(dict map[string]*Object) {
 	dict["join"] = newBuiltinFunction("join", strJoin).ToObject()
 	dict["lower"] = newBuiltinFunction("lower", strLower).ToObject()
 	dict["lstrip"] = newBuiltinFunction("lstrip", strLStrip).ToObject()
+	dict["rfind"] = newBuiltinFunction("rfind", strRFind).ToObject()
+	dict["rindex"] = newBuiltinFunction("rindex", strRIndex).ToObject()
 	dict["split"] = newBuiltinFunction("split", strSplit).ToObject()
 	dict["splitlines"] = newBuiltinFunction("splitlines", strSplitLines).ToObject()
 	dict["startswith"] = newBuiltinFunction("startswith", strStartsWith).ToObject()
@@ -1328,4 +1322,51 @@ func strLeftPad(s string, width int, fillchar string) string {
 	buf.WriteString(strings.Repeat(fillchar, width-l))
 	buf.WriteString(s)
 	return buf.String()
+}
+
+type indexFunc func(string, string) (int, *BaseException)
+
+func strFindOrIndex(f *Frame, args Args, fn indexFunc) (*Object, *BaseException) {
+	// TODO: Support for unicode substring.
+	expectedTypes := []*Type{StrType, StrType, ObjectType, ObjectType}
+	argc := len(args)
+	if argc == 2 || argc == 3 {
+		expectedTypes = expectedTypes[:argc]
+	}
+	if raised := checkMethodArgs(f, "find/index", args, expectedTypes...); raised != nil {
+		return nil, raised
+	}
+	s := toStrUnsafe(args[0]).Value()
+	l := len(s)
+	start, end := 0, l
+	var raised *BaseException
+	if argc >= 3 && args[2] != None {
+		start, raised = IndexInt(f, args[2])
+		if raised != nil {
+			return nil, raised
+		}
+	}
+	if argc == 4 && args[3] != None {
+		end, raised = IndexInt(f, args[3])
+		if raised != nil {
+			return nil, raised
+		}
+	}
+	// Default to an impossible search.
+	search, sub := "", "-"
+	if start <= l {
+		start, end = adjustIndex(start, end, l)
+		if start <= end {
+			sub = toStrUnsafe(args[1]).Value()
+			search = s[start:end]
+		}
+	}
+	index, raised := fn(search, sub)
+	if raised != nil {
+		return nil, raised
+	}
+	if index != -1 {
+		index += start
+	}
+	return NewInt(index).ToObject(), nil
 }
