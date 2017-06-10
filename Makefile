@@ -100,6 +100,7 @@ STDLIB_TESTS := \
   test/test_list \
   test/test_md5 \
   test/test_operator \
+  test/test_quopri \
   test/test_rfc822 \
   test/test_slice \
   test/test_string \
