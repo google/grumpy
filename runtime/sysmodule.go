@@ -19,8 +19,8 @@ var (
 	SysmoduleDict = newStringDict(map[string]*Object{
 		"__file__": NewStr("<native>").ToObject(),
 		"__name__": NewStr("_sys").ToObject(),
-		"stdin": Stdin.ToObject(),
-		"stdout": Stdout.ToObject(),
-		"stderr": Stderr.ToObject(),
+		"stdin":    Stdin.ToObject(),
+		"stdout":   Stdout.ToObject(),
+		"stderr":   Stderr.ToObject(),
 	})
 )
