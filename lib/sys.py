@@ -21,9 +21,9 @@ from __go__.unicode import MaxRune
 import _gomodulehacks
 
 
-__all__ = ('stdin', 'stdout', 'stderr', 'argv', 'goversion',
+__all__ = ('stdin', 'stdout', 'stderr', 'argv', 'goversion', 'version',
            'maxint', 'maxsize', 'maxunicode', 'modules', 'platform', 'py3kwarning',
-           'warnoptions', 'byteorder', 'flags', 'exc_info', 'exit')
+           'warnoptions', 'byteorder', 'flags', 'exc_clear', 'exc_info', 'exit')
 
 
 argv = []
