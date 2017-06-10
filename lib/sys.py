@@ -16,7 +16,7 @@
 
 from __go__.os import Args
 from __go__.grumpy import SysmoduleDict, SysModules, MaxInt  # pylint: disable=g-multiple-import
-from __go__.runtime import Version
+from __go__.runtime import (GOOS as platform, Version)
 from __go__.unicode import MaxRune
 import _gomodulehacks
 
@@ -45,6 +45,7 @@ py3kwarning = False
 warnoptions = []
 # TODO: Support actual byteorder
 byteorder = 'little'
+version = '2.7.13'
 
 
 class _Flags(object):
@@ -68,6 +69,10 @@ class _Flags(object):
 
 
 flags = _Flags()
+
+
+def exc_clear():
+  __frame__().__exc_clear__()
 
 
 def exc_info():

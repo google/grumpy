@@ -27,12 +27,10 @@ class Event(object):
     self._is_set = False
 
   def set(self):
-    self._mutex.Lock()
-    try:
-      self._is_set = True
-    finally:
-      self._mutex.Unlock()
-    self._cond.Broadcast()
+    self._set(True)
+
+  def clear(self):
+    self._set(False)
 
   # TODO: Support timeout param.
   def wait(self):
@@ -43,6 +41,14 @@ class Event(object):
     finally:
       self._mutex.Unlock()
     return True
+
+  def _set(self, is_set):
+    self._mutex.Lock()
+    try:
+      self._is_set = is_set
+    finally:
+      self._mutex.Unlock()
+    self._cond.Broadcast()
 
 
 class Thread(object):

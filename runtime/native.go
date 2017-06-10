@@ -204,7 +204,7 @@ func nativeFuncGetName(f *Frame, args Args, _ KWArgs) (*Object, *BaseException) 
 }
 
 func nativeFuncRepr(f *Frame, o *Object) (*Object, *BaseException) {
-	name, raised := GetAttr(f, o, NewStr("__name__"), NewStr("<unknown>").ToObject())
+	name, raised := GetAttr(f, o, internedName, NewStr("<unknown>").ToObject())
 	if raised != nil {
 		return nil, raised
 	}
@@ -316,10 +316,7 @@ func WrapNative(f *Frame, v reflect.Value) (*Object, *BaseException) {
 		return (&Int{Object{typ: t}, i}).ToObject(), nil
 	case reflect.Complex64:
 	case reflect.Complex128:
-		c := v.Complex()
-		// TODO: Switch this over to calling the type when `complex.__new__`
-		// gets implemented.
-		return NewComplex(c).ToObject(), nil
+		return t.Call(f, Args{NewComplex(v.Complex()).ToObject()}, nil)
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Uint8, reflect.Uint16:
 		return t.Call(f, Args{NewInt(int(v.Int())).ToObject()}, nil)
 	// Handle potentially large ints separately in case of overflow.
@@ -482,7 +479,7 @@ func maybeConvertValue(f *Frame, o *Object, expectedRType reflect.Type) (reflect
 		case reflect.Chan, reflect.Func, reflect.Interface, reflect.Map, reflect.Ptr, reflect.Slice, reflect.UnsafePointer:
 			return reflect.Zero(expectedRType), nil
 		default:
-			return reflect.Value{}, f.RaiseType(TypeErrorType, fmt.Sprintf("cannot convert None to %s", expectedRType))
+			return reflect.Value{}, f.RaiseType(TypeErrorType, fmt.Sprintf("an %s is required", expectedRType))
 		}
 	}
 	val, raised := ToNative(f, o)
@@ -504,7 +501,7 @@ func maybeConvertValue(f *Frame, o *Object, expectedRType reflect.Type) (reflect
 		}
 		break
 	}
-	return reflect.Value{}, f.RaiseType(TypeErrorType, fmt.Sprintf("cannot convert %s to %s", rtype, expectedRType))
+	return reflect.Value{}, f.RaiseType(TypeErrorType, fmt.Sprintf("an %s is required", expectedRType))
 }
 
 func nativeFuncTypeName(rtype reflect.Type) string {

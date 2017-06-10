@@ -359,7 +359,7 @@ func TestTypeGetAttribute(t *testing.T) {
 func TestTypeName(t *testing.T) {
 	fooType := newTestClass("Foo", []*Type{ObjectType}, NewDict())
 	fun := wrapFuncForTest(func(f *Frame, t *Type) (*Object, *BaseException) {
-		return GetAttr(f, t.ToObject(), NewStr("__name__"), nil)
+		return GetAttr(f, t.ToObject(), internedName, nil)
 	})
 	cas := invokeTestCase{args: wrapArgs(fooType), want: NewStr("Foo").ToObject()}
 	if err := runInvokeTestCase(fun, &cas); err != "" {

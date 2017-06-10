@@ -91,6 +91,45 @@ func TestListCount(t *testing.T) {
 		}
 	}
 }
+
+func TestListDelItem(t *testing.T) {
+	badIndexType := newTestClass("badIndex", []*Type{ObjectType}, newStringDict(map[string]*Object{
+		"__index__": newBuiltinFunction("__index__", func(f *Frame, _ Args, _ KWArgs) (*Object, *BaseException) {
+			return nil, f.RaiseType(ValueErrorType, "wut")
+		}).ToObject(),
+	}))
+	delItem := mustNotRaise(GetAttr(NewRootFrame(), ListType.ToObject(), NewStr("__delitem__"), nil))
+	fun := wrapFuncForTest(func(f *Frame, l *List, key *Object) (*Object, *BaseException) {
+		_, raised := delItem.Call(f, wrapArgs(l, key), nil)
+		if raised != nil {
+			return nil, raised
+		}
+		return l.ToObject(), nil
+	})
+	cases := []invokeTestCase{
+		{args: wrapArgs(newTestRange(3), 0), want: newTestList(1, 2).ToObject()},
+		{args: wrapArgs(newTestRange(3), 2), want: newTestList(0, 1).ToObject()},
+		{args: wrapArgs(NewList(), 101), wantExc: mustCreateException(IndexErrorType, "index out of range")},
+		{args: wrapArgs(NewList(), newTestSlice(50, 100)), want: NewList().ToObject()},
+		{args: wrapArgs(newTestList(1, 2, 3, 4, 5), newTestSlice(1, 3, None)), want: newTestList(1, 4, 5).ToObject()},
+		{args: wrapArgs(newTestList(1, 2, 3, 4, 5), newTestSlice(1, None, 2)), want: newTestList(1, 3, 5).ToObject()},
+		{args: wrapArgs(newTestList(1, 2, 3, 4, 5), newTestSlice(big.NewInt(1), None, 2)), want: newTestList(1, 3, 5).ToObject()},
+		{args: wrapArgs(newTestList(1, 2, 3, 4, 5), newTestSlice(1, big.NewInt(5), 2)), want: newTestList(1, 3, 5).ToObject()},
+		{args: wrapArgs(newTestList(1, 2, 3, 4, 5), newTestSlice(1, None, big.NewInt(2))), want: newTestList(1, 3, 5).ToObject()},
+		{args: wrapArgs(newTestList(1, 2, 3, 4, 5), newTestSlice(1.0, 3, None)), wantExc: mustCreateException(TypeErrorType, errBadSliceIndex)},
+		{args: wrapArgs(newTestList(1, 2, 3, 4, 5), newTestSlice(None, None, 4)), want: newTestList(2, 3, 4).ToObject()},
+		{args: wrapArgs(newTestRange(10), newTestSlice(1, 8, 3)), want: newTestList(0, 2, 3, 5, 6, 8, 9).ToObject()},
+		{args: wrapArgs(newTestList(1, 2, 3), newTestSlice(1, None, 0)), wantExc: mustCreateException(ValueErrorType, "slice step cannot be zero")},
+		{args: wrapArgs(newTestList(true), None), wantExc: mustCreateException(TypeErrorType, "list indices must be integers, not NoneType")},
+		{args: wrapArgs(newTestList(true), newObject(badIndexType)), wantExc: mustCreateException(ValueErrorType, "wut")},
+	}
+	for _, cas := range cases {
+		if err := runInvokeTestCase(fun, &cas); err != "" {
+			t.Error(err)
+		}
+	}
+}
+
 func TestListIndex(t *testing.T) {
 	intIndexType := newTestClass("IntIndex", []*Type{ObjectType}, newStringDict(map[string]*Object{
 		"__index__": newBuiltinFunction("__index__", func(f *Frame, _ Args, _ KWArgs) (*Object, *BaseException) {

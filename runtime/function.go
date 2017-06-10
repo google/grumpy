@@ -121,8 +121,14 @@ func functionCall(f *Frame, callable *Object, args Args, kwargs KWArgs) (*Object
 	return code.Eval(f, fun.globals, args, kwargs)
 }
 
-func functionGet(_ *Frame, desc, instance *Object, owner *Type) (*Object, *BaseException) {
-	return NewMethod(toFunctionUnsafe(desc), instance, owner).ToObject(), nil
+func functionGet(f *Frame, desc, instance *Object, owner *Type) (*Object, *BaseException) {
+	args := f.MakeArgs(3)
+	args[0] = desc
+	args[1] = instance
+	args[2] = owner.ToObject()
+	ret, raised := MethodType.Call(f, args, nil)
+	f.FreeArgs(args)
+	return ret, raised
 }
 
 func functionRepr(_ *Frame, o *Object) (*Object, *BaseException) {
@@ -201,7 +207,13 @@ func classMethodGet(f *Frame, desc, _ *Object, owner *Type) (*Object, *BaseExcep
 	if m.callable == nil {
 		return nil, f.RaiseType(RuntimeErrorType, "uninitialized classmethod object")
 	}
-	return NewMethod(toFunctionUnsafe(m.callable), owner.ToObject(), owner).ToObject(), nil
+	args := f.MakeArgs(3)
+	args[0] = m.callable
+	args[1] = owner.ToObject()
+	args[2] = args[1]
+	ret, raised := MethodType.Call(f, args, nil)
+	f.FreeArgs(args)
+	return ret, raised
 }
 
 func classMethodInit(f *Frame, o *Object, args Args, _ KWArgs) (*Object, *BaseException) {
