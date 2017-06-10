@@ -1,6 +1,10 @@
 # coding: utf-8
 
 from __go__.grumpy import SysModules
+import errno
+
+# For some reason, importing and extending grumpy.Module does not work.
+Module = type(errno)
 
 
 def hybrid_module(modulename, modulefile, moduledict, all_attrs, globals_):
@@ -11,8 +15,12 @@ def hybrid_module(modulename, modulefile, moduledict, all_attrs, globals_):
     for example a Grumpy dict from native module.
 
     And does include the resulting module on sys.modules at the end.
+
+    Should be called as:
+        hybrid_module(__name__, __file__, YourmoduleDict, __all__, globals())
+    On the last line of the Python-part of the module
     """
-    class HybridModule(object):
+    class HybridModule(Module):
         def __init__(self):
             moduledict['__name__'] = modulename
             moduledict['__file__'] = modulefile
