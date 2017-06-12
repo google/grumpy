@@ -104,6 +104,7 @@ var builtinTypes = map[*Type]*builtinTypeInfo{
 	BaseExceptionType:             {init: initBaseExceptionType, global: true},
 	BaseStringType:                {init: initBaseStringType, global: true},
 	BoolType:                      {init: initBoolType, global: true},
+	ByteArrayType:                 {init: initByteArrayType, global: true},
 	BytesWarningType:              {global: true},
 	CodeType:                      {},
 	ComplexType:                   {init: initComplexType, global: true},
