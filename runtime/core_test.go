@@ -818,7 +818,7 @@ func TestPos(t *testing.T) {
 func TestPyPrint(t *testing.T) {
 	fun := wrapFuncForTest(func(f *Frame, args *Tuple, sep, end string) (string, *BaseException) {
 		return captureStdout(f, func() *BaseException {
-			return pyPrint(NewRootFrame(), args.elems, sep, end, Stdout)
+			return pyPrint(NewRootFrame(), args.elems, sep, end, Stdout.ToObject())
 		})
 	})
 	cases := []invokeTestCase{
