@@ -92,6 +92,15 @@ func complexEq(f *Frame, v, w *Object) (*Object, *BaseException) {
 	return GetBool(e).ToObject(), nil
 }
 
+func complexFloorDiv(f *Frame, v, w *Object) (*Object, *BaseException) {
+	return complexDivModOp(f, "__floordiv__", v, w, func(v, w complex128) (complex128, bool) {
+		if w == 0 {
+			return 0, false
+		}
+		return complex(math.Floor(real(v/w)), 0), true
+	})
+}
+
 func complexHash(f *Frame, o *Object) (*Object, *BaseException) {
 	v := toComplexUnsafe(o).Value()
 	hashCombined := hashFloat(real(v)) + 1000003*hashFloat(imag(v))
@@ -232,6 +241,15 @@ func complexRepr(f *Frame, o *Object) (*Object, *BaseException) {
 	return NewStr(fmt.Sprintf("%s%s%s%sj%s", pre, rs, sign, is, post)).ToObject(), nil
 }
 
+func complexRFloorDiv(f *Frame, v, w *Object) (*Object, *BaseException) {
+	return complexDivModOp(f, "__rfloordiv__", v, w, func(v, w complex128) (complex128, bool) {
+		if v == 0 {
+			return 0, false
+		}
+		return complex(math.Floor(real(w/v)), 0), true
+	})
+}
+
 func complexRMul(f *Frame, v, w *Object) (*Object, *BaseException) {
 	return complexArithmeticOp(f, "__rmul__", v, w, func(lhs, rhs complex128) complex128 {
 		return rhs * lhs
@@ -262,6 +280,7 @@ func initComplexType(dict map[string]*Object) {
 	ComplexType.slots.Complex = &unaryOpSlot{complexComplex}
 	ComplexType.slots.Div = &binaryOpSlot{complexDiv}
 	ComplexType.slots.Eq = &binaryOpSlot{complexEq}
+	ComplexType.slots.FloorDiv = &binaryOpSlot{complexFloorDiv}
 	ComplexType.slots.GE = &binaryOpSlot{complexCompareNotSupported}
 	ComplexType.slots.GT = &binaryOpSlot{complexCompareNotSupported}
 	ComplexType.slots.Hash = &unaryOpSlot{complexHash}
@@ -276,6 +295,7 @@ func initComplexType(dict map[string]*Object) {
 	ComplexType.slots.Pow = &binaryOpSlot{complexPow}
 	ComplexType.slots.RAdd = &binaryOpSlot{complexRAdd}
 	ComplexType.slots.RDiv = &binaryOpSlot{complexRDiv}
+	ComplexType.slots.RFloorDiv = &binaryOpSlot{complexRFloorDiv}
 	ComplexType.slots.Repr = &unaryOpSlot{complexRepr}
 	ComplexType.slots.RMul = &binaryOpSlot{complexRMul}
 	ComplexType.slots.RPow = &binaryOpSlot{complexRPow}
