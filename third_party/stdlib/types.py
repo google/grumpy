@@ -3,6 +3,7 @@
 Types that are part of optional modules (e.g. array) are not listed.
 """
 import sys
+import errno
 
 # Iterators in Python aren't a matter of type but of protocol.  A large
 # and changing number of builtin types implement *some* flavor of
@@ -59,7 +60,7 @@ MethodType = type(_x._m)
 BuiltinFunctionType = type(len)
 BuiltinMethodType = type([].append)     # Same as BuiltinFunctionType
 
-ModuleType = type(sys)
+ModuleType = type(errno)
 FileType = file
 XRangeType = xrange
 
