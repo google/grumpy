@@ -90,7 +90,7 @@ func TestMakeStructFieldDescriptor(t *testing.T) {
 			return nil, raised
 		}
 		t := toTypeUnsafe(args[0])
-		desc := makeStructFieldDescriptor(t, toStrUnsafe(args[1]).Value(), toStrUnsafe(args[2]).Value())
+		desc := makeStructFieldDescriptor(t, toStrUnsafe(args[1]).Value(), toStrUnsafe(args[2]).Value(), fieldDescriptorRO)
 		get, raised := GetAttr(f, desc, NewStr("__get__"), nil)
 		if raised != nil {
 			return nil, raised
@@ -103,6 +103,56 @@ func TestMakeStructFieldDescriptor(t *testing.T) {
 		{args: wrapArgs(IntType, "value", "value", 42), want: NewInt(42).ToObject()},
 		{args: wrapArgs(StrType, "value", "value", 42), wantExc: mustCreateException(TypeErrorType, "descriptor 'value' for 'str' objects doesn't apply to 'int' objects")},
 		{args: wrapArgs(BaseExceptionType, "args", "args", e), want: NewTuple(NewStr("foo").ToObject()).ToObject()},
+	}
+	for _, cas := range cases {
+		if err := runInvokeTestCase(fun, &cas); err != "" {
+			t.Error(err)
+		}
+	}
+}
+
+func TestMakeStructFieldDescriptorRWGet(t *testing.T) {
+	fun := newBuiltinFunction("TestMakeStructFieldDescriptorRW_get", func(f *Frame, args Args, kwargs KWArgs) (*Object, *BaseException) {
+		if raised := checkMethodArgs(f, "TestMakeStructFieldDescriptorRW_get", args, TypeType, StrType, StrType, ObjectType); raised != nil {
+			return nil, raised
+		}
+		t := toTypeUnsafe(args[0])
+		desc := makeStructFieldDescriptor(t, toStrUnsafe(args[1]).Value(), toStrUnsafe(args[2]).Value(), fieldDescriptorRW)
+		get, raised := GetAttr(f, desc, NewStr("__get__"), nil)
+		if raised != nil {
+			return nil, raised
+		}
+		return get.Call(f, wrapArgs(args[3], t), nil)
+	}).ToObject()
+	cases := []invokeTestCase{
+		{args: wrapArgs(FileType, "Softspace", "softspace", newObject(FileType)), want: NewInt(0).ToObject()},
+		{args: wrapArgs(FileType, "Softspace", "softspace", 42), wantExc: mustCreateException(TypeErrorType, "descriptor 'softspace' for 'file' objects doesn't apply to 'int' objects")},
+	}
+	for _, cas := range cases {
+		if err := runInvokeTestCase(fun, &cas); err != "" {
+			t.Error(err)
+		}
+	}
+}
+
+func TestMakeStructFieldDescriptorRWSet(t *testing.T) {
+	fun := newBuiltinFunction("TestMakeStructFieldDescriptorRW_set", func(f *Frame, args Args, kwargs KWArgs) (*Object, *BaseException) {
+		if raised := checkMethodArgs(f, "TestMakeStructFieldDescriptorRW_set", args, TypeType, StrType, StrType, ObjectType, ObjectType); raised != nil {
+			return nil, raised
+		}
+		t := toTypeUnsafe(args[0])
+		desc := makeStructFieldDescriptor(t, toStrUnsafe(args[1]).Value(), toStrUnsafe(args[2]).Value(), fieldDescriptorRW)
+		set, raised := GetAttr(f, desc, NewStr("__set__"), nil)
+		if raised != nil {
+			return nil, raised
+		}
+		return set.Call(f, wrapArgs(args[3], args[4]), nil)
+	}).ToObject()
+	cases := []invokeTestCase{
+		{args: wrapArgs(FileType, "Softspace", "softspace", newObject(FileType), NewInt(0).ToObject()), want: None},
+		{args: wrapArgs(FileType, "Softspace", "softspace", newObject(FileType), NewInt(0)), want: None},
+		{args: wrapArgs(FileType, "Softspace", "softspace", newObject(FileType), "wrong"), wantExc: mustCreateException(TypeErrorType, "an int is required")},
+		{args: wrapArgs(FileType, "Softspace", "softspace", 42, NewInt(0)), wantExc: mustCreateException(TypeErrorType, "descriptor 'softspace' for 'file' objects doesn't apply to 'int' objects")},
 	}
 	for _, cas := range cases {
 		if err := runInvokeTestCase(fun, &cas); err != "" {

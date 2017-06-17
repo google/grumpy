@@ -130,6 +130,7 @@ var builtinTypes = map[*Type]*builtinTypeInfo{
 	IndexErrorType:                {global: true},
 	IntType:                       {init: initIntType, global: true},
 	IOErrorType:                   {global: true},
+	KeyboardInterruptType:         {global: true},
 	KeyErrorType:                  {global: true},
 	listIteratorType:              {init: initListIteratorType},
 	ListType:                      {init: initListType, global: true},
@@ -732,9 +733,9 @@ Outer:
 			elem, raised := Next(f, iter)
 			if raised != nil {
 				if raised.isInstance(StopIterationType) {
+					f.RestoreExc(nil, nil)
 					break Outer
 				}
-				f.RestoreExc(nil, nil)
 				return nil, raised
 			}
 			elems[i] = elem
@@ -929,9 +930,9 @@ func zipLongest(f *Frame, args Args) ([][]*Object, *BaseException) {
 				if raised.isInstance(StopIterationType) {
 					iters[i] = nil
 					elems[i] = None
+					f.RestoreExc(nil, nil)
 					continue
 				}
-				f.RestoreExc(nil, nil)
 				return nil, raised
 			}
 			noItems = false

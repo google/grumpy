@@ -22,16 +22,10 @@ import (
 // Method represents Python 'instancemethod' objects.
 type Method struct {
 	Object
-	function *Function
-	self     *Object
-	class    *Type
-	name     string `attr:"__name__"`
-}
-
-// NewMethod returns a method wrapping the given function belonging to class.
-// When self is None the method is unbound, otherwise it is bound to self.
-func NewMethod(function *Function, self *Object, class *Type) *Method {
-	return &Method{Object{typ: MethodType}, function, self, class, function.Name()}
+	function *Object `attr:"im_func"`
+	self     *Object `attr:"im_self"`
+	class    *Object `attr:"im_class"`
+	name     string  `attr:"__name__"`
 }
 
 func toMethodUnsafe(o *Object) *Method {
@@ -48,44 +42,136 @@ var MethodType = newBasisType("instancemethod", reflect.TypeOf(Method{}), toMeth
 
 func methodCall(f *Frame, callable *Object, args Args, kwargs KWArgs) (*Object, *BaseException) {
 	m := toMethodUnsafe(callable)
-	var methodArgs []*Object
 	argc := len(args)
-	if m.self == None {
-		if argc < 1 {
-			format := "unbound method %s() must be called with %s instance as first argument (got nothing instead)"
-			return nil, f.RaiseType(TypeErrorType, fmt.Sprintf(format, m.name, m.class.Name()))
-		}
-		if !args[0].isInstance(m.class) {
-			format := "unbound method %s() must be called with %s instance as first argument (got %s instance instead)"
-			return nil, f.RaiseType(TypeErrorType, fmt.Sprintf(format, m.name, m.class.Name(), args[0].typ.Name()))
-		}
-		methodArgs = args
-	} else {
-		methodArgs = make([]*Object, argc+1, argc+1)
+	if m.self != nil {
+		methodArgs := f.MakeArgs(argc + 1)
 		methodArgs[0] = m.self
 		copy(methodArgs[1:], args)
+		result, raised := m.function.Call(f, methodArgs, kwargs)
+		f.FreeArgs(methodArgs)
+		return result, raised
 	}
-	return m.function.Call(f, methodArgs, kwargs)
+	if argc < 1 {
+		className, raised := methodGetMemberName(f, m.class)
+		if raised != nil {
+			return nil, raised
+		}
+		format := "unbound method %s() must be called with %s " +
+			"instance as first argument (got nothing instead)"
+		return nil, f.RaiseType(TypeErrorType, fmt.Sprintf(format, m.name, className))
+	}
+	// instancemethod.__new__ ensures that m.self and m.class are not both
+	// nil. Since m.self is nil, we know that m.class is not.
+	isInst, raised := IsInstance(f, args[0], m.class)
+	if raised != nil {
+		return nil, raised
+	}
+	if !isInst {
+		className, raised := methodGetMemberName(f, m.class)
+		if raised != nil {
+			return nil, raised
+		}
+		format := "unbound method %s() must be called with %s " +
+			"instance as first argument (got %s instance instead)"
+		return nil, f.RaiseType(TypeErrorType, fmt.Sprintf(format, m.name, className, args[0].typ.Name()))
+	}
+	return m.function.Call(f, args, kwargs)
+}
+
+func methodGet(f *Frame, desc, instance *Object, owner *Type) (*Object, *BaseException) {
+	m := toMethodUnsafe(desc)
+	if m.self != nil {
+		// Don't bind a method that's already bound.
+		return desc, nil
+	}
+	if m.class != nil {
+		subcls, raised := IsSubclass(f, owner.ToObject(), m.class)
+		if raised != nil {
+			return nil, raised
+		}
+		if !subcls {
+			// Don't bind if owner is not a subclass of m.class.
+			return desc, nil
+		}
+	}
+	return (&Method{Object{typ: MethodType}, m.function, instance, owner.ToObject(), m.name}).ToObject(), nil
+}
+
+func methodNew(f *Frame, t *Type, args Args, _ KWArgs) (*Object, *BaseException) {
+	expectedTypes := []*Type{ObjectType, ObjectType, ObjectType}
+	argc := len(args)
+	if argc == 2 {
+		expectedTypes = expectedTypes[:2]
+	}
+	if raised := checkFunctionArgs(f, "__new__", args, expectedTypes...); raised != nil {
+		return nil, raised
+	}
+	function, self := args[0], args[1]
+	if self == None {
+		self = nil
+	}
+	var class *Object
+	if argc > 2 {
+		class = args[2]
+	} else if self == nil {
+		return nil, f.RaiseType(TypeErrorType, "unbound methods must have non-NULL im_class")
+	}
+	if function.Type().slots.Call == nil {
+		return nil, f.RaiseType(TypeErrorType, "first argument must be callable")
+	}
+	functionName, raised := methodGetMemberName(f, function)
+	if raised != nil {
+		return nil, raised
+	}
+	method := &Method{Object{typ: MethodType}, function, self, class, functionName}
+	return method.ToObject(), nil
 }
 
 func methodRepr(f *Frame, o *Object) (*Object, *BaseException) {
 	m := toMethodUnsafe(o)
 	s := ""
-	if m.self == None {
-		s = fmt.Sprintf("<unbound method %s.%s>", m.class.Name(), m.function.Name())
+	className, raised := methodGetMemberName(f, m.class)
+	if raised != nil {
+		return nil, raised
+	}
+	functionName, raised := methodGetMemberName(f, m.function)
+	if raised != nil {
+		return nil, raised
+	}
+	if m.self == nil {
+		s = fmt.Sprintf("<unbound method %s.%s>", className, functionName)
 	} else {
 		repr, raised := Repr(f, m.self)
 		if raised != nil {
 			return nil, raised
 		}
-		s = fmt.Sprintf("<bound method %s.%s of %s>", m.class.Name(), m.function.Name(), repr.Value())
+		s = fmt.Sprintf("<bound method %s.%s of %s>", className, functionName, repr.Value())
 	}
 	return NewStr(s).ToObject(), nil
 }
 
 func initMethodType(map[string]*Object) {
-	// TODO: Should be instantiable.
-	MethodType.flags &= ^(typeFlagBasetype | typeFlagInstantiable)
+	MethodType.flags &= ^typeFlagBasetype
 	MethodType.slots.Call = &callSlot{methodCall}
+	MethodType.slots.Get = &getSlot{methodGet}
 	MethodType.slots.Repr = &unaryOpSlot{methodRepr}
+	MethodType.slots.New = &newSlot{methodNew}
+}
+
+func methodGetMemberName(f *Frame, o *Object) (string, *BaseException) {
+	if o == nil {
+		return "?", nil
+	}
+	name, raised := GetAttr(f, o, internedName, None)
+	if raised != nil {
+		return "", raised
+	}
+	if !name.isInstance(BaseStringType) {
+		return "?", nil
+	}
+	nameStr, raised := ToStr(f, name)
+	if raised != nil {
+		return "", raised
+	}
+	return nameStr.Value(), nil
 }

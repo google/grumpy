@@ -19,6 +19,13 @@ import (
 	"reflect"
 )
 
+type fieldDescriptorType int
+
+const (
+	fieldDescriptorRO fieldDescriptorType = iota
+	fieldDescriptorRW
+)
+
 // Property represents Python 'property' objects.
 type Property struct {
 	Object
@@ -98,24 +105,57 @@ func propertySet(f *Frame, desc, inst, value *Object) *BaseException {
 
 // makeStructFieldDescriptor creates a descriptor with a getter that returns
 // the field given by fieldName from t's basis structure.
-func makeStructFieldDescriptor(t *Type, fieldName, propertyName string) *Object {
+func makeStructFieldDescriptor(t *Type, fieldName, propertyName string, fieldMode fieldDescriptorType) *Object {
 	field, ok := t.basis.FieldByName(fieldName)
 	if !ok {
 		logFatal(fmt.Sprintf("no such field %q for basis %s", fieldName, nativeTypeName(t.basis)))
 	}
+
 	getterFunc := func(f *Frame, args Args, _ KWArgs) (*Object, *BaseException) {
-		var ret *Object
-		var raised *BaseException
-		if raised = checkFunctionArgs(f, fieldName, args, ObjectType); raised == nil {
-			o := args[0]
-			if !o.isInstance(t) {
-				format := "descriptor '%s' for '%s' objects doesn't apply to '%s' objects"
-				raised = f.RaiseType(TypeErrorType, fmt.Sprintf(format, propertyName, t.Name(), o.typ.Name()))
-			} else {
-				ret, raised = WrapNative(f, t.slots.Basis.Fn(o).FieldByIndex(field.Index))
-			}
+		if raised := checkFunctionArgs(f, fieldName, args, ObjectType); raised != nil {
+			return nil, raised
 		}
-		return ret, raised
+
+		self := args[0]
+		if !self.isInstance(t) {
+			format := "descriptor '%s' for '%s' objects doesn't apply to '%s' objects"
+			return nil, f.RaiseType(TypeErrorType, fmt.Sprintf(format, propertyName, t.Name(), self.typ.Name()))
+		}
+
+		return WrapNative(f, t.slots.Basis.Fn(self).FieldByIndex(field.Index))
 	}
-	return newProperty(newBuiltinFunction("_get"+fieldName, getterFunc).ToObject(), None, None).ToObject()
+	getter := newBuiltinFunction("_get"+fieldName, getterFunc).ToObject()
+
+	setter := None
+	if fieldMode == fieldDescriptorRW {
+		if field.PkgPath != "" {
+			logFatal(fmt.Sprintf("field '%q' is not public on Golang code. Please fix it.", fieldName))
+		}
+
+		setterFunc := func(f *Frame, args Args, _ KWArgs) (*Object, *BaseException) {
+			if raised := checkFunctionArgs(f, fieldName, args, ObjectType, ObjectType); raised != nil {
+				return nil, raised
+			}
+
+			self := args[0]
+			newValue := args[1]
+
+			if !self.isInstance(t) {
+				format := "descriptor '%s' for '%s' objects doesn't apply to '%s' objects"
+				return nil, f.RaiseType(TypeErrorType, fmt.Sprintf(format, propertyName, t.Name(), self.typ.Name()))
+			}
+
+			val := t.slots.Basis.Fn(self).FieldByIndex(field.Index)
+			converted, raised := maybeConvertValue(f, newValue, field.Type)
+			if raised != nil {
+				return nil, raised
+			}
+
+			val.Set(converted)
+			return None, nil
+		}
+
+		setter = newBuiltinFunction("_set"+fieldName, setterFunc).ToObject()
+	}
+	return newProperty(getter, setter, None).ToObject()
 }

@@ -75,7 +75,11 @@ func (c *Code) Eval(f *Frame, globals *Dict, args Args, kwargs KWArgs) (*Object,
 		}
 	} else {
 		_, tb := f.ExcInfo()
-		tb = newTraceback(f, tb)
+		if f.code != nil {
+			// The root frame has no code object so don't include it
+			// in the traceback.
+			tb = newTraceback(f, tb)
+		}
 		f.RestoreExc(raised, tb)
 	}
 	return ret, raised

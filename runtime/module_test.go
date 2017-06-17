@@ -195,7 +195,7 @@ func TestImportNativeModule(t *testing.T) {
 	o := mustNotRaise(ImportNativeModule(f, "grumpy.native.foo", map[string]*Object{"Bar": bar}))
 	if !o.isInstance(ModuleType) {
 		t.Errorf(`ImportNativeModule("grumpy.native.foo") returned %v, want module`, o)
-	} else if nameAttr := mustNotRaise(GetAttr(f, o, NewStr("__name__"), None)); !nameAttr.isInstance(StrType) {
+	} else if nameAttr := mustNotRaise(GetAttr(f, o, internedName, None)); !nameAttr.isInstance(StrType) {
 		t.Errorf(`ImportNativeModule("grumpy.native.foo") returned module with non-string name %v`, nameAttr)
 	} else if gotName := toStrUnsafe(nameAttr).Value(); gotName != "grumpy.native.foo" {
 		t.Errorf(`ImportNativeModule("grumpy.native.foo") returned module named %q, want "grumpy.native.foo"`, gotName)
@@ -234,7 +234,7 @@ func TestModuleInit(t *testing.T) {
 		if raised != nil {
 			return nil, raised
 		}
-		name, raised := GetAttr(f, o, NewStr("__name__"), None)
+		name, raised := GetAttr(f, o, internedName, None)
 		if raised != nil {
 			return nil, raised
 		}
