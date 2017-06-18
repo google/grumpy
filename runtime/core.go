@@ -219,13 +219,26 @@ func GetItem(f *Frame, o, key *Object) (*Object, *BaseException) {
 // GetAttr returns the named attribute of o. Equivalent to the Python expression
 // getattr(o, name, def).
 func GetAttr(f *Frame, o *Object, name *Str, def *Object) (*Object, *BaseException) {
-	// TODO: Fall back to __getattr__.
 	getAttribute := o.typ.slots.GetAttribute
 	if getAttribute == nil {
 		msg := fmt.Sprintf("'%s' has no attribute '%s'", o.typ.Name(), name.Value())
 		return nil, f.RaiseType(AttributeErrorType, msg)
 	}
 	result, raised := getAttribute.Fn(f, o, name)
+	if raised != nil && raised.isInstance(AttributeErrorType) {
+		// Fall back to __getattr__ when __getattribute__ raised AttributeError
+		getAttr := o.typ.slots.GetAttr
+		if getAttr == nil {
+			// No __getattr__: reraise
+			return nil, raised
+		}
+		result, raised := getAttr.Fn(f, o, name)
+		if raised == nil {
+			return result, raised
+		}
+	}
+
+	// Last resort: return the default
 	if raised != nil && raised.isInstance(AttributeErrorType) && def != nil {
 		f.RestoreExc(nil, nil)
 		result, raised = def, nil

@@ -388,6 +388,7 @@ type typeSlots struct {
 	GE           *binaryOpSlot
 	Get          *getSlot
 	GetAttribute *getAttributeSlot
+	GetAttr      *getAttrSlot
 	GetItem      *binaryOpSlot
 	GT           *binaryOpSlot
 	Hash         *unaryOpSlot
