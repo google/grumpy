@@ -105,7 +105,7 @@ func TestObjectDelAttr(t *testing.T) {
 	})
 	dellerType := newTestClass("Deller", []*Type{ObjectType}, newStringDict(map[string]*Object{
 		"__get__": newBuiltinFunction("__get__", func(f *Frame, args Args, kwargs KWArgs) (*Object, *BaseException) {
-			attr, raised := args[1].dict.GetItemString(f, "attr")
+			attr, raised := args[1].Dict().GetItemString(f, "attr")
 			if raised != nil {
 				return nil, raised
 			}
@@ -115,7 +115,7 @@ func TestObjectDelAttr(t *testing.T) {
 			return attr, nil
 		}).ToObject(),
 		"__delete__": newBuiltinFunction("__delete__", func(f *Frame, args Args, kwargs KWArgs) (*Object, *BaseException) {
-			deleted, raised := args[1].dict.DelItemString(f, "attr")
+			deleted, raised := args[1].Dict().DelItemString(f, "attr")
 			if raised != nil {
 				return nil, raised
 			}
@@ -127,7 +127,7 @@ func TestObjectDelAttr(t *testing.T) {
 	}))
 	fooType := newTestClass("Foo", []*Type{ObjectType}, newStringDict(map[string]*Object{"deller": newObject(dellerType)}))
 	foo := newObject(fooType)
-	if raised := foo.dict.SetItemString(NewRootFrame(), "attr", NewInt(123).ToObject()); raised != nil {
+	if raised := foo.Dict().SetItemString(NewRootFrame(), "attr", NewInt(123).ToObject()); raised != nil {
 		t.Fatal(raised)
 	}
 	cases := []invokeTestCase{
@@ -180,13 +180,13 @@ func TestObjectGetAttribute(t *testing.T) {
 		"barsetter": setter,
 	}))
 	foo := newObject(fooType)
-	if raised := foo.dict.SetItemString(NewRootFrame(), "fooattr", True.ToObject()); raised != nil {
+	if raised := foo.Dict().SetItemString(NewRootFrame(), "fooattr", True.ToObject()); raised != nil {
 		t.Fatal(raised)
 	}
-	if raised := foo.dict.SetItemString(NewRootFrame(), "barattr", NewInt(-1).ToObject()); raised != nil {
+	if raised := foo.Dict().SetItemString(NewRootFrame(), "barattr", NewInt(-1).ToObject()); raised != nil {
 		t.Fatal(raised)
 	}
-	if raised := foo.dict.SetItemString(NewRootFrame(), "barsetter", NewStr("NOT setter").ToObject()); raised != nil {
+	if raised := foo.Dict().SetItemString(NewRootFrame(), "barsetter", NewStr("NOT setter").ToObject()); raised != nil {
 		t.Fatal(raised)
 	}
 	cases := []invokeTestCase{
@@ -197,6 +197,52 @@ func TestObjectGetAttribute(t *testing.T) {
 		{args: wrapArgs(foo, "foo"), want: NewInt(101).ToObject()},
 		{args: wrapArgs(foo, "barattr"), want: NewInt(-1).ToObject()},
 		{args: wrapArgs(foo, "barsetter"), want: NewStr("got setter").ToObject()},
+	}
+	for _, cas := range cases {
+		if err := runInvokeTestCase(fun, &cas); err != "" {
+			t.Error(err)
+		}
+	}
+}
+
+func TestObjectGetDict(t *testing.T) {
+	fooType := newTestClass("Foo", []*Type{ObjectType}, NewDict())
+	foo := newObject(fooType)
+	if raised := SetAttr(NewRootFrame(), foo, NewStr("bar"), NewInt(123).ToObject()); raised != nil {
+		panic(raised)
+	}
+	fun := wrapFuncForTest(func(f *Frame, o *Object) (*Object, *BaseException) {
+		return GetAttr(f, o, NewStr("__dict__"), nil)
+	})
+	cases := []invokeTestCase{
+		{args: wrapArgs(newObject(ObjectType)), wantExc: mustCreateException(AttributeErrorType, "'object' object has no attribute '__dict__'")},
+		{args: wrapArgs(newObject(fooType)), want: NewDict().ToObject()},
+		{args: wrapArgs(foo), want: newStringDict(map[string]*Object{"bar": NewInt(123).ToObject()}).ToObject()},
+	}
+	for _, cas := range cases {
+		if err := runInvokeTestCase(fun, &cas); err != "" {
+			t.Error(err)
+		}
+	}
+}
+
+func TestObjectSetDict(t *testing.T) {
+	fooType := newTestClass("Foo", []*Type{ObjectType}, NewDict())
+	testDict := newStringDict(map[string]*Object{"bar": NewInt(123).ToObject()})
+	fun := wrapFuncForTest(func(f *Frame, o, val *Object) (*Object, *BaseException) {
+		if raised := SetAttr(f, o, NewStr("__dict__"), val); raised != nil {
+			return nil, raised
+		}
+		d := o.Dict()
+		if d == nil {
+			return None, nil
+		}
+		return d.ToObject(), nil
+	})
+	cases := []invokeTestCase{
+		{args: wrapArgs(newObject(ObjectType), NewDict()), wantExc: mustCreateException(AttributeErrorType, "'object' object has no attribute '__dict__'")},
+		{args: wrapArgs(newObject(fooType), testDict), want: testDict.ToObject()},
+		{args: wrapArgs(newObject(fooType), 123), wantExc: mustCreateException(TypeErrorType, "'_set_dict' requires a 'dict' object but received a 'int'")},
 	}
 	for _, cas := range cases {
 		if err := runInvokeTestCase(fun, &cas); err != "" {
@@ -335,7 +381,7 @@ func TestObjectSetAttr(t *testing.T) {
 	})
 	setterType := newTestClass("Setter", []*Type{ObjectType}, newStringDict(map[string]*Object{
 		"__get__": newBuiltinFunction("__get__", func(f *Frame, args Args, kwargs KWArgs) (*Object, *BaseException) {
-			item, raised := args[1].dict.GetItemString(f, "attr")
+			item, raised := args[1].Dict().GetItemString(f, "attr")
 			if raised != nil {
 				return nil, raised
 			}
@@ -345,7 +391,7 @@ func TestObjectSetAttr(t *testing.T) {
 			return item, nil
 		}).ToObject(),
 		"__set__": newBuiltinFunction("__set__", func(f *Frame, args Args, kwargs KWArgs) (*Object, *BaseException) {
-			if raised := args[1].dict.SetItemString(f, "attr", NewTuple(args.makeCopy()...).ToObject()); raised != nil {
+			if raised := args[1].Dict().SetItemString(f, "attr", NewTuple(args.makeCopy()...).ToObject()); raised != nil {
 				return nil, raised
 			}
 			return None, nil

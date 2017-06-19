@@ -74,7 +74,7 @@ func superGetAttribute(f *Frame, o *Object, name *Str) (*Object, *BaseException)
 		}
 		// Now do normal mro lookup from the successor type.
 		for ; i < n; i++ {
-			dict := mro[i].dict
+			dict := mro[i].Dict()
 			res, raised := dict.GetItem(f, name.ToObject())
 			if raised != nil {
 				return nil, raised

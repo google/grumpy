@@ -342,19 +342,13 @@ func builtinDir(f *Frame, args Args, kwargs KWArgs) (*Object, *BaseException) {
 	}
 	d := NewDict()
 	o := args[0]
-	if o.dict != nil {
-		raised := seqForEach(f, o.dict.ToObject(), func(k *Object) *BaseException {
-			return d.SetItem(f, k, None)
-		})
-		if raised != nil {
+	if dict := o.Dict(); dict != nil {
+		if raised := d.Update(f, dict.ToObject()); raised != nil {
 			return nil, raised
 		}
 	}
 	for _, t := range o.typ.mro {
-		raised := seqForEach(f, t.dict.ToObject(), func(k *Object) *BaseException {
-			return d.SetItem(f, k, None)
-		})
-		if raised != nil {
+		if raised := d.Update(f, t.Dict().ToObject()); raised != nil {
 			return nil, raised
 		}
 	}

@@ -70,7 +70,7 @@ func (f *Frame) release() {
 		// TODO: Track cache depth and release memory.
 		f.frameCache, f.back = f, f.frameCache
 		// Clear pointers early.
-		f.dict = nil
+		f.setDict(nil)
 		f.globals = nil
 		f.code = nil
 	} else if f.back != nil {

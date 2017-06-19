@@ -26,7 +26,7 @@ func TestNewClass(t *testing.T) {
 	strBasisStructFunc := func(o *Object) *strBasisStruct { return (*strBasisStruct)(o.toPointer()) }
 	fooType := newBasisType("Foo", reflect.TypeOf(strBasisStruct{}), strBasisStructFunc, StrType)
 	defer delete(basisTypes, fooType.basis)
-	fooType.dict = NewDict()
+	fooType.setDict(NewDict())
 	prepareType(fooType)
 	cases := []struct {
 		wantBasis reflect.Type
@@ -66,7 +66,7 @@ func TestNewBasisType(t *testing.T) {
 	if typ.Type() != TypeType {
 		t.Errorf("got %q, want a type", typ.Type().Name())
 	}
-	if typ.dict != nil {
+	if typ.Dict() != nil {
 		t.Error("type's dict was expected to be nil")
 	}
 	wantBases := []*Type{ObjectType}
@@ -151,7 +151,7 @@ func TestPrepareType(t *testing.T) {
 	for _, cas := range cases {
 		typ := newBasisType("Foo", cas.basis, cas.basisFunc, cas.base)
 		defer delete(basisTypes, cas.basis)
-		typ.dict = NewDict()
+		typ.setDict(NewDict())
 		prepareType(typ)
 		cas.wantMro[0] = typ
 		if !reflect.DeepEqual(typ.mro, cas.wantMro) {
@@ -334,7 +334,7 @@ func TestTypeGetAttribute(t *testing.T) {
 	//   __metaclass__ = BarMeta
 	// bar = Bar()
 	barType := &Type{Object: Object{typ: barMetaType}, name: "Bar", basis: fooType.basis, bases: []*Type{fooType}}
-	barType.dict = newTestDict("bar", "Bar's bar", "foo", 101, "barsetter", setter, "barmetasetter", "NOT setter")
+	barType.setDict(newTestDict("bar", "Bar's bar", "foo", 101, "barsetter", setter, "barmetasetter", "NOT setter"))
 	bar := newObject(barType)
 	prepareType(barType)
 	cases := []invokeTestCase{

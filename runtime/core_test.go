@@ -1164,6 +1164,20 @@ func TestToNative(t *testing.T) {
 	}
 }
 
+func BenchmarkGetAttr(b *testing.B) {
+	f := NewRootFrame()
+	attr := NewStr("bar")
+	fooType := newTestClass("Foo", []*Type{ObjectType}, NewDict())
+	foo := newObject(fooType)
+	if raised := SetAttr(f, foo, attr, NewInt(123).ToObject()); raised != nil {
+		panic(raised)
+	}
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		mustNotRaise(GetAttr(f, foo, attr, nil))
+	}
+}
+
 // SetAttr is tested in TestObjectSetAttr.
 
 func exceptionsAreEquivalent(e1 *BaseException, e2 *BaseException) bool {
