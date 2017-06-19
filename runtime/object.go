@@ -17,6 +17,7 @@ package grumpy
 import (
 	"fmt"
 	"reflect"
+	"sync/atomic"
 	"unsafe"
 )
 
@@ -39,7 +40,7 @@ var (
 // Object represents Python 'object' objects.
 type Object struct {
 	typ  *Type `attr:"__class__"`
-	dict *Dict `attr:"__dict__"`
+	dict *Dict
 	ref  *WeakRef
 }
 
@@ -50,7 +51,7 @@ func newObject(t *Type) *Object {
 	}
 	o := (*Object)(unsafe.Pointer(reflect.New(t.basis).Pointer()))
 	o.typ = t
-	o.dict = dict
+	o.setDict(dict)
 	return o
 }
 
@@ -66,7 +67,13 @@ func (o *Object) Call(f *Frame, args Args, kwargs KWArgs) (*Object, *BaseExcepti
 
 // Dict returns o's object dict, aka __dict__.
 func (o *Object) Dict() *Dict {
-	return o.dict
+	p := (*unsafe.Pointer)(unsafe.Pointer(&o.dict))
+	return (*Dict)(atomic.LoadPointer(p))
+}
+
+func (o *Object) setDict(d *Dict) {
+	p := (*unsafe.Pointer)(unsafe.Pointer(&o.dict))
+	atomic.StorePointer(p, unsafe.Pointer(d))
 }
 
 // String returns a string representation of o, e.g. for debugging.
@@ -109,8 +116,9 @@ func objectDelAttr(f *Frame, o *Object, name *Str) *BaseException {
 		}
 	}
 	deleted := false
-	if o.dict != nil {
-		deleted, raised = o.dict.DelItem(f, name.ToObject())
+	d := o.Dict()
+	if d != nil {
+		deleted, raised = d.DelItem(f, name.ToObject())
 		if raised != nil {
 			return raised
 		}
@@ -138,7 +146,7 @@ func objectGetAttribute(f *Frame, o *Object, name *Str) (*Object, *BaseException
 		}
 	}
 	// Look in the object's dict.
-	if d := o.dict; d != nil {
+	if d := o.Dict(); d != nil {
 		value, raised := d.GetItem(f, name.ToObject())
 		if value != nil || raised != nil {
 			return value, raised
@@ -208,8 +216,8 @@ func objectSetAttr(f *Frame, o *Object, name *Str, value *Object) *BaseException
 			return typeSet.Fn(f, typeAttr, o, value)
 		}
 	}
-	if o.dict != nil {
-		if raised := o.dict.SetItem(f, name.ToObject(), value); raised == nil || !raised.isInstance(KeyErrorType) {
+	if d := o.Dict(); d != nil {
+		if raised := d.SetItem(f, name.ToObject(), value); raised == nil || !raised.isInstance(KeyErrorType) {
 			return nil
 		}
 	}
@@ -220,6 +228,7 @@ func initObjectType(dict map[string]*Object) {
 	ObjectType.typ = TypeType
 	dict["__reduce__"] = objectReduceFunc
 	dict["__reduce_ex__"] = newBuiltinFunction("__reduce_ex__", objectReduceEx).ToObject()
+	dict["__dict__"] = newProperty(newBuiltinFunction("_get_dict", objectGetDict).ToObject(), newBuiltinFunction("_set_dict", objectSetDict).ToObject(), nil).ToObject()
 	ObjectType.slots.DelAttr = &delAttrSlot{objectDelAttr}
 	ObjectType.slots.GetAttribute = &getAttributeSlot{objectGetAttribute}
 	ObjectType.slots.Hash = &unaryOpSlot{objectHash}
@@ -306,8 +315,8 @@ func objectReduceCommon(f *Frame, args Args) (*Object, *BaseException) {
 		newArgs = append(newArgs, toTupleUnsafe(extraNewArgs).elems...)
 	}
 	dict := None
-	if o.dict != nil {
-		dict = o.dict.ToObject()
+	if d := o.Dict(); d != nil {
+		dict = d.ToObject()
 	}
 	// For proto >= 2 include list and dict items.
 	listItems := None
@@ -333,4 +342,30 @@ func objectReduceCommon(f *Frame, args Args) (*Object, *BaseException) {
 		return nil, raised
 	}
 	return NewTuple5(newFunc, NewTuple(newArgs...).ToObject(), dict, listItems, dictItems).ToObject(), nil
+}
+
+func objectGetDict(f *Frame, args Args, _ KWArgs) (*Object, *BaseException) {
+	if raised := checkMethodArgs(f, "_get_dict", args, ObjectType); raised != nil {
+		return nil, raised
+	}
+	o := args[0]
+	d := o.Dict()
+	if d == nil {
+		format := "'%s' object has no attribute '__dict__'"
+		return nil, f.RaiseType(AttributeErrorType, fmt.Sprintf(format, o.typ.Name()))
+	}
+	return args[0].Dict().ToObject(), nil
+}
+
+func objectSetDict(f *Frame, args Args, _ KWArgs) (*Object, *BaseException) {
+	if raised := checkMethodArgs(f, "_set_dict", args, ObjectType, DictType); raised != nil {
+		return nil, raised
+	}
+	o := args[0]
+	if o.Type() == ObjectType {
+		format := "'%s' object has no attribute '__dict__'"
+		return nil, f.RaiseType(AttributeErrorType, fmt.Sprintf(format, o.typ.Name()))
+	}
+	o.setDict(toDictUnsafe(args[1]))
+	return None, nil
 }

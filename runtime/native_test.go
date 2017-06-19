@@ -479,11 +479,11 @@ func TestNewNativeFieldChecksInstanceType(t *testing.T) {
 	}
 
 	// When its field property is assigned to a different type
-	property, raised := native.typ.dict.GetItemString(f, "foo")
+	property, raised := native.typ.Dict().GetItemString(f, "foo")
 	if raised != nil {
 		t.Fatal("Unexpected exception:", raised)
 	}
-	if raised := IntType.dict.SetItemString(f, "foo", property); raised != nil {
+	if raised := IntType.Dict().SetItemString(f, "foo", property); raised != nil {
 		t.Fatal("Unexpected exception:", raised)
 	}
 

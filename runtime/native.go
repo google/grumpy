@@ -434,7 +434,7 @@ func getNativeType(rtype reflect.Type) *Type {
 				d[name] = newNativeField(name, i, t)
 			}
 		}
-		t.dict = newStringDict(d)
+		t.setDict(newStringDict(d))
 		// This cannot fail since we're defining simple classes.
 		if err := prepareType(t); err != "" {
 			logFatal(err)

@@ -53,7 +53,7 @@ func TestBuiltinDelAttr(t *testing.T) {
 
 func TestBuiltinFuncs(t *testing.T) {
 	f := NewRootFrame()
-	objectDir := ObjectType.dict.Keys(f)
+	objectDir := ObjectType.Dict().Keys(f)
 	objectDir.Sort(f)
 	fooType := newTestClass("Foo", []*Type{ObjectType}, newStringDict(map[string]*Object{"bar": None}))
 	fooTypeDir := NewList(objectDir.elems...)
