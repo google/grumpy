@@ -97,7 +97,7 @@ func complexFloorDiv(f *Frame, v, w *Object) (*Object, *BaseException) {
 		if w == 0 {
 			return 0, false
 		}
-		return complex(math.Floor(real(v/w)), 0), true
+		return complexFloorDivOp(v, w), true
 	})
 }
 
@@ -108,6 +108,15 @@ func complexHash(f *Frame, o *Object) (*Object, *BaseException) {
 		hashCombined = -2
 	}
 	return NewInt(hashCombined).ToObject(), nil
+}
+
+func complexMod(f *Frame, v, w *Object) (*Object, *BaseException) {
+	return complexDivModOp(f, "__mod__", v, w, func(v, w complex128) (complex128, bool) {
+		if w == 0 {
+			return 0, false
+		}
+		return complexModOp(v, w), true
+	})
 }
 
 func complexMul(f *Frame, v, w *Object) (*Object, *BaseException) {
@@ -246,7 +255,16 @@ func complexRFloorDiv(f *Frame, v, w *Object) (*Object, *BaseException) {
 		if v == 0 {
 			return 0, false
 		}
-		return complex(math.Floor(real(w/v)), 0), true
+		return complexFloorDivOp(w, v), true
+	})
+}
+
+func complexRMod(f *Frame, v, w *Object) (*Object, *BaseException) {
+	return complexDivModOp(f, "__rmod__", v, w, func(v, w complex128) (complex128, bool) {
+		if v == 0 {
+			return 0, false
+		}
+		return complexModOp(w, v), true
 	})
 }
 
@@ -286,6 +304,7 @@ func initComplexType(dict map[string]*Object) {
 	ComplexType.slots.Hash = &unaryOpSlot{complexHash}
 	ComplexType.slots.LE = &binaryOpSlot{complexCompareNotSupported}
 	ComplexType.slots.LT = &binaryOpSlot{complexCompareNotSupported}
+	ComplexType.slots.Mod = &binaryOpSlot{complexMod}
 	ComplexType.slots.Mul = &binaryOpSlot{complexMul}
 	ComplexType.slots.NE = &binaryOpSlot{complexNE}
 	ComplexType.slots.Neg = &unaryOpSlot{complexNeg}
@@ -297,6 +316,7 @@ func initComplexType(dict map[string]*Object) {
 	ComplexType.slots.RDiv = &binaryOpSlot{complexRDiv}
 	ComplexType.slots.RFloorDiv = &binaryOpSlot{complexRFloorDiv}
 	ComplexType.slots.Repr = &unaryOpSlot{complexRepr}
+	ComplexType.slots.RMod = &binaryOpSlot{complexRMod}
 	ComplexType.slots.RMul = &binaryOpSlot{complexRMul}
 	ComplexType.slots.RPow = &binaryOpSlot{complexRPow}
 	ComplexType.slots.RSub = &binaryOpSlot{complexRSub}
@@ -391,6 +411,14 @@ func complexDivModOp(f *Frame, method string, v, w *Object, fun func(v, w comple
 		return nil, f.RaiseType(ZeroDivisionErrorType, "complex division or modulo by zero")
 	}
 	return NewComplex(x).ToObject(), nil
+}
+
+func complexFloorDivOp(v, w complex128) complex128 {
+	return complex(math.Floor(real(v/w)), 0)
+}
+
+func complexModOp(v, w complex128) complex128 {
+	return v - complexFloorDivOp(v, w)*w
 }
 
 const (
