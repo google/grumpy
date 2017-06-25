@@ -496,6 +496,50 @@ func TestNewNativeFieldChecksInstanceType(t *testing.T) {
 	}
 }
 
+func TestNativeStructFieldGet(t *testing.T) {
+	fun := wrapFuncForTest(func(f *Frame, o *Object, attr *Str) (*Object, *BaseException) {
+		return GetAttr(f, o, attr, nil)
+	})
+	type fooStruct struct {
+		bar int
+		Baz float64
+	}
+	cases := []invokeTestCase{
+		{args: wrapArgs(fooStruct{bar: 1}, "bar"), want: NewInt(1).ToObject()},
+		{args: wrapArgs(&fooStruct{Baz: 3.14}, "Baz"), want: NewFloat(3.14).ToObject()},
+		{args: wrapArgs(fooStruct{}, "qux"), wantExc: mustCreateException(AttributeErrorType, `'fooStruct' object has no attribute 'qux'`)},
+	}
+	for _, cas := range cases {
+		if err := runInvokeTestCase(fun, &cas); err != "" {
+			t.Error(err)
+		}
+	}
+}
+
+func TestNativeStructFieldSet(t *testing.T) {
+	fun := wrapFuncForTest(func(f *Frame, o *Object, attr *Str, value *Object) (*Object, *BaseException) {
+		if raised := SetAttr(f, o, attr, value); raised != nil {
+			return nil, raised
+		}
+		return GetAttr(f, o, attr, nil)
+	})
+	type fooStruct struct {
+		bar int
+		Baz float64
+	}
+	cases := []invokeTestCase{
+		{args: wrapArgs(&fooStruct{}, "Baz", 1.5), want: NewFloat(1.5).ToObject()},
+		{args: wrapArgs(fooStruct{}, "bar", 123), wantExc: mustCreateException(TypeErrorType, `cannot set field 'bar' of type 'fooStruct'`)},
+		{args: wrapArgs(fooStruct{}, "qux", "abc"), wantExc: mustCreateException(AttributeErrorType, `'fooStruct' has no attribute 'qux'`)},
+		{args: wrapArgs(&fooStruct{}, "Baz", "abc"), wantExc: mustCreateException(TypeErrorType, "an float64 is required")},
+	}
+	for _, cas := range cases {
+		if err := runInvokeTestCase(fun, &cas); err != "" {
+			t.Error(err)
+		}
+	}
+}
+
 func wrapArgs(elems ...interface{}) Args {
 	f := NewRootFrame()
 	argc := len(elems)

@@ -446,7 +446,7 @@ func getNativeType(rtype reflect.Type) *Type {
 }
 
 func newNativeField(name string, i int, t *Type) *Object {
-	nativeFieldGet := func(f *Frame, args Args, _ KWArgs) (*Object, *BaseException) {
+	get := newBuiltinFunction(name, func(f *Frame, args Args, _ KWArgs) (*Object, *BaseException) {
 		if raised := checkFunctionArgs(f, name, args, t); raised != nil {
 			return nil, raised
 		}
@@ -455,9 +455,28 @@ func newNativeField(name string, i int, t *Type) *Object {
 			v = v.Elem()
 		}
 		return WrapNative(f, v.Field(i))
-	}
-	get := newBuiltinFunction(name, nativeFieldGet).ToObject()
-	return newProperty(get, nil, nil).ToObject()
+	}).ToObject()
+	set := newBuiltinFunction(name, func(f *Frame, args Args, _ KWArgs) (*Object, *BaseException) {
+		if raised := checkFunctionArgs(f, name, args, t, ObjectType); raised != nil {
+			return nil, raised
+		}
+		v := toNativeUnsafe(args[0]).value
+		for v.Type().Kind() == reflect.Ptr {
+			v = v.Elem()
+		}
+		field := v.Field(i)
+		if !field.CanSet() {
+			msg := fmt.Sprintf("cannot set field '%s' of type '%s'", name, t.Name())
+			return nil, f.RaiseType(TypeErrorType, msg)
+		}
+		v, raised := maybeConvertValue(f, args[1], field.Type())
+		if raised != nil {
+			return nil, raised
+		}
+		field.Set(v)
+		return None, nil
+	}).ToObject()
+	return newProperty(get, set, nil).ToObject()
 }
 
 func newNativeMethod(name string, fun reflect.Value) *Object {
