@@ -256,6 +256,33 @@ func nativeSliceIter(f *Frame, o *Object) (*Object, *BaseException) {
 	return newSliceIterator(toNativeUnsafe(o).value), nil
 }
 
+func nativeSliceLen(f *Frame, o *Object) (*Object, *BaseException) {
+	return NewInt(toNativeUnsafe(o).value.Len()).ToObject(), nil
+}
+
+func nativeSliceRepr(f *Frame, o *Object) (*Object, *BaseException) {
+	v := toNativeUnsafe(o).value
+	typeName := nativeTypeName(v.Type())
+	if f.reprEnter(o) {
+		return NewStr(fmt.Sprintf("%s{...}", typeName)).ToObject(), nil
+	}
+	defer f.reprLeave(o)
+	numElems := v.Len()
+	elems := make([]*Object, numElems)
+	for i := 0; i < numElems; i++ {
+		elem, raised := WrapNative(f, v.Index(i))
+		if raised != nil {
+			return nil, raised
+		}
+		elems[i] = elem
+	}
+	repr, raised := seqRepr(f, elems)
+	if raised != nil {
+		return nil, raised
+	}
+	return NewStr(fmt.Sprintf("%s{%s}", typeName, repr)).ToObject(), nil
+}
+
 func nativeSliceSetItem(f *Frame, o, key, value *Object) *BaseException {
 	v := toNativeUnsafe(o).value
 	elemType := v.Type().Elem()
@@ -307,6 +334,8 @@ func nativeSliceSetItem(f *Frame, o, key, value *Object) *BaseException {
 func initNativeSliceType(map[string]*Object) {
 	nativeSliceType.slots.GetItem = &binaryOpSlot{nativeSliceGetItem}
 	nativeSliceType.slots.Iter = &unaryOpSlot{nativeSliceIter}
+	nativeSliceType.slots.Len = &unaryOpSlot{nativeSliceLen}
+	nativeSliceType.slots.Repr = &unaryOpSlot{nativeSliceRepr}
 	nativeSliceType.slots.SetItem = &setItemSlot{nativeSliceSetItem}
 }
 
@@ -409,7 +438,7 @@ func WrapNative(f *Frame, v reflect.Value) (*Object, *BaseException) {
 	case reflect.Complex64:
 	case reflect.Complex128:
 		return t.Call(f, Args{NewComplex(v.Complex()).ToObject()}, nil)
-	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Uint8, reflect.Uint16:
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32:
 		return t.Call(f, Args{NewInt(int(v.Int())).ToObject()}, nil)
 	// Handle potentially large ints separately in case of overflow.
 	case reflect.Int64:
@@ -418,7 +447,7 @@ func WrapNative(f *Frame, v reflect.Value) (*Object, *BaseException) {
 			return NewLong(big.NewInt(i)).ToObject(), nil
 		}
 		return t.Call(f, Args{NewInt(int(i)).ToObject()}, nil)
-	case reflect.Uint, reflect.Uint32, reflect.Uint64:
+	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
 		i := v.Uint()
 		if i > uint64(MaxInt) {
 			return t.Call(f, Args{NewLong((new(big.Int).SetUint64(i))).ToObject()}, nil)
@@ -496,7 +525,7 @@ func getNativeType(rtype reflect.Type) *Type {
 			base = nativeFuncType
 		case reflect.Int16, reflect.Int32, reflect.Int64, reflect.Int8, reflect.Int, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uint8, reflect.Uint, reflect.Uintptr:
 			base = IntType
-		case reflect.Slice:
+		case reflect.Array, reflect.Slice:
 			base = nativeSliceType
 		case reflect.String:
 			base = StrType
