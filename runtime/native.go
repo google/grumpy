@@ -222,12 +222,104 @@ func initNativeFuncType(dict map[string]*Object) {
 	nativeFuncType.slots.Repr = &unaryOpSlot{nativeFuncRepr}
 }
 
+func nativeSliceGetItem(f *Frame, o, key *Object) (*Object, *BaseException) {
+	v := toNativeUnsafe(o).value
+	if key.typ.slots.Index != nil {
+		elem, raised := nativeSliceGetIndex(f, v, key)
+		if raised != nil {
+			return nil, raised
+		}
+		return WrapNative(f, elem)
+	}
+	if !key.isInstance(SliceType) {
+		return nil, f.RaiseType(TypeErrorType, fmt.Sprintf("native slice indices must be integers, not %s", key.typ.Name()))
+	}
+	s := toSliceUnsafe(key)
+	start, stop, step, sliceLen, raised := s.calcSlice(f, v.Len())
+	if raised != nil {
+		return nil, raised
+	}
+	if step == 1 {
+		return WrapNative(f, v.Slice(start, stop))
+	}
+	result := reflect.MakeSlice(v.Type(), sliceLen, sliceLen)
+	i := 0
+	for j := start; j != stop; j += step {
+		resultElem := result.Index(i)
+		resultElem.Set(v.Index(j))
+		i++
+	}
+	return WrapNative(f, result)
+}
+
 func nativeSliceIter(f *Frame, o *Object) (*Object, *BaseException) {
 	return newSliceIterator(toNativeUnsafe(o).value), nil
 }
 
+func nativeSliceSetItem(f *Frame, o, key, value *Object) *BaseException {
+	v := toNativeUnsafe(o).value
+	elemType := v.Type().Elem()
+	if key.typ.slots.Int != nil {
+		elem, raised := nativeSliceGetIndex(f, v, key)
+		if raised != nil {
+			return raised
+		}
+		if !elem.CanSet() {
+			return f.RaiseType(TypeErrorType, "cannot set slice element")
+		}
+		elemVal, raised := maybeConvertValue(f, value, elemType)
+		if raised != nil {
+			return raised
+		}
+		elem.Set(elemVal)
+		return nil
+	}
+	if key.isInstance(SliceType) {
+		s := toSliceUnsafe(key)
+		start, stop, step, sliceLen, raised := s.calcSlice(f, v.Len())
+		if raised != nil {
+			return raised
+		}
+		if !v.Index(start).CanSet() {
+			return f.RaiseType(TypeErrorType, "cannot set slice element")
+		}
+		return seqApply(f, value, func(elems []*Object, _ bool) *BaseException {
+			numElems := len(elems)
+			if sliceLen != numElems {
+				format := "attempt to assign sequence of size %d to slice of size %d"
+				return f.RaiseType(ValueErrorType, fmt.Sprintf(format, numElems, sliceLen))
+			}
+			i := 0
+			for j := start; j != stop; j += step {
+				elemVal, raised := maybeConvertValue(f, elems[i], elemType)
+				if raised != nil {
+					return raised
+				}
+				v.Index(j).Set(elemVal)
+				i++
+			}
+			return nil
+		})
+	}
+	return f.RaiseType(TypeErrorType, fmt.Sprintf("native slice indices must be integers, not %s", key.Type().Name()))
+}
+
 func initNativeSliceType(map[string]*Object) {
+	nativeSliceType.slots.GetItem = &binaryOpSlot{nativeSliceGetItem}
 	nativeSliceType.slots.Iter = &unaryOpSlot{nativeSliceIter}
+	nativeSliceType.slots.SetItem = &setItemSlot{nativeSliceSetItem}
+}
+
+func nativeSliceGetIndex(f *Frame, slice reflect.Value, key *Object) (reflect.Value, *BaseException) {
+	i, raised := IndexInt(f, key)
+	if raised != nil {
+		return reflect.Value{}, raised
+	}
+	i, raised = seqCheckedIndex(f, slice.Len(), i)
+	if raised != nil {
+		return reflect.Value{}, raised
+	}
+	return slice.Index(i), nil
 }
 
 type sliceIterator struct {
