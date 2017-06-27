@@ -136,7 +136,7 @@ func byteArrayRepr(f *Frame, o *Object) (*Object, *BaseException) {
 	if raised != nil {
 		return nil, raised
 	}
-	return NewStr(fmt.Sprintf("bytearray(%s)", s.Value())).ToObject(), nil
+	return NewStr(fmt.Sprintf("bytearray(b%s)", s.Value())).ToObject(), nil
 }
 
 func byteArrayStr(f *Frame, o *Object) (*Object, *BaseException) {
