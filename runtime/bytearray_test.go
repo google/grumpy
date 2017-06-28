@@ -91,8 +91,8 @@ func TestByteArrayNative(t *testing.T) {
 
 func TestByteArrayRepr(t *testing.T) {
 	cases := []invokeTestCase{
-		{args: wrapArgs(newTestByteArray("")), want: NewStr("bytearray('')").ToObject()},
-		{args: wrapArgs(newTestByteArray("foo")), want: NewStr("bytearray('foo')").ToObject()},
+		{args: wrapArgs(newTestByteArray("")), want: NewStr("bytearray(b'')").ToObject()},
+		{args: wrapArgs(newTestByteArray("foo")), want: NewStr("bytearray(b'foo')").ToObject()},
 	}
 	for _, cas := range cases {
 		if err := runInvokeTestCase(wrapFuncForTest(Repr), &cas); err != "" {
