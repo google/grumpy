@@ -556,6 +556,38 @@ func TestNativeSliceGetItemSlice(t *testing.T) {
 	}
 }
 
+func TestNativeSliceLen(t *testing.T) {
+	cases := []invokeTestCase{
+		{args: wrapArgs([]string{"foo", "bar"}), want: NewInt(2).ToObject()},
+		{args: wrapArgs(make([]int, 100)), want: NewInt(100).ToObject()},
+	}
+	for _, cas := range cases {
+		if err := runInvokeTestCase(wrapFuncForTest(Len), &cas); err != "" {
+			t.Error(err)
+		}
+	}
+}
+
+func TestNativeSliceStrRepr(t *testing.T) {
+	slice := make([]*Object, 2)
+	o := mustNotRaise(WrapNative(NewRootFrame(), reflect.ValueOf(slice)))
+	slice[0] = o
+	slice[1] = NewStr("foo").ToObject()
+	cases := []invokeTestCase{
+		{args: wrapArgs([]string{"foo", "bar"}), want: NewStr("[]string{'foo', 'bar'}").ToObject()},
+		{args: wrapArgs([]uint16{123}), want: NewStr("[]uint16{123}").ToObject()},
+		{args: wrapArgs(o), want: NewStr("[]*Object{[]*Object{...}, 'foo'}").ToObject()},
+	}
+	for _, cas := range cases {
+		if err := runInvokeTestCase(wrapFuncForTest(ToStr), &cas); err != "" {
+			t.Error(err)
+		}
+		if err := runInvokeTestCase(wrapFuncForTest(Repr), &cas); err != "" {
+			t.Error(err)
+		}
+	}
+}
+
 func TestNativeSliceSetItemSlice(t *testing.T) {
 	fun := wrapFuncForTest(func(f *Frame, o, index, value *Object, want interface{}) *BaseException {
 		originalStr := o.String()
