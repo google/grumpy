@@ -224,6 +224,41 @@ func TestComplexCompareNotSupported(t *testing.T) {
 	}
 }
 
+func TestComplexDivMod(t *testing.T) {
+	cases := []invokeTestCase{
+		{args: wrapArgs((1 + 2i), (1 + 2i)), want: NewTuple2(NewComplex(1+0i).ToObject(), NewComplex(0i).ToObject()).ToObject()},
+		{args: wrapArgs((3 + 4i), (1 + 2i)), want: NewTuple2(NewComplex(2-0i).ToObject(), NewComplex(1+0i).ToObject()).ToObject()},
+		{args: wrapArgs((3.14 - 0.618i), (-0.123e-4 + 0.151692i)), want: NewTuple2(NewComplex(-5-0i).ToObject(), NewComplex(3.1399385+0.14045999999999992i).ToObject()).ToObject()},
+		{args: wrapArgs(3, (3 - 4i)), want: NewTuple2(NewComplex(0i).ToObject(), NewComplex(3+0i).ToObject()).ToObject()},
+		{args: wrapArgs((3 + 4i), -5), want: NewTuple2(NewComplex(-1+0i).ToObject(), NewComplex(-2+4i).ToObject()).ToObject()},
+		{args: wrapArgs(1.2, (1 - 2i)), want: NewTuple2(NewComplex(0i).ToObject(), NewComplex(1.2+0i).ToObject()).ToObject()},
+		{args: wrapArgs((1 + 2i), -3.4), want: NewTuple2(NewComplex(-1+0i).ToObject(), NewComplex(-2.4+2i).ToObject()).ToObject()},
+		{args: wrapArgs(big.NewInt(123), (3 + 4i)), want: NewTuple2(NewComplex(14-0i).ToObject(), NewComplex(81-56i).ToObject()).ToObject()},
+		{args: wrapArgs((3 - 4i), big.NewInt(-34)), want: NewTuple2(NewComplex(-1+0i).ToObject(), NewComplex(-31-4i).ToObject()).ToObject()},
+		{args: wrapArgs((3 + 4i), complex(math.Inf(1), math.Inf(-1))), want: NewTuple2(NewComplex(0i).ToObject(), NewComplex(complex(math.NaN(), math.NaN())).ToObject()).ToObject()},
+		{args: wrapArgs((3 + 4i), complex(math.Inf(1), 2)), want: NewTuple2(NewComplex(0i).ToObject(), NewComplex(complex(math.NaN(), math.NaN())).ToObject()).ToObject()},
+		{args: wrapArgs(complex(math.Inf(1), math.Inf(1)), (1 + 2i)), want: NewTuple2(NewComplex(complex(math.Inf(1), 0)).ToObject(), NewComplex(complex(math.NaN(), math.NaN())).ToObject()).ToObject()},
+		{args: wrapArgs(complex(math.Inf(1), 4), (1 + 2i)), want: NewTuple2(NewComplex(complex(math.Inf(1), 0)).ToObject(), NewComplex(complex(math.NaN(), math.Inf(-1))).ToObject()).ToObject()},
+		{args: wrapArgs(complex(3, math.Inf(1)), (1 + 2i)), want: NewTuple2(NewComplex(complex(math.Inf(1), 0)).ToObject(), NewComplex(complex(math.Inf(-1), math.NaN())).ToObject()).ToObject()},
+		{args: wrapArgs(complex(3, math.NaN()), (1 + 2i)), want: NewTuple2(NewComplex(complex(math.NaN(), 0)).ToObject(), NewComplex(complex(math.NaN(), math.NaN())).ToObject()).ToObject()},
+		{args: wrapArgs("foo", (1 + 2i)), wantExc: mustCreateException(TypeErrorType, "unsupported operand type(s) for divmod(): 'str' and 'complex'")},
+		{args: wrapArgs((3 + 4i), (0 + 0i)), wantExc: mustCreateException(ZeroDivisionErrorType, "complex division or modulo by zero")},
+		{args: wrapArgs(complex(math.Inf(1), math.NaN()), (0 + 0i)), wantExc: mustCreateException(ZeroDivisionErrorType, "complex division or modulo by zero")},
+		{args: wrapArgs((3 + 4i), bigLongNumber), wantExc: mustCreateException(OverflowErrorType, "long int too large to convert to complex")},
+	}
+	for _, cas := range cases {
+		switch got, result := checkInvokeResult(wrapFuncForTest(DivMod), cas.args, cas.want, cas.wantExc); result {
+		case checkInvokeResultExceptionMismatch:
+			t.Errorf("complex.__divmod__%v raised %v, want %v", cas.args, got, cas.wantExc)
+		case checkInvokeResultReturnValueMismatch:
+			// Handle NaN specially, since NaN != NaN.
+			if got == nil || cas.want == nil || !got.isInstance(TupleType) || !cas.want.isInstance(TupleType) || !tupleComplexesAreSame(got, cas.want) {
+				t.Errorf("complex.__divmod__%v = %v, want %v", cas.args, got, cas.want)
+			}
+		}
+	}
+}
+
 func TestComplexNE(t *testing.T) {
 	cases := []invokeTestCase{
 		{args: wrapArgs(complex(0, 0), 0), want: False.ToObject()},
@@ -478,4 +513,16 @@ func floatsAreSame(a, b float64) bool {
 
 func complexesAreSame(a, b complex128) bool {
 	return floatsAreSame(real(a), real(b)) && floatsAreSame(imag(a), imag(b))
+}
+
+func tupleComplexesAreSame(got, want *Object) bool {
+	if toTupleUnsafe(got).Len() != toTupleUnsafe(want).Len() {
+		return false
+	}
+	for i := 0; i < toTupleUnsafe(got).Len(); i++ {
+		if !complexesAreSame(toComplexUnsafe(toTupleUnsafe(got).GetItem(i)).Value(), toComplexUnsafe(toTupleUnsafe(want).GetItem(i)).Value()) {
+			return false
+		}
+	}
+	return true
 }
