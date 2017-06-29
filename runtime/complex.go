@@ -84,6 +84,15 @@ func complexDiv(f *Frame, v, w *Object) (*Object, *BaseException) {
 	})
 }
 
+func complexDivMod(f *Frame, v, w *Object) (*Object, *BaseException) {
+	return complexDivAndModOp(f, "__divmod__", v, w, func(v, w complex128) (complex128, complex128, bool) {
+		if w == 0 {
+			return 0, 0, false
+		}
+		return complexFloorDivOp(v, w), complexModOp(v, w), true
+	})
+}
+
 func complexEq(f *Frame, v, w *Object) (*Object, *BaseException) {
 	e, ok := complexCompare(toComplexUnsafe(v), w)
 	if !ok {
@@ -229,6 +238,15 @@ func complexRDiv(f *Frame, v, w *Object) (*Object, *BaseException) {
 	})
 }
 
+func complexRDivMod(f *Frame, v, w *Object) (*Object, *BaseException) {
+	return complexDivAndModOp(f, "__rdivmod__", v, w, func(v, w complex128) (complex128, complex128, bool) {
+		if v == 0 {
+			return 0, 0, false
+		}
+		return complexFloorDivOp(w, v), complexModOp(w, v), true
+	})
+}
+
 func complexRepr(f *Frame, o *Object) (*Object, *BaseException) {
 	c := toComplexUnsafe(o).Value()
 	rs, is := "", ""
@@ -297,6 +315,7 @@ func initComplexType(dict map[string]*Object) {
 	ComplexType.slots.Add = &binaryOpSlot{complexAdd}
 	ComplexType.slots.Complex = &unaryOpSlot{complexComplex}
 	ComplexType.slots.Div = &binaryOpSlot{complexDiv}
+	ComplexType.slots.DivMod = &binaryOpSlot{complexDivMod}
 	ComplexType.slots.Eq = &binaryOpSlot{complexEq}
 	ComplexType.slots.FloorDiv = &binaryOpSlot{complexFloorDiv}
 	ComplexType.slots.GE = &binaryOpSlot{complexCompareNotSupported}
@@ -314,6 +333,7 @@ func initComplexType(dict map[string]*Object) {
 	ComplexType.slots.Pow = &binaryOpSlot{complexPow}
 	ComplexType.slots.RAdd = &binaryOpSlot{complexRAdd}
 	ComplexType.slots.RDiv = &binaryOpSlot{complexRDiv}
+	ComplexType.slots.RDivMod = &binaryOpSlot{complexRDivMod}
 	ComplexType.slots.RFloorDiv = &binaryOpSlot{complexRFloorDiv}
 	ComplexType.slots.Repr = &unaryOpSlot{complexRepr}
 	ComplexType.slots.RMod = &binaryOpSlot{complexRMod}
@@ -411,6 +431,21 @@ func complexDivModOp(f *Frame, method string, v, w *Object, fun func(v, w comple
 		return nil, f.RaiseType(ZeroDivisionErrorType, "complex division or modulo by zero")
 	}
 	return NewComplex(x).ToObject(), nil
+}
+
+func complexDivAndModOp(f *Frame, method string, v, w *Object, fun func(v, w complex128) (complex128, complex128, bool)) (*Object, *BaseException) {
+	complexW, ok := complexCoerce(w)
+	if !ok {
+		if cmplx.IsInf(complexW) {
+			return nil, f.RaiseType(OverflowErrorType, "long int too large to convert to complex")
+		}
+		return NotImplemented, nil
+	}
+	q, m, ok := fun(toComplexUnsafe(v).Value(), complexW)
+	if !ok {
+		return nil, f.RaiseType(ZeroDivisionErrorType, "complex division or modulo by zero")
+	}
+	return NewTuple2(NewComplex(q).ToObject(), NewComplex(m).ToObject()).ToObject(), nil
 }
 
 func complexFloorDivOp(v, w complex128) complex128 {
