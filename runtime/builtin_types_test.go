@@ -397,7 +397,7 @@ func captureStdout(f *Frame, fn func() *BaseException) (string, *BaseException) 
 		return "", f.RaiseType(RuntimeErrorType, fmt.Sprintf("failed to open pipe: %v", err))
 	}
 	oldStdout := Stdout
-	Stdout = NewFileFromFD(w.Fd())
+	Stdout = NewFileFromFD(w.Fd(), nil)
 	defer func() {
 		Stdout = oldStdout
 	}()
@@ -486,7 +486,7 @@ func TestBuiltinSetAttr(t *testing.T) {
 		}()
 
 		oldStdin := Stdin
-		Stdin = NewFileFromFD(stdinFile.Fd())
+		Stdin = NewFileFromFD(stdinFile.Fd(), nil)
 		defer func() {
 			Stdin = oldStdin
 			stdinFile.Close()

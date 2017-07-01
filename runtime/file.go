@@ -40,12 +40,21 @@ type File struct {
 	file        *os.File
 	skipNextLF  bool
 	univNewLine bool
+	close       *Object
 }
 
 // NewFileFromFD creates a file object from the given file descriptor fd.
-func NewFileFromFD(fd uintptr) *File {
+func NewFileFromFD(fd uintptr, close *Object) *File {
 	// TODO: Use fcntl or something to get the mode of the descriptor.
-	file := &File{Object: Object{typ: FileType}, mode: "?", open: true, file: os.NewFile(fd, "<fdopen>")}
+	file := &File{
+		Object: Object{typ: FileType},
+		mode:   "?",
+		open:   true,
+		file:   os.NewFile(fd, "<fdopen>"),
+	}
+	if close != None {
+		file.close = close
+	}
 	file.reader = bufio.NewReader(file.file)
 	return file
 }
@@ -190,13 +199,37 @@ func fileClose(f *Frame, args Args, _ KWArgs) (*Object, *BaseException) {
 	file := toFileUnsafe(args[0])
 	file.mutex.Lock()
 	defer file.mutex.Unlock()
-	if file.open && file.file != nil {
-		if err := file.file.Close(); err != nil {
-			return nil, f.RaiseType(IOErrorType, err.Error())
+	ret := None
+	if file.open {
+		var raised *BaseException
+		if file.close != nil {
+			ret, raised = file.close.Call(f, args, nil)
+		} else if file.file != nil {
+			if err := file.file.Close(); err != nil {
+				raised = f.RaiseType(IOErrorType, err.Error())
+			}
+		}
+		if raised != nil {
+			return nil, raised
 		}
 	}
 	file.open = false
-	return None, nil
+	return ret, nil
+}
+
+func fileFileno(f *Frame, args Args, _ KWArgs) (ret *Object, raised *BaseException) {
+	if raised := checkMethodArgs(f, "fileno", args, FileType); raised != nil {
+		return nil, raised
+	}
+	file := toFileUnsafe(args[0])
+	file.mutex.Lock()
+	if file.open {
+		ret = NewInt(int(file.file.Fd())).ToObject()
+	} else {
+		raised = f.RaiseType(ValueErrorType, "I/O operation on closed file")
+	}
+	file.mutex.Unlock()
+	return ret, raised
 }
 
 func fileGetName(f *Frame, args Args, _ KWArgs) (*Object, *BaseException) {
@@ -345,6 +378,7 @@ func initFileType(dict map[string]*Object) {
 	dict["__enter__"] = newBuiltinFunction("__enter__", fileEnter).ToObject()
 	dict["__exit__"] = newBuiltinFunction("__exit__", fileExit).ToObject()
 	dict["close"] = newBuiltinFunction("close", fileClose).ToObject()
+	dict["fileno"] = newBuiltinFunction("fileno", fileFileno).ToObject()
 	dict["name"] = newProperty(newBuiltinFunction("_get_name", fileGetName).ToObject(), nil, nil).ToObject()
 	dict["read"] = newBuiltinFunction("read", fileRead).ToObject()
 	dict["readline"] = newBuiltinFunction("readline", fileReadLine).ToObject()
@@ -378,9 +412,9 @@ func fileParseReadArgs(f *Frame, method string, args Args) (*File, int, *BaseExc
 
 var (
 	// Stdin is an alias for sys.stdin.
-	Stdin = NewFileFromFD(os.Stdin.Fd())
+	Stdin = NewFileFromFD(os.Stdin.Fd(), nil)
 	// Stdout is an alias for sys.stdout.
-	Stdout = NewFileFromFD(os.Stdout.Fd())
+	Stdout = NewFileFromFD(os.Stdout.Fd(), nil)
 	// Stderr is an alias for sys.stderr.
-	Stderr = NewFileFromFD(os.Stderr.Fd())
+	Stderr = NewFileFromFD(os.Stderr.Fd(), nil)
 )

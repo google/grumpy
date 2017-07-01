@@ -1557,25 +1557,25 @@ def run_unittest(*classes):
 #             threading_cleanup(*key)
 #     return decorator
 
-# def reap_children():
-#     """Use this function at the end of test_main() whenever sub-processes
-#     are started.  This will help ensure that no extra children (zombies)
-#     stick around to hog resources and create problems when looking
-#     for refleaks.
-#     """
+def reap_children():
+    """Use this function at the end of test_main() whenever sub-processes
+    are started.  This will help ensure that no extra children (zombies)
+    stick around to hog resources and create problems when looking
+    for refleaks.
+    """
 
-#     # Reap all our dead child processes so we don't leave zombies around.
-#     # These hog resources and might be causing some of the buildbots to die.
-#     if hasattr(os, 'waitpid'):
-#         any_process = -1
-#         while True:
-#             try:
-#                 # This will raise an exception on Windows.  That's ok.
-#                 pid, status = os.waitpid(any_process, os.WNOHANG)
-#                 if pid == 0:
-#                     break
-#             except:
-#                 break
+    # Reap all our dead child processes so we don't leave zombies around.
+    # These hog resources and might be causing some of the buildbots to die.
+    if hasattr(os, 'waitpid'):
+        any_process = -1
+        while True:
+            try:
+                # This will raise an exception on Windows.  That's ok.
+                pid, status = os.waitpid(any_process, os.WNOHANG)
+                if pid == 0:
+                    break
+            except:
+                break
 
 # @contextlib.contextmanager
 # def start_threads(threads, unlock=None):

@@ -315,7 +315,7 @@ func runMainAndCaptureStderr(code *Code) (int, string, error) {
 	if err != nil {
 		return 0, "", err
 	}
-	Stderr = NewFileFromFD(w.Fd())
+	Stderr = NewFileFromFD(w.Fd(), nil)
 	c := make(chan int)
 	go func() {
 		defer w.Close()
