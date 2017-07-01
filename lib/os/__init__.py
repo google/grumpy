@@ -15,17 +15,22 @@
 """Miscellaneous operating system interfaces."""
 
 # pylint: disable=g-multiple-import
+from __go__.io.ioutil import ReadDir
+from __go__.os import (Chdir, Chmod, Environ, Getpid as getpid, Getwd, Pipe,
+    type_ProcAttr as ProcAttr, Remove, StartProcess, Stat, Stdout, Stdin,
+    Stderr)
+from __go__.path.filepath import Separator
+from __go__.grumpy import (NewFileFromFD, StartThread, ToNative)
+from __go__.reflect import MakeSlice
+from __go__.runtime import GOOS
+from __go__.syscall import (Close, SYS_FCNTL, Syscall, F_GETFD, Wait4,
+    type_WaitStatus as WaitStatus, WNOHANG)
+from __go__.sync import type_WaitGroup as WaitGroup
+from __go__.time import Second
+import _syscall
 from os import path
 import stat as stat_module
 import sys
-from __go__.io.ioutil import ReadDir
-from __go__.os import (
-    Chdir, Chmod, Environ, Getpid as getpid, Getwd, Remove, Stat)
-from __go__.path.filepath import Separator
-from __go__.grumpy import NewFileFromFD
-from __go__.runtime import GOOS
-from __go__.syscall import Close, SYS_FCNTL, Syscall, F_GETFD
-from __go__.time import Second
 
 
 sep = chr(Separator)
@@ -64,7 +69,7 @@ def fdopen(fd, mode='r'):  # pylint: disable=unused-argument
   _, _, err = Syscall(SYS_FCNTL, fd, F_GETFD, 0)
   if err:
     raise OSError(err.Error())
-  return NewFileFromFD(fd)
+  return NewFileFromFD(fd, None)
 
 
 def listdir(p):
@@ -79,6 +84,66 @@ def getcwd():
   if err:
     raise OSError(err.Error())
   return dir
+
+
+class _Popen(object):
+
+  def __init__(self, command, mode):
+    self.mode = mode
+    self.result = None
+    self.r, self.w, err = Pipe()
+    if err:
+      raise OSError(err.Error())
+    attr = ProcAttr.new()
+    # Create a slice using a reflect.Type returned by ToNative.
+    # TODO: There should be a cleaner way to create slices in Python.
+    files_type = ToNative(__frame__(), attr.Files).Type()
+    files = MakeSlice(files_type, 3, 3).Interface()
+    if self.mode == 'r':
+      fd = self.r.Fd()
+      files[0], files[1], files[2] = Stdin, self.w, Stderr
+    elif self.mode == 'w':
+      fd = self.w.Fd()
+      files[0], files[1], files[2] = self.r, Stdout, Stderr
+    else:
+      raise ValueError('invalid popen mode: %r', self.mode)
+    attr.Files = files
+    # TODO: There should be a cleaner way to create slices in Python.
+    args_type = ToNative(__frame__(), StartProcess).Type().In(1)
+    args = MakeSlice(args_type, 3, 3).Interface()
+    shell = environ['SHELL']
+    args[0] = shell
+    args[1] = '-c'
+    args[2] = command
+    self.proc, err = StartProcess(shell, args, attr)
+    if err:
+      raise OSError(err.Error())
+    self.wg = WaitGroup.new()
+    self.wg.Add(1)
+    StartThread(self._thread_func)
+    self.file = NewFileFromFD(fd, self.close)
+
+  def _thread_func(self):
+    self.result = self.proc.Wait()
+    if self.mode == 'r':
+      self.w.Close()
+    self.wg.Done()
+
+  def close(self, _):
+    if self.mode == 'w':
+      self.w.Close()
+    self.wg.Wait()
+    state, err = self.result
+    if err:
+      raise OSError(err.Error())
+    result = _encode_wait_result(state.Sys())
+    if not result:
+      return None
+    return state.Pid(), result
+
+
+def popen(command, mode='r'):
+  return _Popen(command, mode).file
 
 
 def remove(filepath):
@@ -127,3 +192,13 @@ def stat(filepath):
 
 
 unlink = remove
+
+
+def waitpid(pid, options):
+  status = WaitStatus.new()
+  _syscall.invoke(Wait4, pid, status, options, None)
+  return pid, _encode_wait_result(status)
+
+
+def _encode_wait_result(status):
+  return status.Signal() | (status.ExitStatus() << 8)
