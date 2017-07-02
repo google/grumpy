@@ -95,6 +95,7 @@ STDLIB_TESTS := \
   tempfile_test \
   test/test_bisect \
   test/test_colorsys \
+  test/test_commands \
   test/test_datetime \
   test/test_dict \
   test/test_list \
