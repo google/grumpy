@@ -419,7 +419,8 @@ func captureStdout(f *Frame, fn func() *BaseException) (string, *BaseException) 
 	return buf.String(), nil
 }
 
-func TestBuiltinPrint(t *testing.T) {
+// TODO(corona10): Re-enable once #282 is addressed.
+/*func TestBuiltinPrint(t *testing.T) {
 	fun := wrapFuncForTest(func(f *Frame, args *Tuple, kwargs KWArgs) (string, *BaseException) {
 		return captureStdout(f, func() *BaseException {
 			_, raised := builtinPrint(NewRootFrame(), args.elems, kwargs)
@@ -439,7 +440,7 @@ func TestBuiltinPrint(t *testing.T) {
 			t.Error(err)
 		}
 	}
-}
+}*/
 
 func TestBuiltinSetAttr(t *testing.T) {
 	setattr := mustNotRaise(Builtins.GetItemString(NewRootFrame(), "setattr"))
