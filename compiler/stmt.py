@@ -503,7 +503,10 @@ class StatementVisitor(algorithm.Visitor):
           self.block.alloc_temp('*πg.Type') as t:
         # temp := exit(mgr, *sys.exec_info())
         tmpl = """\
-            $exc, $tb = πF.ExcInfo()
+            $exc, $tb = nil, nil
+            if πE != nil {
+            \t$exc, $tb = πF.ExcInfo()
+            }
             if $exc != nil {
             \t$t = $exc.Type()
             \tif $swallow_exc, πE = $exit_func.Call(πF, πg.Args{$mgr, $t.ToObject(), $exc.ToObject(), $tb.ToObject()}, nil); πE != nil {
