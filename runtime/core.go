@@ -182,17 +182,34 @@ func FloorDiv(f *Frame, v, w *Object) (*Object, *BaseException) {
 	return binaryOp(f, v, w, v.typ.slots.FloorDiv, v.typ.slots.RFloorDiv, w.typ.slots.RFloorDiv, "//")
 }
 
-// FormatException returns a single-line exception string for the given
-// exception object, e.g. "NameError: name 'x' is not defined\n".
-func FormatException(f *Frame, e *BaseException) (string, *BaseException) {
-	s, raised := ToStr(f, e.ToObject())
+// FormatExc calls traceback.format_exc, falling back to the single line
+// exception message if that fails, e.g. "NameError: name 'x' is not defined\n".
+func FormatExc(f *Frame) (s string) {
+	exc, tb := f.ExcInfo()
+	defer func() {
+		if s == "" {
+			strResult, raised := ToStr(f, exc.ToObject())
+			if raised == nil && strResult.Value() != "" {
+				s = fmt.Sprintf("%s: %s\n", exc.typ.Name(), strResult.Value())
+			} else {
+				s = exc.typ.Name() + "\n"
+			}
+		}
+		f.RestoreExc(exc, tb)
+	}()
+	tbMod, raised := SysModules.GetItemString(f, "traceback")
+	if raised != nil || tbMod == nil {
+		return
+	}
+	formatExc, raised := GetAttr(f, tbMod, NewStr("format_exc"), nil)
 	if raised != nil {
-		return "", raised
+		return
 	}
-	if len(s.Value()) == 0 {
-		return e.typ.Name() + "\n", nil
+	result, raised := formatExc.Call(f, nil, nil)
+	if raised != nil || !result.isInstance(StrType) {
+		return
 	}
-	return fmt.Sprintf("%s: %s\n", e.typ.Name(), s.Value()), nil
+	return toStrUnsafe(result).Value()
 }
 
 // GE returns the result of operation v >= w.
@@ -783,11 +800,7 @@ func StartThread(callable *Object) {
 		f := NewRootFrame()
 		_, raised := callable.Call(f, nil, nil)
 		if raised != nil {
-			s, raised := FormatException(f, raised)
-			if raised != nil {
-				s = raised.String()
-			}
-			Stderr.writeString(s)
+			Stderr.writeString(FormatExc(f))
 		}
 	}()
 }

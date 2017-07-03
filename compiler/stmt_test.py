@@ -452,8 +452,8 @@ class StatementVisitorTest(unittest.TestCase):
         finally:
           print 'bar'"""))
     self.assertEqual(1, result[0])
-    # Some platforms show "exit status 1" message so don't test strict equality.
-    self.assertIn('foo bar\nfoo bar\nException\n', result[1])
+    self.assertIn('foo bar\nfoo bar\n', result[1])
+    self.assertIn('Exception\n', result[1])
 
   def testWhile(self):
     self.assertEqual((0, '2\n1\n'), _GrumpRun(textwrap.dedent("""\

@@ -288,19 +288,17 @@ func RunMain(code *Code) int {
 	m := newModule("__main__", code.filename)
 	m.state = moduleStateInitializing
 	f := NewRootFrame()
+	f.code = code
+	f.globals = m.Dict()
 	if raised := SysModules.SetItemString(f, "__main__", m.ToObject()); raised != nil {
 		Stderr.writeString(raised.String())
 	}
-	_, e := code.Eval(f, m.Dict(), nil, nil)
+	_, e := code.fn(f, nil)
 	if e == nil {
 		return 0
 	}
 	if !e.isInstance(SystemExitType) {
-		s, raised := FormatException(f, e)
-		if raised != nil {
-			s = e.String()
-		}
-		Stderr.writeString(s)
+		Stderr.writeString(FormatExc(f))
 		return 1
 	}
 	f.RestoreExc(nil, nil)
