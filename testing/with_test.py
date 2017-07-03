@@ -180,3 +180,18 @@ with EnterResult([1, (2, 3)]) as (h, (i, j)):
 assert h == 1
 assert i == 2
 assert j == 3
+
+
+# This checks for a bug where a with clause inside an except body raises an
+# exception because it was checking ExcInfo() to determine whether an exception
+# occurred.
+class Foo(object):
+  def __enter__(self):
+    pass
+  def __exit__(self, *args):
+    pass
+try:
+  raise AssertionError
+except:
+  with Foo():
+    pass
