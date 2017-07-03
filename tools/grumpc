@@ -69,6 +69,13 @@ def main(args):
   mod_block = block.ModuleBlock(importer, full_package_name, args.script,
                                 py_contents, future_features)
   mod_block.add_native_import('grumpy')
+
+  # Import the traceback module in __main__ so that it's present in sys.modules.
+  traceback_package = None
+  has_main = args.modname == '__main__'
+  if has_main:
+    traceback_package = mod_block.add_import('traceback')
+
   visitor = stmt.StatementVisitor(mod_block, future_node)
   # Indent so that the module body is aligned with the goto labels.
   with visitor.writer.indent_block():
@@ -79,7 +86,6 @@ def main(args):
       return 2
 
   imports = dict(mod_block.imports)
-  has_main = args.modname == '__main__'
   if has_main:
     imports['os'] = block.Package('os')
 
@@ -93,6 +99,11 @@ def main(args):
   writer.write('func initModule(πF *πg.Frame, '
                '_ []*πg.Object) (*πg.Object, *πg.BaseException) {')
   with writer.indent_block():
+    if traceback_package:
+      writer.write_tmpl(textwrap.dedent("""\
+        if _, e := πg.ImportModule(πF, "traceback", []*πg.Code{$tb.Code}); e != nil {
+        \treturn nil, e
+        }"""), tb=traceback_package.alias)
     for s in sorted(mod_block.strings):
       writer.write('ß{} := πg.InternStr({})'.format(s, util.go_str(s)))
     writer.write_temp_decls(mod_block)

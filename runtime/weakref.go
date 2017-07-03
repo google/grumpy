@@ -189,11 +189,7 @@ func weakRefFinalizeReferent(o *Object) {
 	for i := numCallbacks - 1; i >= 0; i-- {
 		f := NewRootFrame()
 		if _, raised := callbacks[i].Call(f, Args{r.ToObject()}, nil); raised != nil {
-			s, raised := FormatException(f, raised)
-			if raised != nil {
-				s = raised.String()
-			}
-			Stderr.writeString(s)
+			Stderr.writeString(FormatExc(f))
 		}
 	}
 }
