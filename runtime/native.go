@@ -709,9 +709,8 @@ func nativeInvoke(f *Frame, fun reflect.Value, args Args) (ret *Object, raised *
 	result := fun.Call(nativeArgs)
 	if e, _ := f.ExcInfo(); e != nil {
 		return nil, e
-	} else {
-		f.RestoreExc(origExc, origTb)
 	}
+	f.RestoreExc(origExc, origTb)
 	numResults := len(result)
 	if numResults > 0 && result[numResults-1].Type() == reflect.TypeOf((*BaseException)(nil)) {
 		numResults--

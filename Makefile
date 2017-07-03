@@ -106,9 +106,9 @@ STDLIB_TESTS := \
   test/test_select \
   test/test_slice \
   test/test_string \
+  test/test_threading \
   test/test_tuple \
   test/test_uu \
-  threading_test \
   time_test \
   types_test \
   weetest_test
