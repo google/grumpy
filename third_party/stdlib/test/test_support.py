@@ -20,10 +20,10 @@ import UserDict
 # import time
 # import struct
 # import sysconfig
-# try:
-#     import thread
-# except ImportError:
-#     thread = None
+try:
+    import thread
+except ImportError:
+    thread = None
 
 __all__ = [
     "Error", "TestFailed", "have_unicode", "BasicTestRunner", "run_unittest",
@@ -1511,34 +1511,34 @@ def run_unittest(*classes):
 #         print 'doctest (%s) ... %d tests with zero failures' % (module.__name__, t)
 #     return f, t
 
-# #=======================================================================
-# # Threading support to prevent reporting refleaks when running regrtest.py -R
+#=======================================================================
+# Threading support to prevent reporting refleaks when running regrtest.py -R
 
-# # NOTE: we use thread._count() rather than threading.enumerate() (or the
-# # moral equivalent thereof) because a threading.Thread object is still alive
-# # until its __bootstrap() method has returned, even after it has been
-# # unregistered from the threading module.
-# # thread._count(), on the other hand, only gets decremented *after* the
-# # __bootstrap() method has returned, which gives us reliable reference counts
-# # at the end of a test run.
+# NOTE: we use thread._count() rather than threading.enumerate() (or the
+# moral equivalent thereof) because a threading.Thread object is still alive
+# until its __bootstrap() method has returned, even after it has been
+# unregistered from the threading module.
+# thread._count(), on the other hand, only gets decremented *after* the
+# __bootstrap() method has returned, which gives us reliable reference counts
+# at the end of a test run.
 
-# def threading_setup():
-#     if thread:
-#         return thread._count(),
-#     else:
-#         return 1,
+def threading_setup():
+    if thread:
+        return (thread._count(),)
+    else:
+        return (1,)
 
-# def threading_cleanup(nb_threads):
-#     if not thread:
-#         return
+def threading_cleanup(nb_threads):
+    if not thread:
+        return
 
-#     _MAX_COUNT = 10
-#     for count in range(_MAX_COUNT):
-#         n = thread._count()
-#         if n == nb_threads:
-#             break
-#         time.sleep(0.1)
-#     # XXX print a warning in case of failure?
+    _MAX_COUNT = 10
+    for count in range(_MAX_COUNT):
+        n = thread._count()
+        if n == nb_threads:
+            break
+        time.sleep(0.1)
+    # XXX print a warning in case of failure?
 
 # def reap_threads(func):
 #     """Use this function when threads are being used.  This will

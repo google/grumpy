@@ -18,9 +18,15 @@ import (
 	"fmt"
 	"log"
 	"reflect"
+	"sync/atomic"
 )
 
-var logFatal = func(msg string) { log.Fatal(msg) }
+var (
+	logFatal = func(msg string) { log.Fatal(msg) }
+	// ThreadCount is the number of goroutines started with StartThread that
+	// have not yet joined.
+	ThreadCount int64
+)
 
 // Abs returns the result of o.__abs__ and is equivalent to the Python
 // expression "abs(o)".
@@ -797,6 +803,8 @@ func SetItem(f *Frame, o, key, value *Object) *BaseException {
 // StartThread runs callable in a new goroutine.
 func StartThread(callable *Object) {
 	go func() {
+		atomic.AddInt64(&ThreadCount, 1)
+		defer atomic.AddInt64(&ThreadCount, -1)
 		f := NewRootFrame()
 		_, raised := callable.Call(f, nil, nil)
 		if raised != nil {

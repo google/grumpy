@@ -742,6 +742,7 @@ Outer:
 
 func init() {
 	builtinMap := map[string]*Object{
+		"__debug__":      False.ToObject(),
 		"__frame__":      newBuiltinFunction("__frame__", builtinFrame).ToObject(),
 		"abs":            newBuiltinFunction("abs", builtinAbs).ToObject(),
 		"all":            newBuiltinFunction("all", builtinAll).ToObject(),
