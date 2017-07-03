@@ -5,11 +5,11 @@
 import unittest
 import os, tempfile, re
 
-from test.test_support import run_unittest, reap_children, import_module, \
-                              check_warnings
+from test.test_support import run_unittest, reap_children, check_warnings #,import_module
 
 # Silence Py3k warning
-commands = import_module('commands', deprecated=True)
+# commands = import_module('commands', deprecated=True)
+import commands
 
 # The module says:
 #   "NB This only works (and is only relevant) for UNIX."
