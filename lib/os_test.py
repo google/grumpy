@@ -106,7 +106,8 @@ def TestPopenRead():
   try:
     assert f.read() == 'hello\n'
   finally:
-    f.close()
+    stat = f.close()
+    assert stat == 0
 
 
 def TestPopenWrite():
