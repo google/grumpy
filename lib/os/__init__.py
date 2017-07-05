@@ -139,7 +139,7 @@ class _Popen(object):
     result = _encode_wait_result(state.Sys())
     if not result:
       return None
-    return state.status 
+    return result 
 
 
 def popen(command, mode='r'):
