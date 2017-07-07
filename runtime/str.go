@@ -178,22 +178,13 @@ func strCapitalize(f *Frame, args Args, kwargs KWArgs) (*Object, *BaseException)
 }
 
 func strCenter(f *Frame, args Args, kwargs KWArgs) (*Object, *BaseException) {
-	expectedTypes := []*Type{StrType, IntType, StrType}
-	if raised := checkMethodArgs(f, "center", args, expectedTypes...); raised != nil {
+	s, width, fill, raised := strJustDecodeArgs(f, args, "center")
+	if raised != nil {
 		return nil, raised
 	}
-	s := toStrUnsafe(args[0]).Value()
-	width := toIntUnsafe(args[1]).Value()
-	fill := toStrUnsafe(args[2]).Value()
-
-	if numChars := len(fill); numChars != 1 {
-		return nil, f.RaiseType(TypeErrorType, fmt.Sprintf("center() argument 2 must be char, not str"))
-	}
-
 	if len(s) >= width {
 		return NewStr(s).ToObject(), nil
 	}
-
 	marg := width - len(s)
 	left := marg/2 + (marg & width & 1)
 	return NewStr(pad(s, left, marg-left, fill)).ToObject(), nil
@@ -527,22 +518,13 @@ func strLen(f *Frame, o *Object) (*Object, *BaseException) {
 }
 
 func strLJust(f *Frame, args Args, kwargs KWArgs) (*Object, *BaseException) {
-	expectedTypes := []*Type{StrType, IntType, StrType}
-	if raised := checkMethodArgs(f, "ljust", args, expectedTypes...); raised != nil {
+	s, width, fill, raised := strJustDecodeArgs(f, args, "ljust")
+	if raised != nil {
 		return nil, raised
 	}
-	s := toStrUnsafe(args[0]).Value()
-	width := toIntUnsafe(args[1]).Value()
-	fill := toStrUnsafe(args[2]).Value()
-
-	if numChars := len(fill); numChars != 1 {
-		return nil, f.RaiseType(TypeErrorType, fmt.Sprintf("ljust() argument 2 must be char, not str"))
-	}
-
 	if len(s) >= width {
 		return NewStr(s).ToObject(), nil
 	}
-
 	return NewStr(pad(s, 0, width-len(s), fill)).ToObject(), nil
 }
 
@@ -742,22 +724,13 @@ func strRIndex(f *Frame, args Args, _ KWArgs) (*Object, *BaseException) {
 }
 
 func strRJust(f *Frame, args Args, kwargs KWArgs) (*Object, *BaseException) {
-	expectedTypes := []*Type{StrType, IntType, StrType}
-	if raised := checkMethodArgs(f, "rjust", args, expectedTypes...); raised != nil {
+	s, width, fill, raised := strJustDecodeArgs(f, args, "rjust")
+	if raised != nil {
 		return nil, raised
 	}
-	s := toStrUnsafe(args[0]).Value()
-	width := toIntUnsafe(args[1]).Value()
-	fill := toStrUnsafe(args[2]).Value()
-
-	if numChars := len(fill); numChars != 1 {
-		return nil, f.RaiseType(TypeErrorType, fmt.Sprintf("rjust() argument 2 must be char, not str"))
-	}
-
 	if len(s) >= width {
 		return NewStr(s).ToObject(), nil
 	}
-
 	return NewStr(pad(s, width-len(s), 0, fill)).ToObject(), nil
 }
 
@@ -1457,4 +1430,20 @@ func strFindOrIndex(f *Frame, args Args, fn indexFunc) (*Object, *BaseException)
 		index += start
 	}
 	return NewInt(index).ToObject(), nil
+}
+
+func strJustDecodeArgs(f *Frame, args Args, name string) (string, int, string, *BaseException) {
+	expectedTypes := []*Type{StrType, IntType, StrType}
+	if raised := checkMethodArgs(f, name, args, expectedTypes...); raised != nil {
+		return "", 0, "", raised
+	}
+	s := toStrUnsafe(args[0]).Value()
+	width := toIntUnsafe(args[1]).Value()
+	fill := toStrUnsafe(args[2]).Value()
+
+	if numChars := len(fill); numChars != 1 {
+		return s, width, fill, f.RaiseType(TypeErrorType, fmt.Sprintf("%[1]s() argument 2 must be char, not str", name))
+	}
+
+	return s, width, fill, nil
 }

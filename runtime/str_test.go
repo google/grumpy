@@ -306,6 +306,7 @@ func TestStrMethods(t *testing.T) {
 		{"capitalize", wrapArgs("вол"), NewStr("вол").ToObject(), nil},
 		{"capitalize", wrapArgs("foobar", 123), nil, mustCreateException(TypeErrorType, "'capitalize' of 'str' requires 1 arguments")},
 		{"capitalize", wrapArgs("ВОЛ"), NewStr("ВОЛ").ToObject(), nil},
+		{"center", wrapArgs("foobar", 9, "#"), NewStr("##foobar#").ToObject(), nil},
 		{"center", wrapArgs("foobar", 10, "#"), NewStr("##foobar##").ToObject(), nil},
 		{"center", wrapArgs("foobar", 3, "#"), NewStr("foobar").ToObject(), nil},
 		{"center", wrapArgs("foobar", -1, "#"), NewStr("foobar").ToObject(), nil},
