@@ -177,6 +177,19 @@ func strCapitalize(f *Frame, args Args, kwargs KWArgs) (*Object, *BaseException)
 	return NewStr(string(b)).ToObject(), nil
 }
 
+func strCenter(f *Frame, args Args, kwargs KWArgs) (*Object, *BaseException) {
+	s, width, fill, raised := strJustDecodeArgs(f, args, "center")
+	if raised != nil {
+		return nil, raised
+	}
+	if len(s) >= width {
+		return NewStr(s).ToObject(), nil
+	}
+	marg := width - len(s)
+	left := marg/2 + (marg & width & 1)
+	return NewStr(pad(s, left, marg-left, fill)).ToObject(), nil
+}
+
 func strContains(f *Frame, o *Object, value *Object) (*Object, *BaseException) {
 	if value.isInstance(UnicodeType) {
 		decoded, raised := toStrUnsafe(o).Decode(f, EncodeDefault, EncodeStrict)
@@ -504,6 +517,17 @@ func strLen(f *Frame, o *Object) (*Object, *BaseException) {
 	return NewInt(len(toStrUnsafe(o).Value())).ToObject(), nil
 }
 
+func strLJust(f *Frame, args Args, kwargs KWArgs) (*Object, *BaseException) {
+	s, width, fill, raised := strJustDecodeArgs(f, args, "ljust")
+	if raised != nil {
+		return nil, raised
+	}
+	if len(s) >= width {
+		return NewStr(s).ToObject(), nil
+	}
+	return NewStr(pad(s, 0, width-len(s), fill)).ToObject(), nil
+}
+
 func strLower(f *Frame, args Args, kwargs KWArgs) (*Object, *BaseException) {
 	expectedTypes := []*Type{StrType}
 	if raised := checkMethodArgs(f, "lower", args, expectedTypes...); raised != nil {
@@ -697,6 +721,17 @@ func strRIndex(f *Frame, args Args, _ KWArgs) (*Object, *BaseException) {
 		}
 		return i, raised
 	})
+}
+
+func strRJust(f *Frame, args Args, kwargs KWArgs) (*Object, *BaseException) {
+	s, width, fill, raised := strJustDecodeArgs(f, args, "rjust")
+	if raised != nil {
+		return nil, raised
+	}
+	if len(s) >= width {
+		return NewStr(s).ToObject(), nil
+	}
+	return NewStr(pad(s, width-len(s), 0, fill)).ToObject(), nil
 }
 
 func strSplit(f *Frame, args Args, kwargs KWArgs) (*Object, *BaseException) {
@@ -901,6 +936,7 @@ func initStrType(dict map[string]*Object) {
 	dict["__getnewargs__"] = newBuiltinFunction("__getnewargs__", strGetNewArgs).ToObject()
 	dict["capitalize"] = newBuiltinFunction("capitalize", strCapitalize).ToObject()
 	dict["count"] = newBuiltinFunction("count", strCount).ToObject()
+	dict["center"] = newBuiltinFunction("center", strCenter).ToObject()
 	dict["decode"] = newBuiltinFunction("decode", strDecode).ToObject()
 	dict["endswith"] = newBuiltinFunction("endswith", strEndsWith).ToObject()
 	dict["find"] = newBuiltinFunction("find", strFind).ToObject()
@@ -914,9 +950,11 @@ func initStrType(dict map[string]*Object) {
 	dict["isupper"] = newBuiltinFunction("isupper", strIsUpper).ToObject()
 	dict["join"] = newBuiltinFunction("join", strJoin).ToObject()
 	dict["lower"] = newBuiltinFunction("lower", strLower).ToObject()
+	dict["ljust"] = newBuiltinFunction("ljust", strLJust).ToObject()
 	dict["lstrip"] = newBuiltinFunction("lstrip", strLStrip).ToObject()
 	dict["rfind"] = newBuiltinFunction("rfind", strRFind).ToObject()
 	dict["rindex"] = newBuiltinFunction("rindex", strRIndex).ToObject()
+	dict["rjust"] = newBuiltinFunction("rjust", strRJust).ToObject()
 	dict["split"] = newBuiltinFunction("split", strSplit).ToObject()
 	dict["splitlines"] = newBuiltinFunction("splitlines", strSplitLines).ToObject()
 	dict["startswith"] = newBuiltinFunction("startswith", strStartsWith).ToObject()
@@ -1302,6 +1340,29 @@ func isUpper(c byte) bool {
 	return 'A' <= c && c <= 'Z'
 }
 
+func pad(s string, left int, right int, fillchar string) string {
+	buf := bytes.Buffer{}
+
+	if left < 0 {
+		left = 0
+	}
+
+	if right < 0 {
+		right = 0
+	}
+
+	if left == 0 && right == 0 {
+		return s
+	}
+
+	buf.Grow(left + len(s) + right)
+	buf.WriteString(strings.Repeat(fillchar, left))
+	buf.WriteString(s)
+	buf.WriteString(strings.Repeat(fillchar, right))
+
+	return buf.String()
+}
+
 // strLeftPad returns s padded with fillchar so that its length is at least width.
 // Fillchar must be a single character. When fillchar is "0", s starting with a
 // sign are handled correctly.
@@ -1369,4 +1430,20 @@ func strFindOrIndex(f *Frame, args Args, fn indexFunc) (*Object, *BaseException)
 		index += start
 	}
 	return NewInt(index).ToObject(), nil
+}
+
+func strJustDecodeArgs(f *Frame, args Args, name string) (string, int, string, *BaseException) {
+	expectedTypes := []*Type{StrType, IntType, StrType}
+	if raised := checkMethodArgs(f, name, args, expectedTypes...); raised != nil {
+		return "", 0, "", raised
+	}
+	s := toStrUnsafe(args[0]).Value()
+	width := toIntUnsafe(args[1]).Value()
+	fill := toStrUnsafe(args[2]).Value()
+
+	if numChars := len(fill); numChars != 1 {
+		return s, width, fill, f.RaiseType(TypeErrorType, fmt.Sprintf("%[1]s() argument 2 must be char, not str", name))
+	}
+
+	return s, width, fill, nil
 }
