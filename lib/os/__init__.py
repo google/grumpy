@@ -136,10 +136,7 @@ class _Popen(object):
     state, err = self.result
     if err:
       raise OSError(err.Error())
-    result = _encode_wait_result(state.Sys())
-    if not result:
-      return None
-    return state.Pid(), result
+    return state.Sys() 
 
 
 def popen(command, mode='r'):

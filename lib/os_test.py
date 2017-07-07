@@ -102,11 +102,13 @@ def TestFDOpenOSError():
 
 
 def TestPopenRead():
+  f = os.popen('qux')
+  assert f.close() == 32512
   f = os.popen('echo hello')
   try:
     assert f.read() == 'hello\n'
   finally:
-    f.close()
+    assert f.close() == 0
 
 
 def TestPopenWrite():
