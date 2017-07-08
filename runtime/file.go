@@ -223,8 +223,9 @@ func fileClosed(f *Frame, args Args, _ KWArgs) (*Object, *BaseException) {
 	}
 	file := toFileUnsafe(args[0])
 	file.mutex.Lock()
-	defer file.mutex.Unlock()
-	return GetBool(!file.open).ToObject(), nil
+	c := !file.open
+	file.mutex.Unlock()
+	return GetBool(c).ToObject(), nil
 }
 
 func fileFileno(f *Frame, args Args, _ KWArgs) (ret *Object, raised *BaseException) {
