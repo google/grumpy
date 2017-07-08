@@ -97,6 +97,7 @@ STDLIB_TESTS := \
   test/test_colorsys \
   test/test_datetime \
   test/test_dict \
+  test/test_fpformat \
   test/test_list \
   test/test_md5 \
   test/test_mimetools \
