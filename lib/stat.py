@@ -19,7 +19,7 @@ from __go__.os import ModeDir, ModePerm
 
 
 def S_ISDIR(mode):  # pylint: disable=invalid-name
-  return mode & ModeDir
+  return mode & ModeDir != 0
 
 
 def S_IMODE(mode):  # pylint: disable=invalid-name
