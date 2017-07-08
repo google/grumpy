@@ -107,6 +107,7 @@ STDLIB_TESTS := \
   test/test_sched \
   test/test_select \
   test/test_slice \
+  test/test_stat \
   test/test_string \
   test/test_threading \
   test/test_tuple \

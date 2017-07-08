@@ -18,7 +18,7 @@
 from __go__.io.ioutil import ReadDir
 from __go__.os import (Chdir, Chmod, Environ, Getpid as getpid, Getwd, Pipe,
     type_ProcAttr as ProcAttr, Remove, StartProcess, Stat, Stdout, Stdin,
-    Stderr)
+    Stderr, Mkdir)
 from __go__.path.filepath import Separator
 from __go__.grumpy import (NewFileFromFD, StartThread, ToNative)
 from __go__.reflect import MakeSlice
@@ -43,6 +43,12 @@ environ = {}
 for var in Environ():
   k, v = var.split('=', 1)
   environ[k] = v
+
+
+def mkdir(path, mode=0o777):
+  err = Mkdir(path, mode)
+  if err:
+    raise OSError(err.Error())
 
 
 def chdir(path):

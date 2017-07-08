@@ -101,6 +101,23 @@ def TestFDOpenOSError():
     raise AssertionError
 
 
+def TestMkdir():
+  path = 'foobarqux'
+  try:
+    os.stat(path)
+  except OSError:
+    pass
+  else:
+    raise AssertionError
+  try:
+    os.mkdir(path)
+    assert stat.S_ISDIR(os.stat(path).st_mode)
+  except OSError:
+    raise AssertionError
+  finally:
+      os.rmdir(path)
+
+
 def TestPopenRead():
   f = os.popen('qux')
   assert f.close() == 32512
