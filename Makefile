@@ -104,6 +104,7 @@ STDLIB_TESTS := \
   test/test_operator \
   test/test_quopri \
   test/test_rfc822 \
+  test/test_sched \
   test/test_select \
   test/test_slice \
   test/test_string \
