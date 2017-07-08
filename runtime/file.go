@@ -217,6 +217,17 @@ func fileClose(f *Frame, args Args, _ KWArgs) (*Object, *BaseException) {
 	return ret, nil
 }
 
+func fileClosed(f *Frame, args Args, _ KWArgs) (*Object, *BaseException) {
+	if raised := checkMethodArgs(f, "closed", args, FileType); raised != nil {
+		return nil, raised
+	}
+	file := toFileUnsafe(args[0])
+	file.mutex.Lock()
+	c := !file.open
+	file.mutex.Unlock()
+	return GetBool(c).ToObject(), nil
+}
+
 func fileFileno(f *Frame, args Args, _ KWArgs) (ret *Object, raised *BaseException) {
 	if raised := checkMethodArgs(f, "fileno", args, FileType); raised != nil {
 		return nil, raised
@@ -378,6 +389,7 @@ func initFileType(dict map[string]*Object) {
 	dict["__enter__"] = newBuiltinFunction("__enter__", fileEnter).ToObject()
 	dict["__exit__"] = newBuiltinFunction("__exit__", fileExit).ToObject()
 	dict["close"] = newBuiltinFunction("close", fileClose).ToObject()
+	dict["closed"] = newBuiltinFunction("closed", fileClosed).ToObject()
 	dict["fileno"] = newBuiltinFunction("fileno", fileFileno).ToObject()
 	dict["name"] = newProperty(newBuiltinFunction("_get_name", fileGetName).ToObject(), nil, nil).ToObject()
 	dict["read"] = newBuiltinFunction("read", fileRead).ToObject()

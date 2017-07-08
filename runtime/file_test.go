@@ -43,6 +43,25 @@ func TestFileInit(t *testing.T) {
 	}
 }
 
+func TestFileClosed(t *testing.T) {
+	f := newTestFile("foo\nbar")
+	defer f.cleanup()
+	closedFile := f.open("r")
+	// This puts the file into an invalid state since Grumpy thinks
+	// it's open even though the underlying file was closed.
+	closedFile.file.Close()
+	cases := []invokeTestCase{
+		{args: wrapArgs(newObject(FileType)), want: True.ToObject()},
+		{args: wrapArgs(f.open("r")), want: False.ToObject()},
+		{args: wrapArgs(closedFile), want: False.ToObject()},
+	}
+	for _, cas := range cases {
+		if err := runInvokeMethodTestCase(FileType, "closed", &cas); err != "" {
+			t.Error(err)
+		}
+	}
+}
+
 func TestFileCloseExit(t *testing.T) {
 	f := newTestFile("foo\nbar")
 	defer f.cleanup()
