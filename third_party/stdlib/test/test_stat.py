@@ -82,92 +82,97 @@ class TestFilemode(unittest.TestCase):
             else:
                 self.assertFalse(func(mode))
 
-#   def test_mode(self):
-#       with open(TESTFN, 'w'):
-#           pass
-#       if os.name == 'posix':
-#           os.chmod(TESTFN, 0o700)
-#           st_mode = self.get_mode()
-#           self.assertS_IS("REG", st_mode)
-#           self.assertEqual(stat.S_IMODE(st_mode),
-#                            stat.S_IRWXU)
-#
-#           os.chmod(TESTFN, 0o070)
-#           st_mode = self.get_mode()
-#           self.assertS_IS("REG", st_mode)
-#           self.assertEqual(stat.S_IMODE(st_mode),
-#                            stat.S_IRWXG)
-#
-#           os.chmod(TESTFN, 0o007)
-#           st_mode = self.get_mode()
-#           self.assertS_IS("REG", st_mode)
-#           self.assertEqual(stat.S_IMODE(st_mode),
-#                            stat.S_IRWXO)
-#
-#           os.chmod(TESTFN, 0o444)
-#           st_mode = self.get_mode()
-#           self.assertS_IS("REG", st_mode)
-#           self.assertEqual(stat.S_IMODE(st_mode), 0o444)
-#       else:
-#           os.chmod(TESTFN, 0o700)
-#           st_mode = self.get_mode()
-#           self.assertS_IS("REG", st_mode)
-#           self.assertEqual(stat.S_IFMT(st_mode),
-#                            stat.S_IFREG)
-
+    @unittest.skip('grumpy')
+    def test_mode(self):
+        with open(TESTFN, 'w'):
+            pass
+        if os.name == 'posix':
+            os.chmod(TESTFN, 0o700)
+            st_mode = self.get_mode()
+            self.assertS_IS("REG", st_mode)
+            self.assertEqual(stat.S_IMODE(st_mode),
+                             stat.S_IRWXU)
+ 
+            os.chmod(TESTFN, 0o070)
+            st_mode = self.get_mode()
+            self.assertS_IS("REG", st_mode)
+            self.assertEqual(stat.S_IMODE(st_mode),
+                             stat.S_IRWXG)
+ 
+            os.chmod(TESTFN, 0o007)
+            st_mode = self.get_mode()
+            self.assertS_IS("REG", st_mode)
+            self.assertEqual(stat.S_IMODE(st_mode),
+                             stat.S_IRWXO)
+ 
+            os.chmod(TESTFN, 0o444)
+            st_mode = self.get_mode()
+            self.assertS_IS("REG", st_mode)
+            self.assertEqual(stat.S_IMODE(st_mode), 0o444)
+        else:
+            os.chmod(TESTFN, 0o700)
+            st_mode = self.get_mode()
+            self.assertS_IS("REG", st_mode)
+            self.assertEqual(stat.S_IFMT(st_mode),
+                             stat.S_IFREG)
+ 
     def test_directory(self):
         os.mkdir(TESTFN)
         os.chmod(TESTFN, 0o700)
         st_mode = self.get_mode()
         self.assertS_IS("DIR", st_mode)
 
-#   @unittest.skipUnless(hasattr(os, 'symlink'), 'os.symlink not available')
-#   def test_link(self):
-#       try:
-#           os.symlink(os.getcwd(), TESTFN)
-#       except (OSError, NotImplementedError) as err:
-#           raise unittest.SkipTest(str(err))
-#       else:
-#           st_mode = self.get_mode()
-#           self.assertS_IS("LNK", st_mode)
-#
-#   @unittest.skipUnless(hasattr(os, 'mkfifo'), 'os.mkfifo not available')
-#   def test_fifo(self):
-#       os.mkfifo(TESTFN, 0o700)
-#       st_mode = self.get_mode()
-#       self.assertS_IS("FIFO", st_mode)
-#
-#   @unittest.skipUnless(os.name == 'posix', 'requires Posix')
-#   def test_devices(self):
-#       if os.path.exists(os.devnull):
-#           st_mode = self.get_mode(os.devnull, lstat=False)
-#           self.assertS_IS("CHR", st_mode)
-#       # Linux block devices, BSD has no block devices anymore
-#       for blockdev in ("/dev/sda", "/dev/hda"):
-#           if os.path.exists(blockdev):
-#               st_mode = self.get_mode(blockdev, lstat=False)
-#               self.assertS_IS("BLK", st_mode)
-#               break
-#
-#   def test_module_attributes(self):
-#       for key, value in self.stat_struct.items():
-#           modvalue = getattr(stat, key)
-#           self.assertEqual(value, modvalue, key)
-#       for key, value in self.permission_bits.items():
-#           modvalue = getattr(stat, key)
-#           self.assertEqual(value, modvalue, key)
-#       for key in self.file_flags:
-#           modvalue = getattr(stat, key)
-#           self.assertIsInstance(modvalue, int)
-#       for key in self.formats:
-#           modvalue = getattr(stat, key)
-#           self.assertIsInstance(modvalue, int)
-#       for key in self.format_funcs:
-#           func = getattr(stat, key)
-#           self.assertTrue(callable(func))
-#           self.assertEqual(func(0), 0)
-#
+    @unittest.skip('grumpy')
+    @unittest.skipUnless(hasattr(os, 'symlink'), 'os.symlink not available')
+    def test_link(self):
+        try:
+            os.symlink(os.getcwd(), TESTFN)
+        except (OSError, NotImplementedError) as err:
+            raise unittest.SkipTest(str(err))
+        else:
+            st_mode = self.get_mode()
+            self.assertS_IS("LNK", st_mode)
+ 
+    @unittest.skip('grumpy')
+    @unittest.skipUnless(hasattr(os, 'mkfifo'), 'os.mkfifo not available')
+    def test_fifo(self):
+        os.mkfifo(TESTFN, 0o700)
+        st_mode = self.get_mode()
+        self.assertS_IS("FIFO", st_mode)
+ 
+    @unittest.skip('grumpy')
+    @unittest.skipUnless(os.name == 'posix', 'requires Posix')
+    def test_devices(self):
+        if os.path.exists(os.devnull):
+            st_mode = self.get_mode(os.devnull, lstat=False)
+            self.assertS_IS("CHR", st_mode)
+        # Linux block devices, BSD has no block devices anymore
+        for blockdev in ("/dev/sda", "/dev/hda"):
+            if os.path.exists(blockdev):
+                st_mode = self.get_mode(blockdev, lstat=False)
+                self.assertS_IS("BLK", st_mode)
+                break
 
+    @unittest.skip('grumpy')
+    def test_module_attributes(self):
+        for key, value in self.stat_struct.items():
+            modvalue = getattr(stat, key)
+            self.assertEqual(value, modvalue, key)
+        for key, value in self.permission_bits.items():
+            modvalue = getattr(stat, key)
+            self.assertEqual(value, modvalue, key)
+        for key in self.file_flags:
+            modvalue = getattr(stat, key)
+            self.assertIsInstance(modvalue, int)
+        for key in self.formats:
+            modvalue = getattr(stat, key)
+            self.assertIsInstance(modvalue, int)
+        for key in self.format_funcs:
+            func = getattr(stat, key)
+            self.assertTrue(callable(func))
+            self.assertEqual(func(0), 0)
+ 
+ 
 def test_main():
     run_unittest(TestFilemode)
 
