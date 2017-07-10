@@ -18,6 +18,7 @@
 
 from __future__ import unicode_literals
 
+import copy
 import os
 import shutil
 import tempfile
@@ -60,6 +61,23 @@ class ImportVisitorTest(unittest.TestCase):
     self.fred_importer = imputil.Importer(
         self.rootdir, 'bar.fred', fred_script, False)
 
+    self.foo_import = imputil.Import(
+        'foo', os.path.join(self.pydir, 'foo.py'))
+    self.qux_import = imputil.Import(
+        'qux', os.path.join(self.pydir, 'qux.py'))
+    self.bar_import = imputil.Import(
+        'bar', os.path.join(self.pydir, 'bar/__init__.py'))
+    self.fred_import = imputil.Import(
+        'bar.fred', os.path.join(self.pydir, 'bar/fred/__init__.py'))
+    self.quux_import = imputil.Import(
+        'bar.fred.quux', os.path.join(self.pydir, 'bar/fred/quux.py'))
+    self.baz2_import = imputil.Import(
+        'bar.baz', os.path.join(self.pydir, 'bar/baz.py'))
+    self.foo2_import = imputil.Import(
+        'bar.foo', os.path.join(self.pydir, 'bar/foo.py'))
+    self.baz_import = imputil.Import(
+        'baz', os.path.join(self.pydir, 'baz.py'))
+
   def tearDown(self):
     shutil.rmtree(self.rootdir)
 
@@ -69,33 +87,33 @@ class ImportVisitorTest(unittest.TestCase):
                       pythonparser.parse('import bar').body[0])
 
   def testImportTopLevelModule(self):
-    imp = imputil.Import('qux')
+    imp = copy.deepcopy(self.qux_import)
     imp.add_binding(imputil.Import.MODULE, 'qux', 0)
     self._check_imports('import qux', [imp])
 
   def testImportTopLevelPackage(self):
-    imp = imputil.Import('bar')
+    imp = copy.deepcopy(self.bar_import)
     imp.add_binding(imputil.Import.MODULE, 'bar', 0)
     self._check_imports('import bar', [imp])
 
   def testImportPackageModuleAbsolute(self):
-    imp = imputil.Import('bar.baz')
+    imp = copy.deepcopy(self.baz2_import)
     imp.add_binding(imputil.Import.MODULE, 'bar', 0)
     self._check_imports('import bar.baz', [imp])
 
   def testImportFromSubModule(self):
-    imp = imputil.Import('bar.baz')
+    imp = copy.deepcopy(self.baz2_import)
     imp.add_binding(imputil.Import.MODULE, 'baz', 1)
     self._check_imports('from bar import baz', [imp])
 
   def testImportPackageModuleRelative(self):
-    imp = imputil.Import('bar.baz')
+    imp = copy.deepcopy(self.baz2_import)
     imp.add_binding(imputil.Import.MODULE, 'baz', 1)
     got = self.bar_importer.visit(pythonparser.parse('import baz').body[0])
     self._assert_imports_equal([imp], got)
 
   def testImportPackageModuleRelativeFromSubModule(self):
-    imp = imputil.Import('bar.baz')
+    imp = copy.deepcopy(self.baz2_import)
     imp.add_binding(imputil.Import.MODULE, 'baz', 1)
     foo_script = os.path.join(self.pydir, 'bar', 'foo.py')
     importer = imputil.Importer(self.rootdir, 'bar.foo', foo_script, False)
@@ -103,7 +121,7 @@ class ImportVisitorTest(unittest.TestCase):
     self._assert_imports_equal([imp], got)
 
   def testImportPackageModuleAbsoluteImport(self):
-    imp = imputil.Import('baz')
+    imp = copy.deepcopy(self.baz_import)
     imp.add_binding(imputil.Import.MODULE, 'baz', 0)
     bar_script = os.path.join(self.pydir, 'bar', '__init__.py')
     importer = imputil.Importer(self.rootdir, 'bar', bar_script, True)
@@ -111,14 +129,14 @@ class ImportVisitorTest(unittest.TestCase):
     self._assert_imports_equal([imp], got)
 
   def testImportMultiple(self):
-    imp1 = imputil.Import('foo')
+    imp1 = copy.deepcopy(self.foo_import)
     imp1.add_binding(imputil.Import.MODULE, 'foo', 0)
-    imp2 = imputil.Import('bar.baz')
+    imp2 = copy.deepcopy(self.baz2_import)
     imp2.add_binding(imputil.Import.MODULE, 'bar', 0)
     self._check_imports('import foo, bar.baz', [imp1, imp2])
 
   def testImportAs(self):
-    imp = imputil.Import('foo')
+    imp = copy.deepcopy(self.foo_import)
     imp.add_binding(imputil.Import.MODULE, 'bar', 0)
     self._check_imports('import foo as bar', [imp])
 
@@ -127,36 +145,36 @@ class ImportVisitorTest(unittest.TestCase):
                       pythonparser.parse('import __go__.fmt').body[0])
 
   def testImportFrom(self):
-    imp = imputil.Import('bar.baz')
+    imp = copy.deepcopy(self.baz2_import)
     imp.add_binding(imputil.Import.MODULE, 'baz', 1)
     self._check_imports('from bar import baz', [imp])
 
   def testImportFromMember(self):
-    imp = imputil.Import('foo')
+    imp = copy.deepcopy(self.foo_import)
     imp.add_binding(imputil.Import.MEMBER, 'bar', 'bar')
     self._check_imports('from foo import bar', [imp])
 
   def testImportFromMultiple(self):
-    imp1 = imputil.Import('bar.baz')
+    imp1 = copy.deepcopy(self.baz2_import)
     imp1.add_binding(imputil.Import.MODULE, 'baz', 1)
-    imp2 = imputil.Import('bar.foo')
+    imp2 = copy.deepcopy(self.foo2_import)
     imp2.add_binding(imputil.Import.MODULE, 'foo', 1)
     self._check_imports('from bar import baz, foo', [imp1, imp2])
 
   def testImportFromMixedMembers(self):
-    imp1 = imputil.Import('bar')
+    imp1 = copy.deepcopy(self.bar_import)
     imp1.add_binding(imputil.Import.MEMBER, 'qux', 'qux')
-    imp2 = imputil.Import('bar.baz')
+    imp2 = copy.deepcopy(self.baz2_import)
     imp2.add_binding(imputil.Import.MODULE, 'baz', 1)
     self._check_imports('from bar import qux, baz', [imp1, imp2])
 
   def testImportFromAs(self):
-    imp = imputil.Import('bar.baz')
+    imp = copy.deepcopy(self.baz2_import)
     imp.add_binding(imputil.Import.MODULE, 'qux', 1)
     self._check_imports('from bar import baz as qux', [imp])
 
   def testImportFromAsMembers(self):
-    imp = imputil.Import('foo')
+    imp = copy.deepcopy(self.foo_import)
     imp.add_binding(imputil.Import.MEMBER, 'baz', 'bar')
     self._check_imports('from foo import bar as baz', [imp])
 
@@ -196,13 +214,13 @@ class ImportVisitorTest(unittest.TestCase):
                       pythonparser.parse('from . import qux').body[0])
 
   def testRelativeModule(self):
-    imp = imputil.Import('bar.foo')
+    imp = copy.deepcopy(self.foo2_import)
     imp.add_binding(imputil.Import.MODULE, 'foo', 1)
     node = pythonparser.parse('from . import foo').body[0]
     self._assert_imports_equal([imp], self.bar_importer.visit(node))
 
   def testRelativeModuleFromSubModule(self):
-    imp = imputil.Import('bar.foo')
+    imp = copy.deepcopy(self.foo2_import)
     imp.add_binding(imputil.Import.MODULE, 'foo', 1)
     baz_script = os.path.join(self.pydir, 'bar', 'baz.py')
     importer = imputil.Importer(self.rootdir, 'bar.baz', baz_script, False)
@@ -210,27 +228,27 @@ class ImportVisitorTest(unittest.TestCase):
     self._assert_imports_equal([imp], importer.visit(node))
 
   def testRelativeModuleMember(self):
-    imp = imputil.Import('bar.foo')
+    imp = copy.deepcopy(self.foo2_import)
     imp.add_binding(imputil.Import.MEMBER, 'qux', 'qux')
     node = pythonparser.parse('from .foo import qux').body[0]
     self._assert_imports_equal([imp], self.bar_importer.visit(node))
 
   def testRelativeModuleMemberMixed(self):
-    imp1 = imputil.Import('bar.fred')
+    imp1 = copy.deepcopy(self.fred_import)
     imp1.add_binding(imputil.Import.MEMBER, 'qux', 'qux')
-    imp2 = imputil.Import('bar.fred.quux')
+    imp2 = copy.deepcopy(self.quux_import)
     imp2.add_binding(imputil.Import.MODULE, 'quux', 2)
     node = pythonparser.parse('from .fred import qux, quux').body[0]
     self._assert_imports_equal([imp1, imp2], self.bar_importer.visit(node))
 
   def testRelativeUpLevel(self):
-    imp = imputil.Import('bar.foo')
+    imp = copy.deepcopy(self.foo2_import)
     imp.add_binding(imputil.Import.MODULE, 'foo', 1)
     node = pythonparser.parse('from .. import foo').body[0]
     self._assert_imports_equal([imp], self.fred_importer.visit(node))
 
   def testRelativeUpLevelMember(self):
-    imp = imputil.Import('bar.foo')
+    imp = copy.deepcopy(self.foo2_import)
     imp.add_binding(imputil.Import.MEMBER, 'qux', 'qux')
     node = pythonparser.parse('from ..foo import qux').body[0]
     self._assert_imports_equal([imp], self.fred_importer.visit(node))

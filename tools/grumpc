@@ -70,12 +70,6 @@ def main(args):
                                 py_contents, future_features)
   mod_block.add_native_import('grumpy')
 
-  # Import the traceback module in __main__ so that it's present in sys.modules.
-  traceback_package = None
-  has_main = args.modname == '__main__'
-  if has_main:
-    traceback_package = mod_block.add_import('traceback')
-
   visitor = stmt.StatementVisitor(mod_block, future_node)
   # Indent so that the module body is aligned with the goto labels.
   with visitor.writer.indent_block():
@@ -85,25 +79,14 @@ def main(args):
       print >> sys.stderr, str(e)
       return 2
 
-  imports = dict(mod_block.imports)
-  if has_main:
-    imports['os'] = block.Package('os')
-
   writer = util.Writer(sys.stdout)
   package_name = args.modname.split('.')[-1]
-  if has_main:
-    package_name = 'main'
   writer.write('package {}'.format(package_name))
-  writer.write_import_block(imports)
+  writer.write_import_block(mod_block.imports)
 
   writer.write('func initModule(πF *πg.Frame, '
                '_ []*πg.Object) (*πg.Object, *πg.BaseException) {')
   with writer.indent_block():
-    if traceback_package:
-      writer.write_tmpl(textwrap.dedent("""\
-        if _, e := πg.ImportModule(πF, "traceback", []*πg.Code{$tb.Code}); e != nil {
-        \treturn nil, e
-        }"""), tb=traceback_package.alias)
     for s in sorted(mod_block.strings):
       writer.write('ß{} := πg.InternStr({})'.format(s, util.go_str(s)))
     writer.write_temp_decls(mod_block)
@@ -111,17 +94,11 @@ def main(args):
   writer.write('}')
   writer.write('var Code *πg.Code')
 
-  if has_main:
-    writer.write_tmpl(textwrap.dedent("""\
-      func main() {
-      \tCode = πg.NewCode("<module>", $script, nil, 0, initModule)
-      \tπ_os.Exit(πg.RunMain(Code))
-      }"""), script=util.go_str(args.script))
-  else:
-    writer.write_tmpl(textwrap.dedent("""\
-      func init() {
-      \tCode = πg.NewCode("<module>", $script, nil, 0, initModule)
-      }"""), script=util.go_str(args.script))
+  writer.write_tmpl(textwrap.dedent("""\
+    func init() {
+    \tCode = πg.NewCode("<module>", $script, nil, 0, initModule)
+    \tπg.RegisterModule($modname, Code)
+    }"""), script=util.go_str(args.script), modname=util.go_str(args.modname))
   return 0
 
 

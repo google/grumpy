@@ -172,18 +172,7 @@ class ModuleBlock(Block):
   def resolve_name(self, writer, name):
     return self._resolve_global(writer, name)
 
-  def add_import(self, name):
-    """Register the named Go package for import.
-
-    Args:
-      name: The fully qualified Go package name.
-    Returns:
-      A Package representing the import.
-    """
-    return self.add_native_import('__python__/' + name)
-
-  def add_native_import(self, name):
-    alias = None
+  def add_native_import(self, name, alias=None):
     if name == 'grumpy':
       alias = 'πg'
     if name in self.imports:

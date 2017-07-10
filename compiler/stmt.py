@@ -648,21 +648,10 @@ class StatementVisitor(algorithm.Visitor):
     """
     # Acquire handles to the Code objects in each Go package and call
     # ImportModule to initialize all modules.
-    parts = imp.name.split('.')
-    code_objs = []
-    for i in xrange(len(parts)):
-      package_name = '/'.join(parts[:i + 1])
-      if package_name != self.block.root.full_package_name:
-        package = self.block.root.add_import(package_name)
-        code_objs.append('{}.Code'.format(package.alias))
-      else:
-        code_objs.append('Code')
     with self.block.alloc_temp() as mod, \
         self.block.alloc_temp('[]*πg.Object') as mod_slice:
-      handles_expr = '[]*πg.Code{' + ', '.join(code_objs) + '}'
       self.writer.write_checked_call2(
-          mod_slice, 'πg.ImportModule(πF, {}, {})',
-          util.go_str(imp.name), handles_expr)
+          mod_slice, 'πg.ImportModule(πF, {})', util.go_str(imp.name))
 
       # Bind the imported modules or members to variables in the current scope.
       for binding in imp.bindings:
@@ -715,8 +704,9 @@ class StatementVisitor(algorithm.Visitor):
                 reflect_package.alias, package.alias, v)
           self.writer.write('{}[{}] = {}'.format(
               members.name, util.go_str(module_attr), wrapped.expr))
+      mod_name = imputil._NATIVE_MODULE_PREFIX + '.' + name  # pylint: disable=protected-access
       self.writer.write_checked_call2(mod, 'πg.ImportNativeModule(πF, {}, {})',
-                                      util.go_str(name), members.expr)
+                                      util.go_str(mod_name), members.expr)
     return mod
 
   def _tie_target(self, target, value):
