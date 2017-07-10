@@ -22,8 +22,10 @@ from __future__ import unicode_literals
 import collections
 import functools
 import os
+import os.path
 
 from grumpy.compiler import util
+from grumpy import pythonparser
 from grumpy.pythonparser import algorithm
 from grumpy.pythonparser import ast
 
@@ -44,8 +46,9 @@ class Import(object):
   MODULE = "<BindType 'module'>"
   MEMBER = "<BindType 'member'>"
 
-  def __init__(self, name, is_native=False):
+  def __init__(self, name, script=None, is_native=False):
     self.name = name
+    self.script = script
     self.is_native = is_native
     self.bindings = []
 
@@ -145,11 +148,13 @@ class Importer(algorithm.Visitor):
 
   def _resolve_import(self, node, modname):
     if not self.absolute_import and self.package_dir:
-      if self._script_exists(self.package_dir, modname):
-        return Import('{}.{}'.format(self.package_name, modname))
+      script = find_script(self.package_dir, modname)
+      if script:
+        return Import('{}.{}'.format(self.package_name, modname), script)
     for dirname in self.pathdirs:
-      if self._script_exists(dirname, modname):
-        return Import(modname)
+      script = find_script(dirname, modname)
+      if script:
+        return Import(modname, script)
     raise util.ImportError(node, 'no such module: {}'.format(modname))
 
   def _resolve_relative_import(self, level, node, modname):
@@ -161,15 +166,81 @@ class Importer(algorithm.Visitor):
           node, 'attempted relative import beyond toplevel package')
     dirname = os.path.normpath(os.path.join(
         self.package_dir, *(['..'] * uplevel)))
-    if not self._script_exists(dirname, modname):
+    script = find_script(dirname, modname)
+    if not script:
       raise util.ImportError(node, 'no such module: {}'.format(modname))
     parts = self.package_name.split('.')
-    return Import('.'.join(parts[:len(parts)-uplevel]) + '.' + modname)
+    return Import('.'.join(parts[:len(parts)-uplevel]) + '.' + modname, script)
 
-  def _script_exists(self, dirname, name):
-    prefix = os.path.join(dirname, name.replace('.', os.sep))
-    return (os.path.isfile(prefix + '.py') or
-            os.path.isfile(os.path.join(prefix, '__init__.py')))
+
+class _ImportCollector(algorithm.Visitor):
+
+  # pylint: disable=invalid-name
+
+  def __init__(self, importer, future_node):
+    self.importer = importer
+    self.future_node = future_node
+    self.imports = []
+
+  def visit_Import(self, node):
+    self.imports.extend(self.importer.visit(node))
+
+  def visit_ImportFrom(self, node):
+    if node.module == '__future__':
+      if node != self.future_node:
+        raise util.LateFutureError(node)
+      return
+    self.imports.extend(self.importer.visit(node))
+
+
+def collect_imports(modname, script, gopath):
+  with open(script) as py_file:
+    py_contents = py_file.read()
+  mod = pythonparser.parse(py_contents)
+  future_node, future_features = parse_future_features(mod)
+  importer = Importer(gopath, modname, script, future_features.absolute_import)
+  collector = _ImportCollector(importer, future_node)
+  collector.visit(mod)
+  return collector.imports
+
+
+def calculate_transitive_deps(modname, script, gopath):
+  """Determines all modules that script transitively depends upon."""
+  deps = set()
+  def calc(modname, script):
+    if modname in deps:
+      return
+    deps.add(modname)
+    for imp in collect_imports(modname, script, gopath):
+      if imp.is_native:
+        continue
+      parts = imp.name.split('.')
+      calc(imp.name, imp.script)
+      if len(parts) == 1:
+        continue
+      # For submodules, the parent packages are also deps.
+      package_dir, filename = os.path.split(imp.script)
+      if filename == '__init__.py':
+        package_dir = os.path.dirname(package_dir)
+      for i in xrange(len(parts) - 1, 0, -1):
+        modname = '.'.join(parts[:i])
+        script = os.path.join(package_dir, '__init__.py')
+        calc(modname, script)
+        package_dir = os.path.dirname(package_dir)
+  calc(modname, script)
+  deps.remove(modname)
+  return deps
+
+
+def find_script(dirname, name):
+  prefix = os.path.join(dirname, name.replace('.', os.sep))
+  script = prefix + '.py'
+  if os.path.isfile(script):
+    return script
+  script = os.path.join(prefix, '__init__.py')
+  if os.path.isfile(script):
+    return script
+  return None
 
 
 _FUTURE_FEATURES = (

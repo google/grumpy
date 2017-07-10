@@ -22,46 +22,85 @@ Usage: $ grumprun -m <module>             # Run the named module.
 
 import argparse
 import os
+import random
+import shutil
 import string
 import subprocess
 import sys
 import tempfile
 
+from grumpy.compiler import imputil
+
 
 parser = argparse.ArgumentParser()
-parser.add_argument('-m', '--module', help='Run the named module')
+parser.add_argument('-m', '--modname', help='Run the named module')
 
 module_tmpl = string.Template("""\
 package main
 import (
 \t"os"
 \t"grumpy"
-\t"__python__/$package"
+\tmod "$package"
+$imports
 )
 func main() {
-\tos.Exit(grumpy.RunMain($alias.Code))
+\tgrumpy.ImportModule(grumpy.NewRootFrame(), "traceback")
+\tos.Exit(grumpy.RunMain(mod.Code))
 }
 """)
 
 
 def main(args):
+  gopath = os.getenv('GOPATH', None)
+  if not gopath:
+    print >> sys.stderr, 'GOPATH not set'
+    return 1
+
+  modname = args.modname
+  workdir = tempfile.mkdtemp()
   try:
-    fd, path = tempfile.mkstemp(suffix='.go')
-    if args.module:
-      with os.fdopen(fd, 'w') as f:
-        package = args.module.replace('.', '/')
-        alias = package.split('/')[-1]
-        f.write(module_tmpl.substitute(package=package, alias=alias))
+    if modname:
+      # Find the script associated with the given module.
+      for d in gopath.split(os.pathsep):
+        script = imputil.find_script(
+            os.path.join(d, 'src', '__python__'), modname)
+        if script:
+          break
+      else:
+        print >> sys.stderr, "can't find module", modname
+        return 1
     else:
+      # Generate a dummy python script on the GOPATH.
+      modname = ''.join(random.choice(string.ascii_letters) for _ in range(16))
+      py_dir = os.path.join(workdir, 'src', '__python__')
+      mod_dir = os.path.join(py_dir, modname)
+      os.makedirs(mod_dir)
+      script = os.path.join(py_dir, 'module.py')
+      with open(script, 'w') as f:
+        f.write(sys.stdin.read())
+      gopath = gopath + os.pathsep + workdir
+      os.putenv('GOPATH', gopath)
+      # Compile the dummy script to Go using grumpc.
+      fd = os.open(os.path.join(mod_dir, 'module.go'), os.O_WRONLY | os.O_CREAT)
       try:
-        p = subprocess.Popen('grumpc /dev/stdin', stdout=fd, shell=True)
+        p = subprocess.Popen('grumpc ' + script, stdout=fd, shell=True)
         if p.wait():
           return 1
       finally:
         os.close(fd)
-    return subprocess.Popen('go run ' + path, shell=True).wait()
+
+    names = imputil.calculate_transitive_deps(modname, script, gopath)
+    # Make sure traceback is available in all Python binaries.
+    names.add('traceback')
+    go_main = os.path.join(workdir, 'main.go')
+    package = '__python__/' + modname.replace('.', '/')
+    imports = ''.join('\t_ "__python__/' + name.replace('.', '/') + '"\n'
+                      for name in names)
+    with open(go_main, 'w') as f:
+      f.write(module_tmpl.substitute(package=package, imports=imports))
+    return subprocess.Popen('go run ' + go_main, shell=True).wait()
   finally:
-    os.remove(path)
+    shutil.rmtree(workdir)
 
 
 if __name__ == '__main__':

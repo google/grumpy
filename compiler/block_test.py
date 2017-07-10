@@ -41,25 +41,6 @@ class PackageTest(unittest.TestCase):
 
 class BlockTest(unittest.TestCase):
 
-  def testAddImport(self):
-    module_block = _MakeModuleBlock()
-    func1_block = block.FunctionBlock(module_block, 'func1', {}, False)
-    func2_block = block.FunctionBlock(func1_block, 'func2', {}, False)
-    package = func2_block.root.add_import('foo/bar')
-    self.assertEqual(package.name, '__python__/foo/bar')
-    self.assertEqual(package.alias, 'π___python__ΓfooΓbar')
-    self.assertEqual(module_block.imports, {'__python__/foo/bar': package})
-
-  def testAddImportRepeated(self):
-    b = _MakeModuleBlock()
-    package = b.root.add_import('foo')
-    self.assertEqual(package.name, '__python__/foo')
-    self.assertEqual(package.alias, 'π___python__Γfoo')
-    self.assertEqual(b.imports, {'__python__/foo': package})
-    package2 = b.root.add_import('foo')
-    self.assertIs(package, package2)
-    self.assertEqual(b.imports, {'__python__/foo': package})
-
   def testLoop(self):
     b = _MakeModuleBlock()
     loop = b.push_loop()

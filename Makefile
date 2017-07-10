@@ -81,7 +81,6 @@ THIRD_PARTY_PYPY_SRCS := $(patsubst third_party/pypy/%,$(GOPATH_PY_ROOT)/%,$(she
 THIRD_PARTY_OUROBOROS_SRCS := $(patsubst third_party/ouroboros/%,$(GOPATH_PY_ROOT)/%,$(shell find third_party/ouroboros -name '*.py'))
 STDLIB_SRCS := $(LIB_SRCS) $(THIRD_PARTY_STDLIB_SRCS) $(THIRD_PARTY_PYPY_SRCS) $(THIRD_PARTY_OUROBOROS_SRCS)
 
-
 STDLIB_PACKAGES := $(patsubst $(GOPATH_PY_ROOT)/%.py,%,$(patsubst $(GOPATH_PY_ROOT)/%/__init__.py,%,$(STDLIB_SRCS)))
 STDLIB := $(patsubst %,$(PKG_DIR)/__python__/%.a,$(STDLIB_PACKAGES))
 STDLIB_TESTS := \
@@ -264,23 +263,8 @@ $(patsubst %,build/src/__python__/%/module.d,$(STDLIB_PACKAGES)): build/bin/pyde
 $(patsubst %,$(PKG_DIR)/__python__/%.a,$(STDLIB_PACKAGES)): $(RUNTIME)
 
 define GRUMPY_STDLIB_TEST
-build/testing/$(patsubst %_test,%_test_,$(notdir $(1))).go:
-	@mkdir -p build/testing
-	@echo 'package main' > $$@
-	@echo 'import (' >> $$@
-	@echo '	"os"' >> $$@
-	@echo '	"grumpy"' >> $$@
-	@echo '	mod "__python__/$(1)"' >> $$@
-	@echo ')' >> $$@
-	@echo 'func main() {' >> $$@
-	@echo '	os.Exit(grumpy.RunMain(mod.Code))' >> $$@
-	@echo '}' >> $$@
-
-build/testing/$(notdir $(1)): build/testing/$(patsubst %_test,%_test_,$(notdir $(1))).go $(RUNTIME) $(PKG_DIR)/__python__/$(1).a
-	@go build -o $$@ $$<
-
-build/testing/$(notdir $(1)).pass: build/testing/$(notdir $(1))
-	@$$<
+build/testing/$(notdir $(1)).pass: $(RUNTIME) $(PKG_DIR)/__python__/$(1).a $(RUNNER_BIN)
+	@$(RUNNER_BIN) -m $(subst /,.,$(1))
 	@touch $$@
 	@echo 'lib/$(1) PASS'
 
@@ -299,21 +283,14 @@ $(PYTHONPARSER_SRCS): $(PY_DIR)/grumpy/%: third_party/%
 	@mkdir -p $(@D)
 	@cp -f $< $@
 
-$(patsubst %_test,build/%.go,$(ACCEPT_TESTS)): build/%.go: %_test.py $(COMPILER)
+$(ACCEPT_PASS_FILES): build/%_test.pass: %_test.py $(RUNTIME) $(STDLIB) $(RUNNER_BIN)
 	@mkdir -p $(@D)
-	@$(COMPILER_BIN) $< > $@
-
-# TODO: These should not depend on stdlibs and should instead build a .d file.
-$(patsubst %,build/%,$(ACCEPT_TESTS)): build/%_test: build/%.go $(RUNTIME) $(STDLIB)
-	@mkdir -p $(@D)
-	@go build -o $@ $<
-
-$(ACCEPT_PASS_FILES): build/%_test.pass: build/%_test
-	@$<
+	@$(RUNNER_BIN) < $<
 	@touch $@
 	@echo '$*_test PASS'
 
 $(ACCEPT_PY_PASS_FILES): build/%_py.pass: %.py $(PY_DIR)/weetest.py
+	@mkdir -p $(@D)
 	@$(PYTHON) $<
 	@touch $@
 	@echo '$*_py PASS'

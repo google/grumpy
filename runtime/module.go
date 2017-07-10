@@ -32,7 +32,8 @@ const (
 )
 
 var (
-	importMutex sync.Mutex
+	importMutex    sync.Mutex
+	moduleRegistry = map[string]*Code{}
 	// ModuleType is the object representing the Python 'module' type.
 	ModuleType = newBasisType("module", reflect.TypeOf(Module{}), toModuleUnsafe, ObjectType)
 	// SysModules is the global dict of imported modules, aka sys.modules.
@@ -44,11 +45,28 @@ type Module struct {
 	Object
 	mutex recursiveMutex
 	state moduleState
+	code  *Code
 }
 
 // ModuleInit functions are called when importing Grumpy modules to execute the
 // top level code for that module.
 type ModuleInit func(f *Frame, m *Module) *BaseException
+
+// RegisterModule adds the named module to the registry so that it can be
+// subsequently imported.
+func RegisterModule(name string, c *Code) {
+	err := ""
+	importMutex.Lock()
+	if moduleRegistry[name] == nil {
+		moduleRegistry[name] = c
+	} else {
+		err = "module already registered: " + name
+	}
+	importMutex.Unlock()
+	if err != "" {
+		logFatal(err)
+	}
+}
 
 // ImportModule takes a fully qualified module name (e.g. a.b.c) and a slice of
 // code objects where the name of the i'th module is the prefix of name
@@ -68,23 +86,25 @@ type ModuleInit func(f *Frame, m *Module) *BaseException
 // module, both invocations will produce the same module object and the module
 // is guaranteed to only be initialized once. The second invocation will not
 // return the module until it is fully initialized.
-func ImportModule(f *Frame, name string, codeObjs []*Code) ([]*Object, *BaseException) {
+func ImportModule(f *Frame, name string) ([]*Object, *BaseException) {
 	parts := strings.Split(name, ".")
 	numParts := len(parts)
-	if numParts != len(codeObjs) {
-		return nil, f.RaiseType(SystemErrorType, fmt.Sprintf("invalid import: %s", name))
-	}
 	result := make([]*Object, numParts)
 	var prev *Object
 	for i := 0; i < numParts; i++ {
 		name := strings.Join(parts[:i+1], ".")
+		var c *Code
 		// We do very limited locking here resulting in some
 		// sys.modules consistency gotchas.
 		importMutex.Lock()
 		o, raised := SysModules.GetItemString(f, name)
 		if raised == nil && o == nil {
-			o = newModule(name, codeObjs[i].filename).ToObject()
-			raised = SysModules.SetItemString(f, name, o)
+			if c = moduleRegistry[name]; c == nil {
+				raised = f.RaiseType(ImportErrorType, name)
+			} else {
+				o = newModule(name, c.filename).ToObject()
+				raised = SysModules.SetItemString(f, name, o)
+			}
 		}
 		importMutex.Unlock()
 		if raised != nil {
@@ -96,7 +116,7 @@ func ImportModule(f *Frame, name string, codeObjs []*Code) ([]*Object, *BaseExce
 			m.mutex.Lock(f)
 			if m.state == moduleStateNew {
 				m.state = moduleStateInitializing
-				if _, raised = codeObjs[i].Eval(f, m.Dict(), nil, nil); raised == nil {
+				if _, raised = c.Eval(f, m.Dict(), nil, nil); raised == nil {
 					m.state = moduleStateReady
 				} else {
 					// If the module failed to initialize
@@ -157,7 +177,9 @@ func ImportNativeModule(f *Frame, name string, members map[string]*Object) (*Obj
 		importMutex.Lock()
 		o, raised := SysModules.GetItemString(f, name)
 		if raised == nil && o == nil {
-			o = newModule(name, "<native>").ToObject()
+			m := newModule(name, "<native>")
+			m.state = moduleStateReady
+			o = m.ToObject()
 			raised = SysModules.SetItemString(f, name, o)
 		}
 		importMutex.Unlock()
