@@ -94,6 +94,7 @@ STDLIB_TESTS := \
   tempfile_test \
   test/test_bisect \
   test/test_colorsys \
+  test/test_contextlib \
   test/test_datetime \
   test/test_dict \
   test/test_fpformat \
