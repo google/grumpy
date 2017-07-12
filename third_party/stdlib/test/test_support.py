@@ -569,14 +569,14 @@ try:
 except NameError:
     have_unicode = False
 
-# requires_unicode = unittest.skipUnless(have_unicode, 'no unicode support')
+requires_unicode = unittest.skipUnless(have_unicode, 'no unicode support')
 
 # def u(s):
 #     return unicode(s, 'unicode-escape')
 
-# # FS_NONASCII: non-ASCII Unicode character encodable by
-# # sys.getfilesystemencoding(), or None if there is no such character.
-# FS_NONASCII = None
+# FS_NONASCII: non-ASCII Unicode character encodable by
+# sys.getfilesystemencoding(), or None if there is no such character.
+FS_NONASCII = None
 # if have_unicode:
 #     for character in (
 #         # First try printable and common characters to have a readable filename.
