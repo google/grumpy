@@ -72,6 +72,7 @@ def exc_info():
 def exit(code=None):  # pylint: disable=redefined-builtin
   raise SystemExit(code)
 
+
 def _getframe(depth=0):
   f = __frame__()
   while depth > 0 and f is not None:
