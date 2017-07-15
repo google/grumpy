@@ -656,6 +656,27 @@ func dictPop(f *Frame, args Args, _ KWArgs) (*Object, *BaseException) {
 	return item, raised
 }
 
+func dictSetDefault(f *Frame, args Args, _ KWArgs) (*Object, *BaseException) {
+	expectedTypes := []*Type{DictType, ObjectType, ObjectType}
+	argc := len(args)
+	if argc == 2 {
+		expectedTypes = expectedTypes[:2]
+	}
+	if raised := checkMethodArgs(f, "setdefault", args, expectedTypes...); raised != nil {
+		return nil, raised
+	}
+	key := args[1]
+	d := toDictUnsafe(args[0])
+	item, raised := d.GetItem(f, key)
+	if raised == nil && item == nil {
+		if argc > 2 {
+			item = args[2]
+		}
+		d.SetItem(f, key, item)
+	}
+	return item, raised
+}
+
 func dictGetItem(f *Frame, o, key *Object) (*Object, *BaseException) {
 	item, raised := toDictUnsafe(o).GetItem(f, key)
 	if raised != nil {
@@ -803,6 +824,7 @@ func initDictType(dict map[string]*Object) {
 	dict["itervalues"] = newBuiltinFunction("itervalues", dictIterValues).ToObject()
 	dict["keys"] = newBuiltinFunction("keys", dictKeys).ToObject()
 	dict["pop"] = newBuiltinFunction("pop", dictPop).ToObject()
+	dict["setdefault"] = newBuiltinFunction("setdefault", dictSetDefault).ToObject()
 	dict["update"] = newBuiltinFunction("update", dictUpdate).ToObject()
 	dict["values"] = newBuiltinFunction("values", dictValues).ToObject()
 	DictType.slots.Contains = &binaryOpSlot{dictContains}

@@ -128,7 +128,6 @@ class NestedTestCase(unittest.TestCase):
 
     # XXX This needs more work
 
-    @unittest.skip('grumpy')
     def test_nested(self):
         @contextmanager
         def a():
@@ -168,7 +167,6 @@ class NestedTestCase(unittest.TestCase):
                 1 // 0
         self.assertEqual(state, [1, 4, 2, 5, 6, 3])
 
-    @unittest.skip('grumpy')
     def test_nested_right_exception(self):
         @contextmanager
         def a():
@@ -204,7 +202,6 @@ class NestedTestCase(unittest.TestCase):
         except ZeroDivisionError:
             self.fail("Didn't swallow ZeroDivisionError")
 
-    @unittest.skip('grumpy')
     def test_nested_break(self):
         @contextmanager
         def a():
@@ -217,7 +214,6 @@ class NestedTestCase(unittest.TestCase):
             state += 10
         self.assertEqual(state, 1)
 
-    @unittest.skip('grumpy')
     def test_nested_continue(self):
         @contextmanager
         def a():
@@ -230,7 +226,6 @@ class NestedTestCase(unittest.TestCase):
             state += 10
         self.assertEqual(state, 3)
 
-    @unittest.skip('grumpy')
     def test_nested_return(self):
         @contextmanager
         def a():
@@ -276,7 +271,7 @@ class FileContextTestCase(unittest.TestCase):
 
     @unittest.skip('grumpy')
     def testWithOpen(self):
-        tfn = tempfile.mktemp()
+        tfn, _ = tempfile.mkstemp()
         try:
             f = None
             with open(tfn, "w") as f:

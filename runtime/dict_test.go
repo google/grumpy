@@ -615,6 +615,19 @@ func TestDictNewRaises(t *testing.T) {
 	}
 }
 
+func TestDictSetDefault(t *testing.T) {
+	cases := []invokeTestCase{
+		{args: wrapArgs(newTestDict("foo", 42), "foo"), want: NewInt(42).ToObject()},
+		{args: wrapArgs(NewDict(), "foo", 42), want: NewInt(42).ToObject()},
+		{args: wrapArgs(NewDict(), "foo"), want: nil},
+	}
+	for _, cas := range cases {
+		if err := runInvokeMethodTestCase(DictType, "setdefault", &cas); err != "" {
+			t.Error(err)
+		}
+	}
+}
+
 func TestDictSetItem(t *testing.T) {
 	setItem := newBuiltinFunction("TestDictSetItem", func(f *Frame, args Args, _ KWArgs) (*Object, *BaseException) {
 		if raised := checkFunctionArgs(f, "TestDictSetItem", args, DictType, ObjectType, ObjectType); raised != nil {
