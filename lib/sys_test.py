@@ -86,6 +86,15 @@ def TestExitInvalidArgs():
     assert False
 
 
+def test_getframe(self):
+  self.assertRaises(TypeError, sys._getframe, 42, 42)
+  self.assertRaises(ValueError, sys._getframe, 2000000000)
+  self.assertTrue(
+    SysModuleTest.test_getframe.im_func.func_code \
+    is sys._getframe().f_code
+  )
+
+
 if __name__ == '__main__':
   # This call will incidentally test sys.exit().
   weetest.RunTests()
