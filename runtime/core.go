@@ -706,7 +706,11 @@ func Print(f *Frame, args Args, nl bool) *BaseException {
 	} else if len(args) > 0 {
 		end = " "
 	}
-	return pyPrint(f, args, " ", end, Stdout)
+	file, raised := SysmoduleDict.GetItemString(f, "stdout")
+	if raised != nil {
+		return raised
+	}
+	return pyPrint(f, args, " ", end, file)
 }
 
 // Repr returns a string containing a printable representation of o. This is
@@ -1279,29 +1283,38 @@ func hashNotImplemented(f *Frame, o *Object) (*Object, *BaseException) {
 }
 
 // pyPrint encapsulates the logic of the Python print function.
-func pyPrint(f *Frame, args Args, sep, end string, file *File) *BaseException {
+func pyPrint(f *Frame, args Args, sep, end string, filelike *Object) *BaseException {
+	writeFunc, raised := GetAttr(f, filelike, NewStr("write"), nil)
+	if raised != nil {
+		return raised
+	}
+
+	pySep := NewStr(sep)
+	pyEnd := NewStr(end)
+	callArgs := f.MakeArgs(1)
 	for i, arg := range args {
 		if i > 0 {
-			err := file.writeString(sep)
-			if err != nil {
-				return f.RaiseType(IOErrorType, err.Error())
+			callArgs[0] = pySep.ToObject()
+			_, raised := writeFunc.Call(f, callArgs, nil)
+			if raised != nil {
+				return raised
 			}
 		}
 
-		s, raised := ToStr(f, arg)
-		if raised != nil {
-			return raised
+		s, raised2 := ToStr(f, arg)
+		if raised2 != nil {
+			return raised2
 		}
 
-		err := file.writeString(s.Value())
-		if err != nil {
-			return f.RaiseType(IOErrorType, err.Error())
+		callArgs[0] = s.ToObject()
+		if _, raised := writeFunc.Call(f, callArgs, nil); raised != nil {
+			return raised
 		}
 	}
 
-	err := file.writeString(end)
-	if err != nil {
-		return f.RaiseType(IOErrorType, err.Error())
+	callArgs[0] = pyEnd.ToObject()
+	if _, raised := writeFunc.Call(f, callArgs, nil); raised != nil {
+		return raised
 	}
 
 	return nil

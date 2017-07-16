@@ -15,43 +15,57 @@
 """System-specific parameters and functions."""
 
 from __go__.os import Args
-from __go__.grumpy import SysModules, MaxInt, Stdin as stdin, Stdout as stdout, Stderr as stderr  # pylint: disable=g-multiple-import
+from __go__.grumpy import SysmoduleDict, SysModules, MaxInt  # pylint: disable=g-multiple-import
 from __go__.runtime import (GOOS as platform, Version)
 from __go__.unicode import MaxRune
+import _gomodulehacks
+
+
+__all__ = ('stdin', 'stdout', 'stderr', 'argv', 'goversion', 'version',
+           'maxint', 'maxsize', 'maxunicode', 'modules', 'platform', 'py3kwarning',
+           'warnoptions', 'byteorder', 'flags', 'exc_clear', 'exc_info', 'exit')
+
 
 argv = []
 for arg in Args:
-  argv.append(arg)
+    argv.append(arg)
 
 goversion = Version()
+
+stdin = SysmoduleDict['stdin']
+stdout = SysmoduleDict['stdout']
+stderr = SysmoduleDict['stderr']
+
 maxint = MaxInt
 maxsize = maxint
 maxunicode = MaxRune
 modules = SysModules
+
 py3kwarning = False
 warnoptions = []
 # TODO: Support actual byteorder
 byteorder = 'little'
 version = '2.7.13'
 
+
 class _Flags(object):
-  """Container class for sys.flags."""
-  debug = 0
-  py3k_warning = 0
-  division_warning = 0
-  division_new = 0
-  inspect = 0
-  interactive = 0
-  optimize = 0
-  dont_write_bytecode = 0
-  no_user_site = 0
-  no_site = 0
-  ignore_environment = 0
-  tabcheck = 0
-  verbose = 0
-  unicode = 0
-  bytes_warning = 0
-  hash_randomization = 0
+    """Container class for sys.flags."""
+    debug = 0
+    py3k_warning = 0
+    division_warning = 0
+    division_new = 0
+    inspect = 0
+    interactive = 0
+    optimize = 0
+    dont_write_bytecode = 0
+    no_user_site = 0
+    no_site = 0
+    ignore_environment = 0
+    tabcheck = 0
+    verbose = 0
+    unicode = 0
+    bytes_warning = 0
+    hash_randomization = 0
 
 
 flags = _Flags()
@@ -62,12 +76,16 @@ def exc_clear():
 
 
 def exc_info():
-  e, tb = __frame__().__exc_info__()  # pylint: disable=undefined-variable
-  t = None
-  if e:
-    t = type(e)
-  return t, e, tb
+    e, tb = __frame__().__exc_info__()  # pylint: disable=undefined-variable
+    t = None
+    if e:
+        t = type(e)
+    return t, e, tb
 
 
 def exit(code=None):  # pylint: disable=redefined-builtin
-  raise SystemExit(code)
+    raise SystemExit(code)
+
+
+# Should be the last line of the python part of hybrid stuff
+_gomodulehacks.hybrid_module(__name__, __file__, SysmoduleDict, __all__, globals())
