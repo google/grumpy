@@ -71,3 +71,13 @@ def exc_info():
 
 def exit(code=None):  # pylint: disable=redefined-builtin
   raise SystemExit(code)
+
+
+def _getframe(depth=0):
+  f = __frame__()
+  while depth > 0 and f is not None:
+    f = f.f_back
+    depth -= 1
+  if f is None:
+    raise ValueError('call stack is not deep enough')
+  return f
