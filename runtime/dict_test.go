@@ -622,9 +622,6 @@ func TestDictSetDefault(t *testing.T) {
 		if raised != nil {
 			return nil, raised
 		}
-		if i == nil {
-			return args[0], nil
-		}
 		return NewTuple(i, args[0]).ToObject(), nil
 	}).ToObject()
 	cases := []invokeTestCase{
