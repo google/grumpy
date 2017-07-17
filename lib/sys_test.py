@@ -90,11 +90,15 @@ def TestGetFrame():
   try:
     sys._getframe(42, 42)
   except TypeError:
-    assert True
+    pass
+  else:
+    assert False
   try:
     sys._getframe(2000000000)
   except ValueError:
-    assert True
+    pass
+  else:
+    assert False
   assert sys._getframe().f_code.co_name == '_getframe'
   assert sys._getframe(1).f_code.co_name == 'TestGetFrame'
 
