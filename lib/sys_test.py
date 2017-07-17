@@ -86,13 +86,17 @@ def TestExitInvalidArgs():
     assert False
 
 
-def test_getframe(self):
-  self.assertRaises(TypeError, sys._getframe, 42, 42)
-  self.assertRaises(ValueError, sys._getframe, 2000000000)
-  self.assertTrue(
-    SysModuleTest.test_getframe.im_func.func_code \
-    is sys._getframe().f_code
-  )
+def TestGetFrame():
+  try:
+    sys._getframe(42, 42)
+  except TypeError:
+    assert True
+  try:
+    sys._getframe(2000000000)
+  except ValueError:
+    assert True
+  assert sys._getframe().f_code.co_name == '_getframe'
+  assert sys._getframe(1).f_code.co_name == 'TestGetFrame'
 
 
 if __name__ == '__main__':
