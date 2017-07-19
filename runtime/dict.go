@@ -414,15 +414,7 @@ func (d *Dict) putItem(f *Frame, key, value *Object) (*Object, *BaseException) {
 					d.incVersion()
 				}
 			} else {
-				newEntry := &dictEntry{hash.Value(), key, value}
-				if newTable, ok := t.writeEntry(f, index, newEntry); ok {
-					if newTable != nil {
-						d.storeTable(newTable)
-					}
-					d.incVersion()
-				} else {
-					raised = f.RaiseType(OverflowErrorType, errResultTooLarge)
-				}
+				raised = addDictTableEntry(f, d, hash, key, value, index)
 			}
 			if entry != nil && entry != deletedEntry {
 				originValue = entry.value
@@ -770,18 +762,37 @@ func dictSetDefault(f *Frame, args Args, _ KWArgs) (*Object, *BaseException) {
 	if raised := checkMethodArgs(f, "setdefault", args, expectedTypes...); raised != nil {
 		return nil, raised
 	}
-	k := args[1]
+	key := args[1]
 	d := toDictUnsafe(args[0])
-	i, raised := d.GetItem(f, k)
-	if raised == nil && i == nil {
-		if argc > 2 {
-			i = args[2]
-		} else {
-			i = None
-		}
-		d.SetItem(f, k, i)
+	hash, raised := Hash(f, key)
+	if raised != nil {
+		return nil, raised
 	}
-	return i, raised
+	d.mutex.Lock(f)
+	t := d.table
+	v := d.version
+	index, entry, raised := t.lookupEntry(f, hash.Value(), key)
+	var value *Object
+	if raised == nil {
+		if v != d.version {
+			// Dictionary was recursively modified. Blow up instead
+			// of trying to recover.
+			raised = f.RaiseType(RuntimeErrorType, "dictionary changed during write")
+		} else {
+			if entry == nil {
+				if argc > 2 {
+					value = args[2]
+				} else {
+					value = None
+				}
+				raised = addDictTableEntry(f, d, hash, key, value, index)
+			} else {
+				value = entry.value
+			}
+		}
+	}
+	d.mutex.Unlock(f)
+	return value, raised
 }
 
 func dictSetItem(f *Frame, o, key, value *Object) *BaseException {
@@ -847,6 +858,20 @@ func initDictType(dict map[string]*Object) {
 	DictType.slots.New = &newSlot{dictNew}
 	DictType.slots.Repr = &unaryOpSlot{dictRepr}
 	DictType.slots.SetItem = &setItemSlot{dictSetItem}
+}
+
+// addDictTableEntry adds a new entry in d. It assumes that d.mutex is held by
+// the caller.
+func addDictTableEntry(f *Frame, d *Dict, hash *Int, key, value *Object, index int) *BaseException {
+	newEntry := &dictEntry{hash.Value(), key, value}
+	if newTable, ok := d.table.writeEntry(f, index, newEntry); ok {
+		if newTable != nil {
+			d.storeTable(newTable)
+		}
+		d.incVersion()
+		return nil
+	}
+	return f.RaiseType(OverflowErrorType, errResultTooLarge)
 }
 
 type dictItemIterator struct {
