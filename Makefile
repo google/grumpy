@@ -131,7 +131,7 @@ TOOL_BINS = $(patsubst %,build/bin/%,benchcmp coverparse diffrange genmake pydep
 GOLINT_BIN = build/bin/golint
 PYLINT_BIN = build/bin/pylint
 
-all: $(COMPILER) $(RUNTIME) $(TOOL_BINS)
+all: $(COMPILER) $(RUNNER) $(RUNTIME) $(TOOL_BINS)
 
 benchmarks: $(BENCHMARK_BINS)
 
