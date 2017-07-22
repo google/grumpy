@@ -768,9 +768,8 @@ func dictSetDefault(f *Frame, args Args, _ KWArgs) (*Object, *BaseException) {
 	originValue, raised := d.putItem(f, key, value, false)
 	if originValue != nil {
 		return originValue, raised
-	} else {
-		return value, raised
 	}
+	return value, raised
 }
 
 func dictSetItem(f *Frame, o, key, value *Object) *BaseException {
