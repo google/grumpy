@@ -81,7 +81,7 @@ func toSetUnsafe(o *Object) *Set {
 
 // Add inserts key into s. If key already exists then does nothing.
 func (s *Set) Add(f *Frame, key *Object) (bool, *BaseException) {
-	origin, raised := s.dict.putItem(f, key, None)
+	origin, raised := s.dict.putItem(f, key, None, true)
 	if raised != nil {
 		return false, raised
 	}
