@@ -220,3 +220,15 @@ def foo():
 
 
 foo()
+
+
+# Return statement should not bypass the finally.
+def foo():
+  try:
+    return 1
+  finally:
+    return 2
+  return 3
+
+
+assert foo() == 2

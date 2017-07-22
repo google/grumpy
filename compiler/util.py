@@ -87,7 +87,6 @@ class Writer(object):
       block_: The Block object representing the code block.
       body: String containing Go code making up the body of the code block.
     """
-    self.write('var πE *πg.BaseException; _ = πE')
     self.write('for ; πF.State() >= 0; πF.PopCheckpoint() {')
     with self.indent_block():
       self.write('switch πF.State() {')
@@ -99,9 +98,7 @@ class Writer(object):
       # Assume that body is aligned with goto labels.
       with self.indent_block(-1):
         self.write(body)
-      self.write('return nil, nil')
     self.write('}')
-    self.write('return nil, πE')
 
   def write_import_block(self, imports):
     if not imports:

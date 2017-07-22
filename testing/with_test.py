@@ -182,16 +182,30 @@ assert i == 2
 assert j == 3
 
 
-# This checks for a bug where a with clause inside an except body raises an
-# exception because it was checking ExcInfo() to determine whether an exception
-# occurred.
 class Foo(object):
+  exited = False
   def __enter__(self):
     pass
   def __exit__(self, *args):
-    pass
+    self.exited = True
+
+
+# This checks for a bug where a with clause inside an except body raises an
+# exception because it was checking ExcInfo() to determine whether an exception
+# occurred.
 try:
   raise AssertionError
 except:
-  with Foo():
+  foo = Foo()
+  with foo:
     pass
+  assert foo.exited
+
+
+# Return statement should not bypass the with exit handler.
+foo = Foo()
+def bar():
+  with foo:
+    return
+bar()
+assert foo.exited
