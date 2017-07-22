@@ -407,9 +407,22 @@ func (d *Dict) putItem(f *Frame, key, value *Object, overwrite bool) (*Object, *
 			raised = f.RaiseType(RuntimeErrorType, "dictionary changed during write")
 		} else {
 			if value == nil {
-				deleteDictEntry(d, entry, index)
+				// Going to delete the entry.
+				if entry != nil && entry != deletedEntry {
+					d.table.storeEntry(index, deletedEntry)
+					d.table.incUsed(-1)
+					d.incVersion()
+				}
 			} else if overwrite || entry == nil {
-				raised = addDictEntry(f, d, hash, key, value, index)
+				newEntry := &dictEntry{hash.Value(), key, value}
+				if newTable, ok := t.writeEntry(f, index, newEntry); ok {
+					if newTable != nil {
+						d.storeTable(newTable)
+					}
+					d.incVersion()
+				} else {
+					raised = f.RaiseType(OverflowErrorType, errResultTooLarge)
+				}
 			}
 			if entry != nil && entry != deletedEntry {
 				originValue = entry.value
@@ -835,30 +848,6 @@ func initDictType(dict map[string]*Object) {
 	DictType.slots.New = &newSlot{dictNew}
 	DictType.slots.Repr = &unaryOpSlot{dictRepr}
 	DictType.slots.SetItem = &setItemSlot{dictSetItem}
-}
-
-// addDictEntry adds a new entry in d. It assumes that d.mutex is held by
-// the caller.
-func addDictEntry(f *Frame, d *Dict, hash *Int, key, value *Object, index int) *BaseException {
-	newEntry := &dictEntry{hash.Value(), key, value}
-	if newTable, ok := d.table.writeEntry(f, index, newEntry); ok {
-		if newTable != nil {
-			d.storeTable(newTable)
-		}
-		d.incVersion()
-		return nil
-	}
-	return f.RaiseType(OverflowErrorType, errResultTooLarge)
-}
-
-// deleteDictEntry deletes an entry from d. It assumes that d.mutex is held by
-// the caller.
-func deleteDictEntry(d *Dict, entry *dictEntry, index int) {
-	if entry != nil && entry != deletedEntry {
-		d.table.storeEntry(index, deletedEntry)
-		d.table.incUsed(-1)
-		d.incVersion()
-	}
 }
 
 type dictItemIterator struct {
