@@ -100,6 +100,7 @@ func TestDictDelItem(t *testing.T) {
 		{args: wrapArgs(testDict, "a"), want: newTestDict("b", 2, "c", 3).ToObject()},
 		{args: wrapArgs(testDict, "c"), want: newTestDict("b", 2).ToObject()},
 		{args: wrapArgs(testDict, "a"), wantExc: mustCreateException(KeyErrorType, "a")},
+		{args: wrapArgs(testDict, "b"), want: NewDict().ToObject()},
 		{args: wrapArgs(NewDict(), NewList()), wantExc: mustCreateException(TypeErrorType, "unhashable type: 'list'")},
 	}
 	for _, cas := range cases {
@@ -411,7 +412,8 @@ func TestDictHasKey(t *testing.T) {
 }
 
 func TestDictItemIteratorIter(t *testing.T) {
-	iter := &newDictItemIterator(NewDict()).Object
+	f := NewRootFrame()
+	iter := newDictItemIterator(f, NewDict()).ToObject()
 	cas := &invokeTestCase{args: wrapArgs(iter), want: iter}
 	if err := runInvokeMethodTestCase(dictItemIteratorType, "__iter__", cas); err != "" {
 		t.Error(err)
@@ -537,7 +539,8 @@ func TestDictItems(t *testing.T) {
 }
 
 func TestDictKeyIteratorIter(t *testing.T) {
-	iter := &newDictKeyIterator(NewDict()).Object
+	f := NewRootFrame()
+	iter := newDictKeyIterator(f, NewDict()).ToObject()
 	cas := &invokeTestCase{args: wrapArgs(iter), want: iter}
 	if err := runInvokeMethodTestCase(dictKeyIteratorType, "__iter__", cas); err != "" {
 		t.Error(err)
@@ -561,9 +564,23 @@ func TestDictKeyIterModified(t *testing.T) {
 }
 
 func TestDictKeys(t *testing.T) {
+	bigDict := newTestDict(
+		"abc", "def",
+		"ghi", "jkl",
+		"mno", "pqr",
+		"stu", "vwx",
+		"yzA", "BCD",
+		"EFG", "HIJ",
+		"KLM", "OPQ",
+		"RST", "UVW",
+		"XYZ", "123",
+		"456", "789",
+		"10!", "@#$",
+		"%^&", "*()")
 	cases := []invokeTestCase{
 		{args: wrapArgs(NewDict()), want: NewList().ToObject()},
 		{args: wrapArgs(newTestDict("foo", None, 42, None)), want: newTestList(42, "foo").ToObject()},
+		{args: wrapArgs(bigDict), want: newTestList("abc", "yzA", "KLM", "XYZ", "10!", "456", "stu", "%^&", "mno", "RST", "ghi", "EFG").ToObject()},
 	}
 	for _, cas := range cases {
 		if err := runInvokeMethodTestCase(DictType, "keys", &cas); err != "" {
@@ -857,7 +874,9 @@ func newTestDict(elems ...interface{}) *Dict {
 	for i := 0; i < numItems; i++ {
 		k := mustNotRaise(WrapNative(f, reflect.ValueOf(elems[i*2])))
 		v := mustNotRaise(WrapNative(f, reflect.ValueOf(elems[i*2+1])))
-		d.SetItem(f, k, v)
+		if raised := d.SetItem(f, k, v); raised != nil {
+			panic(raised)
+		}
 	}
 	return d
 }
