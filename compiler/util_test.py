@@ -43,7 +43,6 @@ class WriterTest(unittest.TestCase):
     output = writer.getvalue()
     dispatch = 'switch πF.State() {\n\tcase 0:\n\tdefault: panic'
     self.assertIn(dispatch, output)
-    self.assertIn('return nil, nil\n}', output)
 
   def testWriteImportBlockEmptyImports(self):
     writer = util.Writer()

@@ -132,7 +132,7 @@ TOOL_BINS = $(patsubst %,build/bin/%,benchcmp coverparse diffrange genmake pydep
 GOLINT_BIN = build/bin/golint
 PYLINT_BIN = build/bin/pylint
 
-all: $(COMPILER) $(RUNTIME) $(TOOL_BINS)
+all: $(COMPILER) $(RUNNER) $(RUNTIME) $(TOOL_BINS)
 
 benchmarks: $(BENCHMARK_BINS)
 
@@ -176,13 +176,13 @@ $(COMPILER_D_FILES): $(PY_DIR)/%.d: $(PY_DIR)/%.py $(COMPILER_SRCS) $(PYTHONPARS
 -include $(COMPILER_D_FILES)
 
 # Does not depend on stdlibs since it makes minimal use of them.
-$(COMPILER_EXPR_VISITOR_PASS_FILES): $(PY_DIR)/grumpy/compiler/expr_visitor_test.%.pass: $(PY_DIR)/grumpy/compiler/expr_visitor_test.py $(RUNNER_BIN) $(COMPILER) $(RUNTIME)
+$(COMPILER_EXPR_VISITOR_PASS_FILES): $(PY_DIR)/grumpy/compiler/expr_visitor_test.%.pass: $(PY_DIR)/grumpy/compiler/expr_visitor_test.py $(RUNNER_BIN) $(COMPILER) $(RUNTIME) $(PKG_DIR)/__python__/traceback.a
 	@$(PYTHON) $< --shard=$*
 	@touch $@
 	@echo 'compiler/expr_visitor_test $* PASS'
 
 # Does not depend on stdlibs since it makes minimal use of them.
-$(COMPILER_STMT_PASS_FILES): $(PY_DIR)/grumpy/compiler/stmt_test.%.pass: $(PY_DIR)/grumpy/compiler/stmt_test.py $(RUNNER_BIN) $(COMPILER) $(RUNTIME)
+$(COMPILER_STMT_PASS_FILES): $(PY_DIR)/grumpy/compiler/stmt_test.%.pass: $(PY_DIR)/grumpy/compiler/stmt_test.py $(RUNNER_BIN) $(COMPILER) $(RUNTIME) $(PKG_DIR)/__python__/traceback.a
 	@$(PYTHON) $< --shard=$*
 	@touch $@
 	@echo 'compiler/stmt_test $* PASS'
