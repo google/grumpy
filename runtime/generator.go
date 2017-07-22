@@ -118,8 +118,33 @@ func generatorSend(f *Frame, args Args, _ KWArgs) (*Object, *BaseException) {
 	return toGeneratorUnsafe(args[0]).resume(f, args[1])
 }
 
+func generatorThrow(f *Frame, args Args, _ KWArgs) (*Object, *BaseException) {
+	expectedTypes := []*Type{GeneratorType, ObjectType, ObjectType, ObjectType}
+	argc := len(args)
+	if argc > 1 && argc < 4 {
+		expectedTypes = expectedTypes[:argc]
+	}
+	if raised := checkMethodArgs(f, "throw", args, expectedTypes...); raised != nil {
+		return nil, raised
+	}
+	i := None
+	if argc > 2 {
+		i = args[2]
+	}
+	t := None
+	if argc > 3 {
+		t = args[3]
+	}
+	g := toGeneratorUnsafe(args[0])
+	g.mutex.Lock()
+	g.state = generatorStateDone
+	g.mutex.Unlock()
+	return nil, f.Raise(args[1], i, t)
+}
+
 func initGeneratorType(dict map[string]*Object) {
 	dict["send"] = newBuiltinFunction("send", generatorSend).ToObject()
+	dict["throw"] = newBuiltinFunction("throw", generatorThrow).ToObject()
 	GeneratorType.flags &= ^(typeFlagBasetype | typeFlagInstantiable)
 	GeneratorType.slots.Iter = &unaryOpSlot{generatorIter}
 	GeneratorType.slots.Next = &unaryOpSlot{generatorNext}

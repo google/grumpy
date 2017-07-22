@@ -90,3 +90,18 @@ func TestGeneratorSimple(t *testing.T) {
 		t.Error(err)
 	}
 }
+
+func TestGeneratorThrow(t *testing.T) {
+	emptyFn := func(*Object) (*Object, *BaseException) {
+		return nil, nil
+	}
+	cases := []invokeTestCase{
+		invokeTestCase{args: wrapArgs(NewGenerator(NewRootFrame(), emptyFn), TypeErrorType.ToObject()), wantExc: mustCreateException(TypeErrorType, "")},
+		invokeTestCase{args: wrapArgs(NewGenerator(NewRootFrame(), emptyFn), TypeErrorType.ToObject(), "foo"), wantExc: mustCreateException(TypeErrorType, "foo")},
+	}
+	for _, cas := range cases {
+		if err := runInvokeMethodTestCase(GeneratorType, "throw", &cas); err != "" {
+			t.Error(err)
+		}
+	}
+}
