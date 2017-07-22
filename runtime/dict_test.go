@@ -616,13 +616,24 @@ func TestDictNewRaises(t *testing.T) {
 }
 
 func TestDictSetDefault(t *testing.T) {
+	setDefaultMethod := mustNotRaise(GetAttr(NewRootFrame(), DictType.ToObject(), NewStr("setdefault"), nil))
+	setDefault := newBuiltinFunction("TestDictSetDefault", func(f *Frame, args Args, kwargs KWArgs) (*Object, *BaseException) {
+		i, raised := setDefaultMethod.Call(f, args, kwargs)
+		if raised != nil {
+			return nil, raised
+		}
+		return NewTuple(i, args[0]).ToObject(), nil
+	}).ToObject()
 	cases := []invokeTestCase{
-		{args: wrapArgs(newTestDict("foo", 42), "foo"), want: NewInt(42).ToObject()},
-		{args: wrapArgs(NewDict(), "foo", 42), want: NewInt(42).ToObject()},
-		{args: wrapArgs(NewDict(), "foo"), want: nil},
+		{args: wrapArgs(NewDict(), "foo"), want: newTestTuple(None, newTestDict("foo", None)).ToObject()},
+		{args: wrapArgs(NewDict(), "foo", 42), want: newTestTuple(42, newTestDict("foo", 42)).ToObject()},
+		{args: wrapArgs(newTestDict("foo", 42), "foo"), want: newTestTuple(42, newTestDict("foo", 42)).ToObject()},
+		{args: wrapArgs(newTestDict("foo", 42), "foo", 43), want: newTestTuple(42, newTestDict("foo", 42)).ToObject()},
+		{args: wrapArgs(NewDict()), wantExc: mustCreateException(TypeErrorType, "setdefault expected at least 1 arguments, got 0")},
+		{args: wrapArgs(NewDict(), "foo", "bar", "baz"), wantExc: mustCreateException(TypeErrorType, "setdefault expected at most 2 arguments, got 3")},
 	}
 	for _, cas := range cases {
-		if err := runInvokeMethodTestCase(DictType, "setdefault", &cas); err != "" {
+		if err := runInvokeTestCase(setDefault, &cas); err != "" {
 			t.Error(err)
 		}
 	}
