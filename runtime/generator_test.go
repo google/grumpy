@@ -21,7 +21,7 @@ import (
 func TestGeneratorNext(t *testing.T) {
 	f := NewRootFrame()
 	var recursive *Object
-	recursiveFn := func(*Object) (*Object, *BaseException) {
+	recursiveFn := func(*Object, *BaseException) (*Object, *BaseException) {
 		next, raised := GetAttr(f, recursive, NewStr("next"), nil)
 		if raised != nil {
 			return nil, raised
@@ -29,7 +29,7 @@ func TestGeneratorNext(t *testing.T) {
 		return next.Call(f, nil, nil)
 	}
 	recursive = NewGenerator(f, recursiveFn).ToObject()
-	emptyFn := func(*Object) (*Object, *BaseException) {
+	emptyFn := func(*Object, *BaseException) (*Object, *BaseException) {
 		return nil, nil
 	}
 	exhausted := NewGenerator(NewRootFrame(), emptyFn).ToObject()
@@ -46,7 +46,7 @@ func TestGeneratorNext(t *testing.T) {
 }
 
 func TestGeneratorSend(t *testing.T) {
-	emptyFn := func(*Object) (*Object, *BaseException) {
+	emptyFn := func(*Object, *BaseException) (*Object, *BaseException) {
 		return nil, nil
 	}
 	cases := []invokeTestCase{
@@ -62,7 +62,7 @@ func TestGeneratorSend(t *testing.T) {
 
 func TestGeneratorSimple(t *testing.T) {
 	f := NewRootFrame()
-	fn := func(*Object) (*Object, *BaseException) {
+	fn := func(*Object, *BaseException) (*Object, *BaseException) {
 		switch f.State() {
 		case 0:
 			goto Start
@@ -88,5 +88,29 @@ func TestGeneratorSimple(t *testing.T) {
 	}
 	if err := runInvokeTestCase(ListType.ToObject(), cas); err != "" {
 		t.Error(err)
+	}
+}
+
+func TestGeneratorThrow(t *testing.T) {
+	emptyFn := func(*Object, *BaseException) (*Object, *BaseException) {
+		return nil, nil
+	}
+	yieldedFn := func(*Object, *BaseException) (*Object, *BaseException) {
+		return NewStr("foo").ToObject(), nil
+	}
+	raisedFn := func(*Object, *BaseException) (*Object, *BaseException) {
+		return nil, NewRootFrame().RaiseType(ValueErrorType, "bar")
+	}
+	cases := []invokeTestCase{
+		invokeTestCase{args: wrapArgs(NewGenerator(NewRootFrame(), emptyFn), TypeErrorType.ToObject()), wantExc: toBaseExceptionUnsafe(mustNotRaise(StopIterationType.Call(NewRootFrame(), nil, nil)))},
+		invokeTestCase{args: wrapArgs(NewGenerator(NewRootFrame(), yieldedFn), TypeErrorType.ToObject()), want: NewStr("foo").ToObject()},
+		invokeTestCase{args: wrapArgs(NewGenerator(NewRootFrame(), raisedFn), TypeErrorType.ToObject()), wantExc: mustCreateException(ValueErrorType, "bar")},
+		invokeTestCase{args: wrapArgs(NewGenerator(NewRootFrame(), emptyFn)), wantExc: mustCreateException(TypeErrorType, "throw expected at least 1 arguments, got 0")},
+		invokeTestCase{args: wrapArgs(NewGenerator(NewRootFrame(), emptyFn), "foo", "bar", "baz", "qux"), wantExc: mustCreateException(TypeErrorType, "throw expected at most 3 arguments, got 4")},
+	}
+	for _, cas := range cases {
+		if err := runInvokeMethodTestCase(GeneratorType, "throw", &cas); err != "" {
+			t.Error(err)
+		}
 	}
 }
