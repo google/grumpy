@@ -45,9 +45,8 @@ class Package(object):
 class Loop(object):
   """Represents a for or while loop within a particular block."""
 
-  def __init__(self, start_label, end_label):
-    self.start_label = start_label
-    self.end_label = end_label
+  def __init__(self, breakvar):
+    self.breakvar = breakvar
 
 
 class Block(object):
@@ -124,8 +123,8 @@ class Block(object):
     self.used_temps.remove(v)
     self.free_temps.add(v)
 
-  def push_loop(self):
-    loop = Loop(self.genlabel(), self.genlabel())
+  def push_loop(self, breakvar):
+    loop = Loop(breakvar)
     self.loop_stack.append(loop)
     return loop
 

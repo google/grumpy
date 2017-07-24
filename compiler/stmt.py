@@ -93,7 +93,9 @@ class StatementVisitor(algorithm.Visitor):
     if not self.block.loop_stack:
       raise util.ParseError(node, "'break' not in loop")
     self._write_py_context(node.lineno)
-    self.writer.write('goto Label{}'.format(self.block.top_loop().end_label))
+    self.writer.write_tmpl(textwrap.dedent("""\
+        $breakvar = true
+        continue"""), breakvar=self.block.top_loop().breakvar.name)
 
   def visit_ClassDef(self, node):
     # Since we only care about global vars, we end up throwing away the locals
@@ -166,7 +168,7 @@ class StatementVisitor(algorithm.Visitor):
     if not self.block.loop_stack:
       raise util.ParseError(node, "'continue' not in loop")
     self._write_py_context(node.lineno)
-    self.writer.write('goto Label{}'.format(self.block.top_loop().start_label))
+    self.writer.write('continue')
 
   def visit_Delete(self, node):
     self._write_py_context(node.lineno)
@@ -192,40 +194,27 @@ class StatementVisitor(algorithm.Visitor):
     self.visit_expr(node.value).free()
 
   def visit_For(self, node):
-    loop = self.block.push_loop()
-    orelse_label = self.block.genlabel() if node.orelse else loop.end_label
-    self._write_py_context(node.lineno)
-    with self.visit_expr(node.iter) as iter_expr, \
-        self.block.alloc_temp() as i, \
-        self.block.alloc_temp() as n:
-      self.writer.write_checked_call2(i, 'πg.Iter(πF, {})', iter_expr.expr)
-      self.writer.write_label(loop.start_label)
-      tmpl = textwrap.dedent("""\
-          if $n, πE = πg.Next(πF, $i); πE != nil {
-          \tisStop, exc := πg.IsInstance(πF, πE.ToObject(), πg.StopIterationType.ToObject())
-          \tif exc != nil {
-          \t\tπE = exc
-          \t\tcontinue
-          \t}
-          \tif !isStop {
-          \t\tcontinue
-          \t}
-          \tπE = nil
-          \tπF.RestoreExc(nil, nil)
-          \tgoto Label$orelse
-          }""")
-      self.writer.write_tmpl(tmpl, n=n.name, i=i.expr, orelse=orelse_label)
-      self._tie_target(node.target, n.expr)
-      self._visit_each(node.body)
-      self.writer.write('goto Label{}'.format(loop.start_label))
-
-    self.block.pop_loop()
-    if node.orelse:
-      self.writer.write_label(orelse_label)
-      self._visit_each(node.orelse)
-    # Avoid label "defined and not used" in case there's no break statements.
-    self.writer.write('goto Label{}'.format(loop.end_label))
-    self.writer.write_label(loop.end_label)
+    with self.block.alloc_temp() as i:
+      with self.visit_expr(node.iter) as iter_expr:
+        self.writer.write_checked_call2(i, 'πg.Iter(πF, {})', iter_expr.expr)
+      def testfunc(testvar):
+        with self.block.alloc_temp() as n:
+          self.writer.write_tmpl(textwrap.dedent("""\
+              if $n, πE = πg.Next(πF, $i); πE != nil {
+              \tisStop, exc := πg.IsInstance(πF, πE.ToObject(), πg.StopIterationType.ToObject())
+              \tif exc != nil {
+              \t\tπE = exc
+              \t} else if isStop {
+              \t\tπE = nil
+              \t\tπF.RestoreExc(nil, nil)
+              \t}
+              \t$testvar = !isStop
+              } else {
+              \t$testvar = true"""), n=n.name, i=i.expr, testvar=testvar.name)
+          with self.writer.indent_block():
+            self._tie_target(node.target, n.expr)
+          self.writer.write('}')
+      self._visit_loop(testfunc, node)
 
   def visit_FunctionDef(self, node):
     self._write_py_context(node.lineno + len(node.decorator_list))
@@ -357,6 +346,8 @@ class StatementVisitor(algorithm.Visitor):
     if node.value:
       with self.visit_expr(node.value) as value:
         self.writer.write('πR = {}'.format(value.expr))
+    else:
+      self.writer.write('πR = πg.None')
     self.writer.write('continue')
 
   def visit_Try(self, node):
@@ -439,26 +430,12 @@ class StatementVisitor(algorithm.Visitor):
               }"""), exc=exc.expr, tb=tb.expr)
 
   def visit_While(self, node):
-    loop = self.block.push_loop()
     self._write_py_context(node.lineno)
-    self.writer.write_label(loop.start_label)
-    orelse_label = self.block.genlabel() if node.orelse else loop.end_label
-    with self.visit_expr(node.test) as cond,\
-        self.block.alloc_temp('bool') as is_true:
-      self.writer.write_checked_call2(is_true, 'πg.IsTrue(πF, {})', cond.expr)
-      self.writer.write_tmpl(textwrap.dedent("""\
-          if !$is_true {
-          \tgoto Label$orelse_label
-          }"""), is_true=is_true.expr, orelse_label=orelse_label)
-      self._visit_each(node.body)
-      self.writer.write('goto Label{}'.format(loop.start_label))
-    if node.orelse:
-      self.writer.write_label(orelse_label)
-      self._visit_each(node.orelse)
-    # Avoid label "defined and not used" in case there's no break statements.
-    self.writer.write('goto Label{}'.format(loop.end_label))
-    self.writer.write_label(loop.end_label)
-    self.block.pop_loop()
+    def testfunc(testvar):
+      with self.visit_expr(node.test) as cond:
+        self.writer.write_checked_call2(
+            testvar, 'πg.IsTrue(πF, {})', cond.expr)
+    self._visit_loop(testfunc, node)
 
   def visit_With(self, node):
     assert len(node.items) == 1, 'multiple items in a with not yet supported'
@@ -738,6 +715,44 @@ class StatementVisitor(algorithm.Visitor):
   def _visit_each(self, nodes):
     for node in nodes:
       self.visit(node)
+
+  def _visit_loop(self, testfunc, node):
+    start_label = self.block.genlabel(is_checkpoint=True)
+    else_label = self.block.genlabel(is_checkpoint=True)
+    end_label = self.block.genlabel()
+    with self.block.alloc_temp('bool') as breakvar:
+      self.block.push_loop(breakvar)
+      self.writer.write('πF.PushCheckpoint({})'.format(else_label))
+      self.writer.write('{} = false'.format(breakvar.name))
+      self.writer.write_label(start_label)
+      self.writer.write_tmpl(textwrap.dedent("""\
+          if πE != nil || πR != nil {
+          \tcontinue
+          }
+          if $breakvar {
+          \tπF.PopCheckpoint()
+          \tgoto Label$end_label
+          }"""), breakvar=breakvar.expr, end_label=end_label)
+      with self.block.alloc_temp('bool') as testvar:
+        testfunc(testvar)
+        self.writer.write_tmpl(textwrap.dedent("""\
+            if πE != nil || !$testvar {
+            \tcontinue
+            }
+            πF.PushCheckpoint($start_label)\
+            """), testvar=testvar.name, start_label=start_label)
+      self._visit_each(node.body)
+      self.writer.write('continue')
+      # End the loop so that break applies to an outer loop if present.
+      self.block.pop_loop()
+      self.writer.write_label(else_label)
+      self.writer.write(textwrap.dedent("""\
+          if πE != nil || πR != nil {
+          \tcontinue
+          }"""))
+      if node.orelse:
+        self._visit_each(node.orelse)
+      self.writer.write_label(end_label)
 
   def _write_except_block(self, label, exc, except_node):
     self._write_py_context(except_node.lineno)

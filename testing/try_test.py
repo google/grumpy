@@ -232,3 +232,19 @@ def foo():
 
 
 assert foo() == 2
+
+
+# Break statement should not bypass finally.
+x = []
+def foo():
+  while True:
+    try:
+      x.append(1)
+      break
+    finally:
+      x.append(2)
+  x.append(3)
+
+
+foo()
+assert x == [1, 2, 3]
