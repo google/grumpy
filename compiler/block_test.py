@@ -43,9 +43,9 @@ class BlockTest(unittest.TestCase):
 
   def testLoop(self):
     b = _MakeModuleBlock()
-    loop = b.push_loop()
+    loop = b.push_loop(None)
     self.assertEqual(loop, b.top_loop())
-    inner_loop = b.push_loop()
+    inner_loop = b.push_loop(None)
     self.assertEqual(inner_loop, b.top_loop())
     b.pop_loop()
     self.assertEqual(loop, b.top_loop())
