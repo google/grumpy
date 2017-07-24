@@ -265,7 +265,8 @@ $(patsubst %,build/src/__python__/%/module.d,$(STDLIB_PACKAGES)): build/bin/pyde
 $(patsubst %,$(PKG_DIR)/__python__/%.a,$(STDLIB_PACKAGES)): $(RUNTIME)
 
 define GRUMPY_STDLIB_TEST
-build/testing/$(notdir $(1)).pass: $(RUNTIME) $(PKG_DIR)/__python__/$(1).a $(RUNNER_BIN)
+build/testing/$(notdir $(1)).pass: $(RUNTIME) $(PKG_DIR)/__python__/$(1).a $(RUNNER_BIN) $(PKG_DIR)/__python__/traceback.a
+	@mkdir -p $$(@D)
 	@$(RUNNER_BIN) -m $(subst /,.,$(1))
 	@touch $$@
 	@echo 'lib/$(1) PASS'
