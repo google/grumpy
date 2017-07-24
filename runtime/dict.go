@@ -539,6 +539,13 @@ func dictContains(f *Frame, seq, value *Object) (*Object, *BaseException) {
 	return GetBool(item != nil).ToObject(), nil
 }
 
+func dictCopy(f *Frame, args Args, _ KWArgs) (*Object, *BaseException) {
+	if raised := checkMethodArgs(f, "copy", args, DictType); raised != nil {
+		return nil, raised
+	}
+	return DictType.Call(f, args, nil)
+}
+
 func dictDelItem(f *Frame, o, key *Object) *BaseException {
 	deleted, raised := toDictUnsafe(o).DelItem(f, key)
 	if raised != nil {
@@ -634,28 +641,6 @@ func dictKeys(f *Frame, args Args, kwargs KWArgs) (*Object, *BaseException) {
 	return toDictUnsafe(args[0]).Keys(f).ToObject(), nil
 }
 
-func dictPop(f *Frame, args Args, _ KWArgs) (*Object, *BaseException) {
-	expectedTypes := []*Type{DictType, ObjectType, ObjectType}
-	argc := len(args)
-	if argc == 2 {
-		expectedTypes = expectedTypes[:2]
-	}
-	if raised := checkMethodArgs(f, "pop", args, expectedTypes...); raised != nil {
-		return nil, raised
-	}
-	key := args[1]
-	d := toDictUnsafe(args[0])
-	item, raised := d.Pop(f, key)
-	if raised == nil && item == nil {
-		if argc > 2 {
-			item = args[2]
-		} else {
-			raised = raiseKeyError(f, key)
-		}
-	}
-	return item, raised
-}
-
 func dictGetItem(f *Frame, o, key *Object) (*Object, *BaseException) {
 	item, raised := toDictUnsafe(o).GetItem(f, key)
 	if raised != nil {
@@ -719,6 +704,48 @@ func dictNew(f *Frame, t *Type, _ Args, _ KWArgs) (*Object, *BaseException) {
 	d := toDictUnsafe(newObject(t))
 	d.table = &dictTable{entries: make([]*dictEntry, minDictSize, minDictSize)}
 	return d.ToObject(), nil
+}
+
+func dictPop(f *Frame, args Args, _ KWArgs) (*Object, *BaseException) {
+	expectedTypes := []*Type{DictType, ObjectType, ObjectType}
+	argc := len(args)
+	if argc == 2 {
+		expectedTypes = expectedTypes[:2]
+	}
+	if raised := checkMethodArgs(f, "pop", args, expectedTypes...); raised != nil {
+		return nil, raised
+	}
+	key := args[1]
+	d := toDictUnsafe(args[0])
+	item, raised := d.Pop(f, key)
+	if raised == nil && item == nil {
+		if argc > 2 {
+			item = args[2]
+		} else {
+			raised = raiseKeyError(f, key)
+		}
+	}
+	return item, raised
+}
+
+func dictPopItem(f *Frame, args Args, _ KWArgs) (item *Object, raised *BaseException) {
+	if raised := checkMethodArgs(f, "popitem", args, DictType); raised != nil {
+		return nil, raised
+	}
+	d := toDictUnsafe(args[0])
+	d.mutex.Lock(f)
+	iter := newDictEntryIterator(d)
+	entry := iter.next()
+	if entry == nil {
+		raised = f.RaiseType(KeyErrorType, "popitem(): dictionary is empty")
+	} else {
+		item = NewTuple(entry.key, entry.value).ToObject()
+		d.table.storeEntry(int(iter.index-1), deletedEntry)
+		d.table.incUsed(-1)
+		d.incVersion()
+	}
+	d.mutex.Unlock(f)
+	return item, raised
 }
 
 func dictRepr(f *Frame, o *Object) (*Object, *BaseException) {
@@ -825,6 +852,7 @@ func dictValues(f *Frame, args Args, kwargs KWArgs) (*Object, *BaseException) {
 
 func initDictType(dict map[string]*Object) {
 	dict["clear"] = newBuiltinFunction("clear", dictClear).ToObject()
+	dict["copy"] = newBuiltinFunction("copy", dictCopy).ToObject()
 	dict["get"] = newBuiltinFunction("get", dictGet).ToObject()
 	dict["has_key"] = newBuiltinFunction("has_key", dictHasKey).ToObject()
 	dict["items"] = newBuiltinFunction("items", dictItems).ToObject()
@@ -833,6 +861,7 @@ func initDictType(dict map[string]*Object) {
 	dict["itervalues"] = newBuiltinFunction("itervalues", dictIterValues).ToObject()
 	dict["keys"] = newBuiltinFunction("keys", dictKeys).ToObject()
 	dict["pop"] = newBuiltinFunction("pop", dictPop).ToObject()
+	dict["popitem"] = newBuiltinFunction("popitem", dictPopItem).ToObject()
 	dict["setdefault"] = newBuiltinFunction("setdefault", dictSetDefault).ToObject()
 	dict["update"] = newBuiltinFunction("update", dictUpdate).ToObject()
 	dict["values"] = newBuiltinFunction("values", dictValues).ToObject()

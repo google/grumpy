@@ -585,6 +585,37 @@ func TestDictPop(t *testing.T) {
 	}
 }
 
+func TestDictPopItem(t *testing.T) {
+	popItem := mustNotRaise(GetAttr(NewRootFrame(), DictType.ToObject(), NewStr("popitem"), nil))
+	fun := wrapFuncForTest(func(f *Frame, d *Dict) (*Object, *BaseException) {
+		result := NewDict()
+		item, raised := popItem.Call(f, wrapArgs(d), nil)
+		for ; raised == nil; item, raised = popItem.Call(f, wrapArgs(d), nil) {
+			t := toTupleUnsafe(item)
+			result.SetItem(f, t.GetItem(0), t.GetItem(1))
+		}
+		if raised != nil {
+			if !raised.isInstance(KeyErrorType) {
+				return nil, raised
+			}
+			f.RestoreExc(nil, nil)
+		}
+		if raised = Assert(f, GetBool(d.Len() == 0).ToObject(), nil); raised != nil {
+			return nil, raised
+		}
+		return result.ToObject(), nil
+	})
+	cases := []invokeTestCase{
+		{args: wrapArgs(newTestDict("foo", 42)), want: newTestDict("foo", 42).ToObject()},
+		{args: wrapArgs(newTestDict("foo", 42, 123, "bar")), want: newTestDict("foo", 42, 123, "bar").ToObject()},
+	}
+	for _, cas := range cases {
+		if err := runInvokeTestCase(fun, &cas); err != "" {
+			t.Error(err)
+		}
+	}
+}
+
 func TestDictNewInit(t *testing.T) {
 	cases := []invokeTestCase{
 		{args: wrapArgs(), want: NewDict().ToObject()},

@@ -174,6 +174,7 @@ class CommonTest(unittest.TestCase):
         self.assertRaises(IndexError, a.__getitem__, -3)
         self.assertRaises(IndexError, a.__getitem__, 3)
 
+    @unittest.skip('grumpy')
     def test_getslice(self):
         l = [0, 1, 2, 3, 4]
         u = self.type2test(l)
@@ -258,6 +259,7 @@ class CommonTest(unittest.TestCase):
         self.assertEqual(min(u), 0)
         self.assertEqual(max(u), 2)
 
+    @unittest.skip('grumpy')
     def test_addmul(self):
         u1 = self.type2test([0])
         u2 = self.type2test([0, 1])
@@ -311,6 +313,7 @@ class CommonTest(unittest.TestCase):
                 return str(key) + '!!!'
         self.assertEqual(iter(T((1,2))).next(), 1)
 
+    @unittest.skip('grumpy')
     def test_repeat(self):
         for m in xrange(4):
             s = tuple(range(m))
@@ -367,6 +370,7 @@ class CommonTest(unittest.TestCase):
 
         self.assertRaises(BadExc, a.count, BadCmp())
 
+    @unittest.skip('grumpy')
     def test_index(self):
         u = self.type2test([0, 1])
         self.assertEqual(u.index(0), 0)
@@ -409,6 +413,7 @@ class CommonTest(unittest.TestCase):
         self.assertRaises(ValueError, a.index, 0, 4*sys.maxint,-4*sys.maxint)
         self.assertRaises(ValueError, a.index, 2, 0, -10)
 
+    @unittest.skip('grumpy')
     def test_free_after_iterating(self):
         support.check_free_after_iterating(self, iter, self.type2test)
         support.check_free_after_iterating(self, reversed, self.type2test)

@@ -40,6 +40,7 @@ class BasicTestMappingProtocol(unittest.TestCase):
         self.inmapping = {key:value}
         self.reference[key] = value
 
+    @unittest.skip('grumpy')
     def test_read(self):
         # Test for read only operations on mapping
         p = self._empty_mapping()
@@ -172,6 +173,7 @@ class BasicTestMappingProtocol(unittest.TestCase):
 
         self.assertRaises(TypeError, d.__getitem__)
 
+    @unittest.skip('grumpy')
     def test_update(self):
         # mapping argument
         d = self._empty_mapping()

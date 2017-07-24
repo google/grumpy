@@ -64,6 +64,14 @@ func TestBuiltinFuncs(t *testing.T) {
 	fooDir := NewList(fooTypeDir.elems...)
 	fooDir.Append(NewStr("baz").ToObject())
 	fooDir.Sort(f)
+	dirModule := newTestModule("foo", "foo.py")
+	if raised := dirModule.Dict().SetItemString(NewRootFrame(), "bar", newObject(ObjectType)); raised != nil {
+		panic(raised)
+	}
+	dirModuleDir := dirModule.Dict().Keys(NewRootFrame())
+	if raised := dirModuleDir.Sort(NewRootFrame()); raised != nil {
+		panic(raised)
+	}
 	iter := mustNotRaise(Iter(f, mustNotRaise(xrangeType.Call(f, wrapArgs(5), nil))))
 	neg := wrapFuncForTest(func(f *Frame, i int) int { return -i })
 	raiseKey := wrapFuncForTest(func(f *Frame, o *Object) *BaseException { return f.RaiseType(RuntimeErrorType, "foo") })
@@ -157,7 +165,9 @@ func TestBuiltinFuncs(t *testing.T) {
 		{f: "chr", args: wrapArgs(), wantExc: mustCreateException(TypeErrorType, "'chr' requires 1 arguments")},
 		{f: "dir", args: wrapArgs(newObject(ObjectType)), want: objectDir.ToObject()},
 		{f: "dir", args: wrapArgs(newObject(fooType)), want: fooTypeDir.ToObject()},
+		{f: "dir", args: wrapArgs(fooType), want: fooTypeDir.ToObject()},
 		{f: "dir", args: wrapArgs(foo), want: fooDir.ToObject()},
+		{f: "dir", args: wrapArgs(dirModule), want: dirModuleDir.ToObject()},
 		{f: "dir", args: wrapArgs(), wantExc: mustCreateException(TypeErrorType, "'dir' requires 1 arguments")},
 		{f: "divmod", args: wrapArgs(12, 7), want: NewTuple2(NewInt(1).ToObject(), NewInt(5).ToObject()).ToObject()},
 		{f: "divmod", args: wrapArgs(-12, 7), want: NewTuple2(NewInt(-2).ToObject(), NewInt(2).ToObject()).ToObject()},
