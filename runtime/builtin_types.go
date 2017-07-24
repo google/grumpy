@@ -342,14 +342,26 @@ func builtinDir(f *Frame, args Args, kwargs KWArgs) (*Object, *BaseException) {
 	}
 	d := NewDict()
 	o := args[0]
-	if dict := o.Dict(); dict != nil {
-		if raised := d.Update(f, dict.ToObject()); raised != nil {
-			return nil, raised
+	switch {
+	case o.isInstance(TypeType):
+		for _, t := range toTypeUnsafe(o).mro {
+			if raised := d.Update(f, t.Dict().ToObject()); raised != nil {
+				return nil, raised
+			}
 		}
-	}
-	for _, t := range o.typ.mro {
-		if raised := d.Update(f, t.Dict().ToObject()); raised != nil {
-			return nil, raised
+	case o.isInstance(ModuleType):
+		d.Update(f, o.Dict().ToObject())
+	default:
+		d = NewDict()
+		if dict := o.Dict(); dict != nil {
+			if raised := d.Update(f, dict.ToObject()); raised != nil {
+				return nil, raised
+			}
+		}
+		for _, t := range o.typ.mro {
+			if raised := d.Update(f, t.Dict().ToObject()); raised != nil {
+				return nil, raised
+			}
 		}
 	}
 	l := d.Keys(f)
