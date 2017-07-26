@@ -74,3 +74,27 @@ def gen6():
 g = gen6()
 assert list(g) == [1]
 assert list(g) == []
+
+
+def gen7():
+  yield
+g = gen7()
+try:
+  g.throw(TypeError, 'foo')
+except TypeError as e:
+  assert "foo" in str(e)
+else:
+  raise AssertionError
+
+
+def gen8():
+  try:
+    yield
+  except ValueError as e:
+    assert "foo" in str(e)
+    yield
+  else:
+    raise AssertionError
+g = gen8()
+g.next()
+g.throw(ValueError, 'foo')

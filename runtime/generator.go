@@ -15,7 +15,6 @@
 package grumpy
 
 import (
-	"fmt"
 	"reflect"
 	"sync"
 )
@@ -59,31 +58,29 @@ func toGeneratorUnsafe(o *Object) *Generator {
 }
 
 func (g *Generator) resume(f *Frame, sendValue *Object, raisedValue *BaseException) (*Object, *BaseException) {
-	if raisedValue == nil {
-		var raised *BaseException
-		g.mutex.Lock()
-		oldState := g.state
-		switch oldState {
-		case generatorStateCreated:
-			if sendValue != None {
-				raised = f.RaiseType(TypeErrorType, "can't send non-None value to a just-started generator")
-			} else {
-				g.state = generatorStateRunning
-			}
-		case generatorStateReady:
+	var raised *BaseException
+	g.mutex.Lock()
+	oldState := g.state
+	switch oldState {
+	case generatorStateCreated:
+		if sendValue != None && raisedValue == nil {
+			raised = f.RaiseType(TypeErrorType, "can't send non-None value to a just-started generator")
+		} else {
 			g.state = generatorStateRunning
-		case generatorStateRunning:
-			raised = f.RaiseType(ValueErrorType, "generator already executing")
-		case generatorStateDone:
-			raised = f.Raise(StopIterationType.ToObject(), nil, nil)
 		}
-		g.mutex.Unlock()
-		// Concurrent attempts to transition to running state will raise here
-		// so it's guaranteed that only one thread will proceed to execute the
-		// block below.
-		if raised != nil {
-			return nil, raised
-		}
+	case generatorStateReady:
+		g.state = generatorStateRunning
+	case generatorStateRunning:
+		raised = f.RaiseType(ValueErrorType, "generator already executing")
+	case generatorStateDone:
+		raised = f.Raise(StopIterationType.ToObject(), nil, nil)
+	}
+	g.mutex.Unlock()
+	// Concurrent attempts to transition to running state will raise here
+	// so it's guaranteed that only one thread will proceed to execute the
+	// block below.
+	if raised != nil {
+		return nil, raised
 	}
 	g.frame.pushFrame(f)
 	result, raised := g.fn(sendValue, raisedValue)
@@ -123,12 +120,6 @@ func generatorSend(f *Frame, args Args, _ KWArgs) (*Object, *BaseException) {
 
 func generatorThrow(f *Frame, args Args, _ KWArgs) (*Object, *BaseException) {
 	argc := len(args)
-	if argc == 1 {
-		return nil, f.RaiseType(TypeErrorType, "throw expected at least 1 arguments, got 0")
-	}
-	if argc > 4 {
-		return nil, f.RaiseType(TypeErrorType, fmt.Sprintf("throw expected at most 3 arguments, got %v", argc-1))
-	}
 	expectedTypes := []*Type{GeneratorType, ObjectType, ObjectType, ObjectType}
 	if argc > 1 && argc < 4 {
 		expectedTypes = expectedTypes[:argc]

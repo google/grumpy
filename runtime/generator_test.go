@@ -105,8 +105,8 @@ func TestGeneratorThrow(t *testing.T) {
 		invokeTestCase{args: wrapArgs(NewGenerator(NewRootFrame(), emptyFn), TypeErrorType.ToObject()), wantExc: toBaseExceptionUnsafe(mustNotRaise(StopIterationType.Call(NewRootFrame(), nil, nil)))},
 		invokeTestCase{args: wrapArgs(NewGenerator(NewRootFrame(), yieldedFn), TypeErrorType.ToObject()), want: NewStr("foo").ToObject()},
 		invokeTestCase{args: wrapArgs(NewGenerator(NewRootFrame(), raisedFn), TypeErrorType.ToObject()), wantExc: mustCreateException(ValueErrorType, "bar")},
-		invokeTestCase{args: wrapArgs(NewGenerator(NewRootFrame(), emptyFn)), wantExc: mustCreateException(TypeErrorType, "throw expected at least 1 arguments, got 0")},
-		invokeTestCase{args: wrapArgs(NewGenerator(NewRootFrame(), emptyFn), "foo", "bar", "baz", "qux"), wantExc: mustCreateException(TypeErrorType, "throw expected at most 3 arguments, got 4")},
+		invokeTestCase{args: wrapArgs(NewGenerator(NewRootFrame(), emptyFn)), wantExc: mustCreateException(TypeErrorType, "'throw' of 'generator' requires 4 arguments")},
+		invokeTestCase{args: wrapArgs(NewGenerator(NewRootFrame(), emptyFn), "foo", "bar", "baz", "qux"), wantExc: mustCreateException(TypeErrorType, "'throw' of 'generator' requires 4 arguments")},
 	}
 	for _, cas := range cases {
 		if err := runInvokeMethodTestCase(GeneratorType, "throw", &cas); err != "" {

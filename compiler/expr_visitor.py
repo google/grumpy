@@ -379,10 +379,15 @@ class ExprVisitor(algorithm.Visitor):
     self.writer.write('return {}, nil'.format(value.expr))
     self.writer.write_label(resume_label)
     result = self.block.alloc_temp()
-    self.writer.write(textwrap.dedent("""\
-        if πRaised != nil {
-        \treturn nil, πRaised
-        }"""))
+    self.writer.write_tmpl(textwrap.dedent("""\
+      if πThrown != nil {
+      \tπE = πThrown
+      \tπThrown = nil
+      \tif πE != nil {
+      \t\tcontinue
+      \t}
+      }
+      $result = πSent"""), result=result.name)
     self.writer.write('{} = πSent'.format(result.name))
     return result
 
