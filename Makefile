@@ -97,6 +97,7 @@ STDLIB_TESTS := \
   test/test_datetime \
   test/test_dict \
   test/test_dircache \
+  test/test_dummy_thread \
   test/test_fpformat \
   test/test_genericpath \
   test/test_list \
