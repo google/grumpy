@@ -388,7 +388,6 @@ class ExprVisitor(algorithm.Visitor):
       \t}
       }
       $result = πSent"""), result=result.name)
-    self.writer.write('{} = πSent'.format(result.name))
     return result
 
   _BIN_OP_TEMPLATES = {
