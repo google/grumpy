@@ -68,6 +68,8 @@ COMPILER_STMT_PASS_FILES := $(patsubst %,$(PY_DIR)/grumpy/compiler/stmt_test.%of
 COMPILER_D_FILES := $(patsubst %,$(PY_DIR)/%.d,$(COMPILER_TESTS))
 COMPILER := $(COMPILER_BIN) $(COMPILER_SRCS) $(PYTHONPARSER_SRCS)
 
+PKGC_BIN := build/bin/pkgc
+
 RUNNER_BIN := build/bin/grumprun
 RUNTIME_SRCS := $(addprefix build/src/grumpy/,$(notdir $(wildcard runtime/*.go)))
 RUNTIME := $(PKG_DIR)/grumpy.a
@@ -182,11 +184,24 @@ $(COMPILER_EXPR_VISITOR_PASS_FILES): $(PY_DIR)/grumpy/compiler/expr_visitor_test
 	@touch $@
 	@echo 'compiler/expr_visitor_test $* PASS'
 
+COMPILER_STMT_PASS_FILE_DEPS := \
+  $(PKG_DIR)/__python__/__go__/grumpy.a \
+  $(PKG_DIR)/__python__/__go__/os.a \
+  $(PKG_DIR)/__python__/__go__/runtime.a \
+  $(PKG_DIR)/__python__/__go__/time.a \
+  $(PKG_DIR)/__python__/__go__/unicode.a \
+  $(PKG_DIR)/__python__/sys.a \
+  $(PKG_DIR)/__python__/traceback.a
+
 # Does not depend on stdlibs since it makes minimal use of them.
-$(COMPILER_STMT_PASS_FILES): $(PY_DIR)/grumpy/compiler/stmt_test.%.pass: $(PY_DIR)/grumpy/compiler/stmt_test.py $(RUNNER_BIN) $(COMPILER) $(RUNTIME) $(PKG_DIR)/__python__/traceback.a
+$(COMPILER_STMT_PASS_FILES): $(PY_DIR)/grumpy/compiler/stmt_test.%.pass: $(PY_DIR)/grumpy/compiler/stmt_test.py $(RUNNER_BIN) $(COMPILER) $(RUNTIME) $(COMPILER_STMT_PASS_FILE_DEPS)
 	@$(PYTHON) $< --shard=$*
 	@touch $@
 	@echo 'compiler/stmt_test $* PASS'
+
+$(PKGC_BIN): tools/pkgc.go
+	@mkdir -p $(@D)
+	@go build -o $@ $<
 
 # ------------------------------------------------------------------------------
 # Grumpy runtime
@@ -235,6 +250,22 @@ pylint: $(PYLINT_BIN) $(COMPILER_SRCS) $(PYTHONPARSER_SRCS) $(COMPILER_BIN) $(RU
 	@$(PYTHON) $(PYLINT_BIN) $(COMPILER_SRCS) $(COMPILER_BIN) $(RUNNER_BIN) $(TOOL_BINS)
 
 lint: golint pylint
+
+# ------------------------------------------------------------------------------
+# Native modules
+# ------------------------------------------------------------------------------
+
+$(PKG_DIR)/__python__/__go__/%.a: build/src/__python__/__go__/%/module.go $(RUNTIME)
+	@mkdir -p $(@D)
+	@go install __python__/__go__/$*
+
+build/src/__python__/__go__/%/module.go: $(PKGC_BIN) $(RUNTIME)
+	@mkdir -p $(@D)
+	@$(PKGC_BIN) $* > $@
+
+$(PKG_DIR)/__python__/__go__/grumpy.a: $(RUNTIME)
+
+.PRECIOUS: build/src/__python__/__go__/%/module.go $(PKG_DIR)/__python__/__go__/%.a
 
 # ------------------------------------------------------------------------------
 # Standard library
@@ -293,6 +324,14 @@ $(ACCEPT_PASS_FILES): build/%_test.pass: %_test.py $(RUNTIME) $(STDLIB) $(RUNNER
 	@$(RUNNER_BIN) < $<
 	@touch $@
 	@echo '$*_test PASS'
+
+NATIVE_TEST_DEPS := \
+  $(PKG_DIR)/__python__/__go__/encoding/csv.a \
+  $(PKG_DIR)/__python__/__go__/image.a \
+  $(PKG_DIR)/__python__/__go__/math.a \
+  $(PKG_DIR)/__python__/__go__/strings.a
+
+build/testing/native_test.pass: $(NATIVE_TEST_DEPS)
 
 $(ACCEPT_PY_PASS_FILES): build/%_py.pass: %.py $(PY_DIR)/weetest.py
 	@mkdir -p $(@D)

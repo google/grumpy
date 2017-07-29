@@ -284,27 +284,7 @@ class StatementVisitor(algorithm.Visitor):
       raise util.LateFutureError(node)
 
     for imp in self.block.root.importer.visit(node):
-      if imp.is_native:
-        values = [b.value for b in imp.bindings]
-        with self._import_native(imp.name, values) as mod:
-          for binding in imp.bindings:
-            # Strip the 'type_' prefix when populating the module. This means
-            # that, e.g. 'from "__go__/foo" import type_Bar' will populate foo
-            # with a member called Bar, not type_Bar (although the symbol in
-            # the importing module will still be type_Bar unless aliased). This
-            # bends the semantics of import but makes native module contents
-            # more sensible.
-            name = binding.value
-            if name.startswith(_NATIVE_TYPE_PREFIX):
-              name = name[len(_NATIVE_TYPE_PREFIX):]
-            with self.block.alloc_temp() as member:
-              self.writer.write_checked_call2(
-                  member, 'πg.GetAttr(πF, {}, {}, nil)',
-                  mod.expr, self.block.root.intern(name))
-              self.block.bind_var(
-                  self.writer, binding.alias, member.expr)
-      else:
-        self._import_and_bind(imp)
+      self._import_and_bind(imp)
 
   def visit_Module(self, node):
     self._visit_each(node.body)
@@ -658,36 +638,6 @@ class StatementVisitor(algorithm.Visitor):
                 member, 'πg.GetAttr(πF, {}, {}, nil)',
                 mod.expr, self.block.root.intern(binding.value))
             self.block.bind_var(self.writer, binding.alias, member.expr)
-
-  def _import_native(self, name, values):
-    reflect_package = self.block.root.add_native_import('reflect')
-    package = self.block.root.add_native_import(name)
-    mod = self.block.alloc_temp()
-    with self.block.alloc_temp('map[string]*πg.Object') as members:
-      self.writer.write_tmpl('$members = map[string]*πg.Object{}',
-                             members=members.name)
-      for v in values:
-        module_attr = v
-        with self.block.alloc_temp() as wrapped:
-          if v.startswith(_NATIVE_TYPE_PREFIX):
-            module_attr = v[len(_NATIVE_TYPE_PREFIX):]
-            with self.block.alloc_temp(
-                '{}.{}'.format(package.alias, module_attr)) as type_:
-              self.writer.write_checked_call2(
-                  wrapped, 'πg.WrapNative(πF, {}.ValueOf({}))',
-                  reflect_package.alias, type_.expr)
-              self.writer.write('{} = {}.Type().ToObject()'.format(
-                  wrapped.name, wrapped.expr))
-          else:
-            self.writer.write_checked_call2(
-                wrapped, 'πg.WrapNative(πF, {}.ValueOf({}.{}))',
-                reflect_package.alias, package.alias, v)
-          self.writer.write('{}[{}] = {}'.format(
-              members.name, util.go_str(module_attr), wrapped.expr))
-      mod_name = imputil._NATIVE_MODULE_PREFIX + '.' + name  # pylint: disable=protected-access
-      self.writer.write_checked_call2(mod, 'πg.ImportNativeModule(πF, {}, {})',
-                                      util.go_str(mod_name), members.expr)
-    return mod
 
   def _tie_target(self, target, value):
     if isinstance(target, ast.Name):

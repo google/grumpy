@@ -47,7 +47,9 @@ def main(args):
 
   names = set([args.modname])
   for imp in imports:
-    if not imp.is_native:
+    if imp.is_native:
+      print imp.name
+    else:
       parts = imp.name.split('.')
       # Iterate over all packages and the leaf module.
       for i in xrange(len(parts)):

@@ -140,10 +140,6 @@ class ImportVisitorTest(unittest.TestCase):
     imp.add_binding(imputil.Import.MODULE, 'bar', 0)
     self._check_imports('import foo as bar', [imp])
 
-  def testImportNativeRaises(self):
-    self.assertRaises(util.ImportError, self.importer.visit,
-                      pythonparser.parse('import __go__.fmt').body[0])
-
   def testImportFrom(self):
     imp = copy.deepcopy(self.baz2_import)
     imp.add_binding(imputil.Import.MODULE, 'baz', 1)
@@ -186,18 +182,18 @@ class ImportVisitorTest(unittest.TestCase):
     self._check_imports('from __future__ import print_function', [])
 
   def testImportFromNative(self):
-    imp = imputil.Import('fmt', is_native=True)
+    imp = imputil.Import('__go__/fmt', is_native=True)
     imp.add_binding(imputil.Import.MEMBER, 'Printf', 'Printf')
     self._check_imports('from "__go__/fmt" import Printf', [imp])
 
   def testImportFromNativeMultiple(self):
-    imp = imputil.Import('fmt', is_native=True)
+    imp = imputil.Import('__go__/fmt', is_native=True)
     imp.add_binding(imputil.Import.MEMBER, 'Printf', 'Printf')
     imp.add_binding(imputil.Import.MEMBER, 'Println', 'Println')
     self._check_imports('from "__go__/fmt" import Printf, Println', [imp])
 
   def testImportFromNativeAs(self):
-    imp = imputil.Import('fmt', is_native=True)
+    imp = imputil.Import('__go__/fmt', is_native=True)
     imp.add_binding(imputil.Import.MEMBER, 'foo', 'Printf')
     self._check_imports('from "__go__/fmt" import Printf as foo', [imp])
 

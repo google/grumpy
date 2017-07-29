@@ -328,15 +328,9 @@ class StatementVisitorTest(unittest.TestCase):
         from "__go__/grumpy" import Assert
         Assert(__frame__(), True, 'bad')""")))
 
-  def testImportNativeModuleRaises(self):
-    regexp = (r'for native imports use '
-              r'"from \'__go__/xyz\' import \.\.\." syntax')
-    self.assertRaisesRegexp(util.ImportError, regexp, _ParseAndVisit,
-                            'import "__go__/foo"')
-
   def testImportNativeType(self):
     self.assertEqual((0, "<type 'Duration'>\n"), _GrumpRun(textwrap.dedent("""\
-        from "__go__/time" import type_Duration as Duration
+        from "__go__/time" import Duration
         print Duration""")))
 
   def testImportWildcardMemberRaises(self):
