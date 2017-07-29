@@ -15,18 +15,18 @@
 """Miscellaneous operating system interfaces."""
 
 # pylint: disable=g-multiple-import
-from __go__.io.ioutil import ReadDir
-from __go__.os import (Chdir, Chmod, Environ, Getpid as getpid, Getwd, Pipe,
+from '__go__/io/ioutil' import ReadDir
+from '__go__/os' import (Chdir, Chmod, Environ, Getpid as getpid, Getwd, Pipe,
     type_ProcAttr as ProcAttr, Remove, StartProcess, Stat, Stdout, Stdin,
     Stderr, Mkdir)
-from __go__.path.filepath import Separator
-from __go__.grumpy import (NewFileFromFD, StartThread, ToNative)
-from __go__.reflect import MakeSlice
-from __go__.runtime import GOOS
-from __go__.syscall import (Close, SYS_FCNTL, Syscall, F_GETFD, Wait4,
+from '__go__/path/filepath' import Separator
+from '__go__/grumpy' import (NewFileFromFD, StartThread, ToNative)
+from '__go__/reflect' import MakeSlice
+from '__go__/runtime' import GOOS
+from '__go__/syscall' import (Close, SYS_FCNTL, Syscall, F_GETFD, Wait4,
     type_WaitStatus as WaitStatus, WNOHANG)
-from __go__.sync import type_WaitGroup as WaitGroup
-from __go__.time import Second
+from '__go__/sync' import type_WaitGroup as WaitGroup
+from '__go__/time' import Second
 import _syscall
 from os import path
 import stat as stat_module

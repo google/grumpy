@@ -316,36 +316,35 @@ class StatementVisitorTest(unittest.TestCase):
   def testImportConflictingPackage(self):
     self.assertEqual((0, ''), _GrumpRun(textwrap.dedent("""\
         import time
-        from __go__.time import Now""")))
+        from "__go__/time" import Now""")))
 
   def testImportNative(self):
     self.assertEqual((0, '1 1000000000\n'), _GrumpRun(textwrap.dedent("""\
-        from __go__.time import Nanosecond, Second
+        from "__go__/time" import Nanosecond, Second
         print Nanosecond, Second""")))
 
   def testImportGrumpy(self):
     self.assertEqual((0, ''), _GrumpRun(textwrap.dedent("""\
-        from __go__.grumpy import Assert
+        from "__go__/grumpy" import Assert
         Assert(__frame__(), True, 'bad')""")))
 
   def testImportNativeModuleRaises(self):
-    regexp = r'for native imports use "from __go__\.xyz import \.\.\." syntax'
+    regexp = (r'for native imports use '
+              r'"from \'__go__/xyz\' import \.\.\." syntax')
     self.assertRaisesRegexp(util.ImportError, regexp, _ParseAndVisit,
-                            'import __go__.foo')
+                            'import "__go__/foo"')
 
   def testImportNativeType(self):
     self.assertEqual((0, "<type 'Duration'>\n"), _GrumpRun(textwrap.dedent("""\
-        from __go__.time import type_Duration as Duration
+        from "__go__/time" import type_Duration as Duration
         print Duration""")))
 
   def testImportWildcardMemberRaises(self):
-    regexp = r'wildcard member import is not implemented: from foo import *'
+    regexp = 'wildcard member import is not implemented'
     self.assertRaisesRegexp(util.ImportError, regexp, _ParseAndVisit,
                             'from foo import *')
-    regexp = (r'wildcard member import is not '
-              r'implemented: from __go__.foo import *')
     self.assertRaisesRegexp(util.ImportError, regexp, _ParseAndVisit,
-                            'from __go__.foo import *')
+                            'from "__go__/foo" import *')
 
   def testPrintStatement(self):
     self.assertEqual((0, 'abc 123\nfoo bar\n'), _GrumpRun(textwrap.dedent("""\

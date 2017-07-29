@@ -1035,11 +1035,15 @@ class Parser:
                           name_loc=star_loc, as_loc=None, asname_loc=None, loc=star_loc)], \
                None
 
+    @action(Rule("atom_5"))
+    def import_from_7(self, string):
+        return (None, 0), (string.loc, string.s)
+
     @action(Rule("import_as_names"))
     def import_from_6(self, names):
         return (None, 0), names, None
 
-    @action(Seq(Loc("from"), Alt(import_from_3, import_from_4),
+    @action(Seq(Loc("from"), Alt(import_from_3, import_from_4, import_from_7),
                 Loc("import"), Alt(import_from_5,
                                    Seq(Loc("("), Rule("import_as_names"), Loc(")")),
                                    import_from_6)))
@@ -1097,10 +1101,22 @@ class Parser:
         return ast.alias(name=dotted_name_name, asname=asname_name,
                          loc=loc, name_loc=dotted_name_loc, as_loc=as_loc, asname_loc=asname_loc)
 
+    @action(Seq(Rule("atom_5"), Opt(Seq(Loc("as"), Tok("ident")))))
+    def str_as_name(self, string, as_name_opt):
+        asname_name = asname_loc = as_loc = None
+        loc = string.loc
+        if as_name_opt:
+            as_loc, asname = as_name_opt
+            asname_name = asname.value
+            asname_loc = asname.loc
+            loc = loc.join(asname.loc)
+        return ast.alias(name=string.s, asname=asname_name,
+                         loc=loc, name_loc=string.loc, as_loc=as_loc, asname_loc=asname_loc)
+
     import_as_names = List(Rule("import_as_name"), ",", trailing=True)
     """import_as_names: import_as_name (',' import_as_name)* [',']"""
 
-    dotted_as_names = List(Rule("dotted_as_name"), ",", trailing=False)
+    dotted_as_names = List(Alt(Rule("dotted_as_name"), Rule("str_as_name")), ",", trailing=False)
     """dotted_as_names: dotted_as_name (',' dotted_as_name)*"""
 
     @action(List(Tok("ident"), ".", trailing=False))

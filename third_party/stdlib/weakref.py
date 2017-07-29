@@ -20,7 +20,7 @@ import UserDict
 #     ProxyType,
 #     ReferenceType)
 
-from __go__.grumpy import WeakRefType as ReferenceType
+from '__go__/grumpy' import WeakRefType as ReferenceType
 ref = ReferenceType
 
 import _weakrefset

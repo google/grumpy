@@ -30,7 +30,7 @@ from grumpy.pythonparser import algorithm
 from grumpy.pythonparser import ast
 
 
-_NATIVE_MODULE_PREFIX = '__go__.'
+_NATIVE_MODULE_PREFIX = '__go__/'
 
 
 class Import(object):
@@ -86,8 +86,8 @@ class Importer(algorithm.Visitor):
     imports = []
     for alias in node.names:
       if alias.name.startswith(_NATIVE_MODULE_PREFIX):
-        raise util.ImportError(
-            node, 'for native imports use "from __go__.xyz import ..." syntax')
+        msg = 'for native imports use "from \'__go__/xyz\' import ..." syntax'
+        raise util.ImportError(node, msg)
       imp = self._resolve_import(node, alias.name)
       if alias.asname:
         imp.add_binding(Import.MODULE, alias.asname, imp.name.count('.'))
@@ -100,9 +100,7 @@ class Importer(algorithm.Visitor):
 
   def visit_ImportFrom(self, node):
     if any(a.name == '*' for a in node.names):
-      msg = 'wildcard member import is not implemented: from %s import *' % (
-          node.module)
-      raise util.ImportError(node, msg)
+      raise util.ImportError(node, 'wildcard member import is not implemented')
 
     if not node.level and node.module == '__future__':
       return []

@@ -48,7 +48,7 @@ __getstate__() and __setstate__().  See the documentation for module
 "pickle" for information on these methods.
 """
 
-from __go__.grumpy import WeakRefType
+from '__go__/grumpy' import WeakRefType
 import types
 #from copy_reg import dispatch_table
 import copy_reg

@@ -14,8 +14,8 @@
 
 import types
 
-from __go__.grumpy import (FunctionType, MethodType, ModuleType, StrType,  # pylint: disable=g-multiple-import
-                           TracebackType, TypeType)
+from '__go__/grumpy' import (FunctionType, MethodType, ModuleType, StrType,  # pylint: disable=g-multiple-import
+                             TracebackType, TypeType)
 
 # Verify a sample of all types as a sanity check.
 assert types.FunctionType is FunctionType

@@ -17,7 +17,7 @@ __all__ = ['abs', 'add', 'and_', 'attrgetter', 'concat', 'contains', 'countOf',
            'neg', 'not_', 'or_', 'pos', 'pow', 'rshift', 'setitem', 'sub',
            'truediv', 'truth', 'xor']
 
-from __go__.math import Abs as _abs
+from '__go__/math' import Abs as _abs
 
 
 # Comparison Operations *******************************************************#

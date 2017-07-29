@@ -163,42 +163,28 @@ func ImportModule(f *Frame, name string) ([]*Object, *BaseException) {
 	return result, nil
 }
 
-// ImportNativeModule takes a fully qualified native module name (e.g.
-// grumpy.native.fmt) and a mapping of module members that will be used to
-// populate the module. The same logic is used as ImportModule for looking in
-// sys.modules first. The last module created in this way is populated with the
-// given members and returned.
+// ImportNativeModule looks up or creates a native module corresponding to the
+// named Go package (e.g. __go__/net/http). It populates the module using the
+// map of members given.
 func ImportNativeModule(f *Frame, name string, members map[string]*Object) (*Object, *BaseException) {
-	parts := strings.Split(name, ".")
-	numParts := len(parts)
-	var prev *Object
-	for i := 0; i < numParts; i++ {
-		name := strings.Join(parts[:i+1], ".")
-		importMutex.Lock()
-		o, raised := SysModules.GetItemString(f, name)
-		if raised == nil && o == nil {
-			m := newModule(name, "<native>")
-			m.state = moduleStateReady
-			o = m.ToObject()
-			raised = SysModules.SetItemString(f, name, o)
-		}
-		importMutex.Unlock()
-		if raised != nil {
-			return nil, raised
-		}
-		if prev != nil {
-			if raised := SetAttr(f, prev, NewStr(parts[i]), o); raised != nil {
-				return nil, raised
-			}
-		}
-		prev = o
+	importMutex.Lock()
+	o, raised := SysModules.GetItemString(f, name)
+	if raised == nil && o == nil {
+		m := newModule(name, "<native>")
+		m.state = moduleStateReady
+		o = m.ToObject()
+		raised = SysModules.SetItemString(f, name, o)
+	}
+	importMutex.Unlock()
+	if raised != nil {
+		return nil, raised
 	}
 	for k, v := range members {
-		if raised := SetAttr(f, prev, NewStr(k), v); raised != nil {
+		if raised := SetAttr(f, o, NewStr(k), v); raised != nil {
 			return nil, raised
 		}
 	}
-	return prev, nil
+	return o, nil
 }
 
 // newModule creates a new Module object with the given fully qualified name

@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from __go__.syscall import (
+from '__go__/syscall' import (
     FD_SETSIZE as _FD_SETSIZE,
     Select as _Select,
     type_FdSet as _FdSet,

@@ -14,9 +14,9 @@
 
 """Generate pseudo random numbers. Should not be used for security purposes."""
 
-from __go__.math.rand import Uint32, Seed
-from __go__.math import Pow
-from __go__.time import Now
+from '__go__/math/rand' import Uint32, Seed
+from '__go__/math' import Pow
+from '__go__/time' import Now
 
 
 BPF = 53  # Number of bits in a float

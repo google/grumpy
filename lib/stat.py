@@ -15,7 +15,7 @@
 """Interpreting stat() results."""
 
 # pylint: disable=g-multiple-import
-from __go__.os import ModeDir, ModePerm
+from '__go__/os' import ModeDir, ModePerm
 
 
 def S_ISDIR(mode):  # pylint: disable=invalid-name

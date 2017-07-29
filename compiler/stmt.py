@@ -289,7 +289,7 @@ class StatementVisitor(algorithm.Visitor):
         with self._import_native(imp.name, values) as mod:
           for binding in imp.bindings:
             # Strip the 'type_' prefix when populating the module. This means
-            # that, e.g. 'from __go__.foo import type_Bar' will populate foo
+            # that, e.g. 'from "__go__/foo" import type_Bar' will populate foo
             # with a member called Bar, not type_Bar (although the symbol in
             # the importing module will still be type_Bar unless aliased). This
             # bends the semantics of import but makes native module contents
@@ -661,17 +661,7 @@ class StatementVisitor(algorithm.Visitor):
 
   def _import_native(self, name, values):
     reflect_package = self.block.root.add_native_import('reflect')
-    # Work-around for importing go module from VCS
-    # TODO: support bzr|git|hg|svn from any server
-    package_name = None
-    for x in _KNOWN_VCS:
-      if name.startswith(x):
-        package_name = x + name[len(x):].replace('.', '/')
-        break
-    if not package_name:
-      package_name = name.replace('.', '/')
-
-    package = self.block.root.add_native_import(package_name)
+    package = self.block.root.add_native_import(name)
     mod = self.block.alloc_temp()
     with self.block.alloc_temp('map[string]*πg.Object') as members:
       self.writer.write_tmpl('$members = map[string]*πg.Object{}',
