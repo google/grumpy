@@ -87,70 +87,22 @@ func RegisterModule(name string, c *Code) {
 // is guaranteed to only be initialized once. The second invocation will not
 // return the module until it is fully initialized.
 func ImportModule(f *Frame, name string) ([]*Object, *BaseException) {
+	if strings.Contains(name, "/") {
+		o, raised := importOne(f, name)
+		if raised != nil {
+			return nil, raised
+		}
+		return []*Object{o}, nil
+	}
 	parts := strings.Split(name, ".")
 	numParts := len(parts)
 	result := make([]*Object, numParts)
 	var prev *Object
 	for i := 0; i < numParts; i++ {
 		name := strings.Join(parts[:i+1], ".")
-		var c *Code
-		// We do very limited locking here resulting in some
-		// sys.modules consistency gotchas.
-		importMutex.Lock()
-		o, raised := SysModules.GetItemString(f, name)
-		if raised == nil && o == nil {
-			if c = moduleRegistry[name]; c == nil {
-				raised = f.RaiseType(ImportErrorType, name)
-			} else {
-				o = newModule(name, c.filename).ToObject()
-				raised = SysModules.SetItemString(f, name, o)
-			}
-		}
-		importMutex.Unlock()
+		o, raised := importOne(f, name)
 		if raised != nil {
 			return nil, raised
-		}
-		if o.isInstance(ModuleType) {
-			var raised *BaseException
-			m := toModuleUnsafe(o)
-			m.mutex.Lock(f)
-			if m.state == moduleStateNew {
-				m.state = moduleStateInitializing
-				if _, raised = c.Eval(f, m.Dict(), nil, nil); raised == nil {
-					m.state = moduleStateReady
-				} else {
-					// If the module failed to initialize
-					// then before we relinquish the module
-					// lock, remove it from sys.modules.
-					// Threads waiting on this module will
-					// fail when they don't find it in
-					// sys.modules below.
-					e, tb := f.ExcInfo()
-					if _, raised := SysModules.DelItemString(f, name); raised != nil {
-						f.RestoreExc(e, tb)
-					}
-				}
-			}
-			m.mutex.Unlock(f)
-			if raised != nil {
-				return nil, raised
-			}
-			// The result should be what's in sys.modules, not
-			// necessarily the originally created module since this
-			// is CPython's behavior.
-			o, raised = SysModules.GetItemString(f, name)
-			if raised != nil {
-				return nil, raised
-			}
-			if o == nil {
-				// This can happen in the pathological case
-				// where the module clears itself from
-				// sys.modules during execution and is handled
-				// by CPython in PyImport_ExecCodeModuleEx in
-				// import.c.
-				format := "Loaded module %s not found in sys.modules"
-				return nil, f.RaiseType(ImportErrorType, fmt.Sprintf(format, name))
-			}
 		}
 		if prev != nil {
 			if raised := SetAttr(f, prev, NewStr(parts[i]), o); raised != nil {
@@ -163,25 +115,64 @@ func ImportModule(f *Frame, name string) ([]*Object, *BaseException) {
 	return result, nil
 }
 
-// ImportNativeModule looks up or creates a native module corresponding to the
-// named Go package (e.g. __go__/net/http). It populates the module using the
-// map of members given.
-func ImportNativeModule(f *Frame, name string, members map[string]*Object) (*Object, *BaseException) {
+func importOne(f *Frame, name string) (*Object, *BaseException) {
+	var c *Code
+	// We do very limited locking here resulting in some
+	// sys.modules consistency gotchas.
 	importMutex.Lock()
 	o, raised := SysModules.GetItemString(f, name)
 	if raised == nil && o == nil {
-		m := newModule(name, "<native>")
-		m.state = moduleStateReady
-		o = m.ToObject()
-		raised = SysModules.SetItemString(f, name, o)
+		if c = moduleRegistry[name]; c == nil {
+			raised = f.RaiseType(ImportErrorType, name)
+		} else {
+			o = newModule(name, c.filename).ToObject()
+			raised = SysModules.SetItemString(f, name, o)
+		}
 	}
 	importMutex.Unlock()
 	if raised != nil {
 		return nil, raised
 	}
-	for k, v := range members {
-		if raised := SetAttr(f, o, NewStr(k), v); raised != nil {
+	if o.isInstance(ModuleType) {
+		var raised *BaseException
+		m := toModuleUnsafe(o)
+		m.mutex.Lock(f)
+		if m.state == moduleStateNew {
+			m.state = moduleStateInitializing
+			if _, raised = c.Eval(f, m.Dict(), nil, nil); raised == nil {
+				m.state = moduleStateReady
+			} else {
+				// If the module failed to initialize
+				// then before we relinquish the module
+				// lock, remove it from sys.modules.
+				// Threads waiting on this module will
+				// fail when they don't find it in
+				// sys.modules below.
+				e, tb := f.ExcInfo()
+				if _, raised := SysModules.DelItemString(f, name); raised != nil {
+					f.RestoreExc(e, tb)
+				}
+			}
+		}
+		m.mutex.Unlock(f)
+		if raised != nil {
 			return nil, raised
+		}
+		// The result should be what's in sys.modules, not
+		// necessarily the originally created module since this
+		// is CPython's behavior.
+		o, raised = SysModules.GetItemString(f, name)
+		if raised != nil {
+			return nil, raised
+		}
+		if o == nil {
+			// This can happen in the pathological case
+			// where the module clears itself from
+			// sys.modules during execution and is handled
+			// by CPython in PyImport_ExecCodeModuleEx in
+			// import.c.
+			format := "Loaded module %s not found in sys.modules"
+			return nil, f.RaiseType(ImportErrorType, fmt.Sprintf(format, name))
 		}
 	}
 	return o, nil

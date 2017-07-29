@@ -15,8 +15,8 @@
 from '__go__/syscall' import (
     FD_SETSIZE as _FD_SETSIZE,
     Select as _Select,
-    type_FdSet as _FdSet,
-    type_Timeval as _Timeval
+    FdSet as _FdSet,
+    Timeval as _Timeval
 )
 import _syscall
 import math

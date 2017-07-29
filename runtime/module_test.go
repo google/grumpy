@@ -185,26 +185,6 @@ func TestImportModule(t *testing.T) {
 	}
 }
 
-func TestImportNativeModule(t *testing.T) {
-	f := NewRootFrame()
-	oldSysModules := SysModules
-	defer func() {
-		SysModules = oldSysModules
-	}()
-	SysModules = NewDict()
-	bar := newObject(ObjectType)
-	o := mustNotRaise(ImportNativeModule(f, "grumpy.native.foo", map[string]*Object{"Bar": bar}))
-	if !o.isInstance(ModuleType) {
-		t.Errorf(`ImportNativeModule("grumpy.native.foo") returned %v, want module`, o)
-	} else if nameAttr := mustNotRaise(GetAttr(f, o, internedName, None)); !nameAttr.isInstance(StrType) {
-		t.Errorf(`ImportNativeModule("grumpy.native.foo") returned module with non-string name %v`, nameAttr)
-	} else if gotName := toStrUnsafe(nameAttr).Value(); gotName != "grumpy.native.foo" {
-		t.Errorf(`ImportNativeModule("grumpy.native.foo") returned module named %q, want "grumpy.native.foo"`, gotName)
-	} else if gotBar := mustNotRaise(GetAttr(f, o, NewStr("Bar"), None)); gotBar != bar {
-		t.Errorf("foo.Bar = %v, want %v", gotBar, bar)
-	}
-}
-
 func TestModuleGetNameAndFilename(t *testing.T) {
 	fun := wrapFuncForTest(func(f *Frame, m *Module) (*Tuple, *BaseException) {
 		name, raised := m.GetName(f)

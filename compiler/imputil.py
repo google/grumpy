@@ -86,15 +86,17 @@ class Importer(algorithm.Visitor):
     imports = []
     for alias in node.names:
       if alias.name.startswith(_NATIVE_MODULE_PREFIX):
-        msg = 'for native imports use "from \'__go__/xyz\' import ..." syntax'
-        raise util.ImportError(node, msg)
-      imp = self._resolve_import(node, alias.name)
-      if alias.asname:
-        imp.add_binding(Import.MODULE, alias.asname, imp.name.count('.'))
+        imp = Import(alias.name, is_native=True)
+        asname = alias.asname if alias.asname else alias.name.split('/')[-1]
+        imp.add_binding(Import.MODULE, asname, 0)
       else:
-        parts = alias.name.split('.')
-        imp.add_binding(Import.MODULE, parts[0],
-                        imp.name.count('.') - len(parts) + 1)
+        imp = self._resolve_import(node, alias.name)
+        if alias.asname:
+          imp.add_binding(Import.MODULE, alias.asname, imp.name.count('.'))
+        else:
+          parts = alias.name.split('.')
+          imp.add_binding(Import.MODULE, parts[0],
+                          imp.name.count('.') - len(parts) + 1)
       imports.append(imp)
     return imports
 
@@ -106,7 +108,7 @@ class Importer(algorithm.Visitor):
       return []
 
     if not node.level and node.module.startswith(_NATIVE_MODULE_PREFIX):
-      imp = Import(node.module[len(_NATIVE_MODULE_PREFIX):], is_native=True)
+      imp = Import(node.module, is_native=True)
       for alias in node.names:
         asname = alias.asname or alias.name
         imp.add_binding(Import.MEMBER, asname, alias.name)
@@ -211,6 +213,7 @@ def calculate_transitive_deps(modname, script, gopath):
     deps.add(modname)
     for imp in collect_imports(modname, script, gopath):
       if imp.is_native:
+        deps.add(imp.name)
         continue
       parts = imp.name.split('.')
       calc(imp.name, imp.script)
