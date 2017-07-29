@@ -14,10 +14,10 @@
 
 """System-specific parameters and functions."""
 
-from __go__.os import Args
-from __go__.grumpy import SysModules, MaxInt, Stdin as stdin, Stdout as stdout, Stderr as stderr  # pylint: disable=g-multiple-import
-from __go__.runtime import (GOOS as platform, Version)
-from __go__.unicode import MaxRune
+from '__go__/os' import Args
+from '__go__/grumpy' import SysModules, MaxInt, Stdin as stdin, Stdout as stdout, Stderr as stderr  # pylint: disable=g-multiple-import
+from '__go__/runtime' import (GOOS as platform, Version)
+from '__go__/unicode' import MaxRune
 
 argv = []
 for arg in Args:

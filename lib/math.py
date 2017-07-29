@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from __go__.math import (Pi, E, Ceil, Copysign, Abs, Floor, Mod, Frexp, IsInf,
+from '__go__/math' import (Pi, E, Ceil, Copysign, Abs, Floor, Mod, Frexp, IsInf,
     IsNaN, Exp2, Modf, Trunc, Exp, Expm1, Log, Log1p, Log10, Pow, Sqrt, Acos,
     Asin, Atan, Atan2, Hypot, Sin, Cos, Tan, Acosh, Asinh, Atanh, Sinh, Cosh,
     Tanh, Erf, Erfc, Gamma, Lgamma)  # pylint: disable=g-multiple-import

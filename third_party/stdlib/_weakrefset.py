@@ -2,7 +2,7 @@
 # This code is separated-out because it is needed
 # by abc.py to load everything else at startup.
 
-from __go__.grumpy import WeakRefType as ref
+from '__go__/grumpy' import WeakRefType as ref
 
 __all__ = ['WeakSet']
 

@@ -15,8 +15,8 @@
 """Generate temporary files and directories."""
 
 # pylint: disable=g-multiple-import
-from __go__.io.ioutil import TempDir, TempFile
-from __go__.syscall import Dup
+from '__go__/io/ioutil' import TempDir, TempFile
+from '__go__/syscall' import Dup
 
 
 # pylint: disable=redefined-builtin

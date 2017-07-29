@@ -188,18 +188,18 @@ class ImportVisitorTest(unittest.TestCase):
   def testImportFromNative(self):
     imp = imputil.Import('fmt', is_native=True)
     imp.add_binding(imputil.Import.MEMBER, 'Printf', 'Printf')
-    self._check_imports('from __go__.fmt import Printf', [imp])
+    self._check_imports('from "__go__/fmt" import Printf', [imp])
 
   def testImportFromNativeMultiple(self):
     imp = imputil.Import('fmt', is_native=True)
     imp.add_binding(imputil.Import.MEMBER, 'Printf', 'Printf')
     imp.add_binding(imputil.Import.MEMBER, 'Println', 'Println')
-    self._check_imports('from __go__.fmt import Printf, Println', [imp])
+    self._check_imports('from "__go__/fmt" import Printf, Println', [imp])
 
   def testImportFromNativeAs(self):
     imp = imputil.Import('fmt', is_native=True)
     imp.add_binding(imputil.Import.MEMBER, 'foo', 'Printf')
-    self._check_imports('from __go__.fmt import Printf as foo', [imp])
+    self._check_imports('from "__go__/fmt" import Printf as foo', [imp])
 
   def testRelativeImportNonPackage(self):
     self.assertRaises(util.ImportError, self.importer.visit,

@@ -14,7 +14,7 @@
 
 """Built-in exception classes."""
 
-from __go__.grumpy import ExceptionTypes
+from '__go__/grumpy' import ExceptionTypes
 
 
 g = globals()

@@ -14,7 +14,7 @@
 
 """Time access and conversions."""
 
-from __go__.time import Local, Now, Second, Sleep, Unix, Date, UTC # pylint: disable=g-multiple-import
+from '__go__/time' import Local, Now, Second, Sleep, Unix, Date, UTC # pylint: disable=g-multiple-import
 
 
 _strftime_directive_map = {

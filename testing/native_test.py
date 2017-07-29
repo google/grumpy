@@ -14,11 +14,11 @@
 
 # pylint: disable=g-multiple-import
 
-from __go__.math import MaxInt32, Pow10, Signbit
-from __go__.strings import Count, IndexAny, Repeat
-from __go__.encoding.csv import NewReader as NewCSVReader
-from __go__.image import Pt
-from __go__.strings import NewReader as NewStringReader
+from '__go__/math' import MaxInt32, Pow10, Signbit
+from '__go__/strings' import Count, IndexAny, Repeat
+from '__go__/encoding/csv' import NewReader as NewCSVReader
+from '__go__/image' import Pt
+from '__go__/strings' import NewReader as NewStringReader
 
 assert Count('foo,bar,baz', ',') == 2
 assert IndexAny('foobar', 'obr') == 1

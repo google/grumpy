@@ -16,7 +16,7 @@
 
 # pylint: disable=invalid-name
 
-from __go__.grumpy import Builtins
+from '__go__/grumpy' import Builtins
 
 
 for k, v in Builtins.iteritems():

@@ -1,4 +1,4 @@
-from __go__.grumpy import NewTryableMutex, StartThread, ThreadCount
+from '__go__/grumpy' import NewTryableMutex, StartThread, ThreadCount
 
 
 class error(Exception):
