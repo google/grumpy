@@ -15,6 +15,7 @@
 package grumpy
 
 import (
+	"bytes"
 	"fmt"
 	"math"
 	"math/big"
@@ -246,6 +247,85 @@ func builtinMapFn(f *Frame, args Args, _ KWArgs) (*Object, *BaseException) {
 	}
 
 	return NewList(result...).ToObject(), nil
+}
+
+func builtinFilter(f *Frame, args Args, _ KWArgs) (*Object, *BaseException) {
+	if raised := checkMethodArgs(f, "filter", args, ObjectType, ObjectType); raised != nil {
+		return nil, raised
+	}
+	fn := args[0]
+	l := args[1]
+	filterFunc := IsTrue
+	if fn != None {
+		filterFunc = func(f *Frame, o *Object) (bool, *BaseException) {
+			result, raised := fn.Call(f, Args{o}, nil)
+			if raised != nil {
+				return false, raised
+			}
+			return IsTrue(f, result)
+		}
+	}
+	switch {
+	// CPython will return the same type if the second type is tuple or string, else return a list.
+	case l.isInstance(TupleType):
+		result := make([]*Object, 0)
+		for _, item := range toTupleUnsafe(l).elems {
+			ret, raised := filterFunc(f, item)
+			if raised != nil {
+				return nil, raised
+			}
+			if ret {
+				result = append(result, item)
+			}
+		}
+		return NewTuple(result...).ToObject(), nil
+	case l.isInstance(StrType):
+		if fn == None {
+			return l, nil
+		}
+		var result bytes.Buffer
+		for _, item := range []byte(toStrUnsafe(l).Value()) {
+			ret, raised := filterFunc(f, NewStr(string(item)).ToObject())
+			if raised != nil {
+				return nil, raised
+			}
+			if ret {
+				result.WriteByte(item)
+			}
+		}
+		return NewStr(result.String()).ToObject(), nil
+	case l.isInstance(UnicodeType):
+		if fn == None {
+			return l, nil
+		}
+		var result []rune
+		for _, item := range toUnicodeUnsafe(l).Value() {
+			ret, raised := filterFunc(f, NewUnicodeFromRunes([]rune{item}).ToObject())
+			if raised != nil {
+				return nil, raised
+			}
+			if ret {
+				result = append(result, item)
+			}
+		}
+		return NewUnicodeFromRunes(result).ToObject(), nil
+	default:
+		result := make([]*Object, 0)
+		raised := seqForEach(f, l, func(item *Object) (raised *BaseException) {
+			ret, raised := filterFunc(f, item)
+			if raised != nil {
+				return raised
+			}
+			if ret {
+				result = append(result, item)
+			}
+			return nil
+		})
+		if raised != nil {
+			return nil, raised
+		}
+		return NewList(result...).ToObject(), nil
+	}
 }
 
 func builtinAll(f *Frame, args Args, _ KWArgs) (*Object, *BaseException) {
@@ -768,6 +848,7 @@ func init() {
 		"divmod":         newBuiltinFunction("divmod", builtinDivMod).ToObject(),
 		"Ellipsis":       Ellipsis,
 		"False":          False.ToObject(),
+		"filter":         newBuiltinFunction("filter", builtinFilter).ToObject(),
 		"getattr":        newBuiltinFunction("getattr", builtinGetAttr).ToObject(),
 		"globals":        newBuiltinFunction("globals", builtinGlobals).ToObject(),
 		"hasattr":        newBuiltinFunction("hasattr", builtinHasAttr).ToObject(),

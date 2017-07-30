@@ -98,6 +98,34 @@ func TestBuiltinFuncs(t *testing.T) {
 			return newObject(badNextType), nil
 		}).ToObject(),
 	}))
+	createNextType := func(n int) *Type {
+		i := -1
+		nextType := newTestClass("FooNextType", []*Type{ObjectType}, newStringDict(map[string]*Object{
+			"next": newBuiltinFunction("next", func(f *Frame, args Args, kwargs KWArgs) (*Object, *BaseException) {
+				if i >= n {
+					return nil, f.RaiseType(StopIterationType, "foo")
+				}
+				i++
+				return NewInt(i).ToObject(), nil
+			}).ToObject(),
+		}))
+		return nextType
+	}
+	fooIterType := newTestClass("FooIterType", []*Type{ObjectType}, newStringDict(map[string]*Object{
+		"__iter__": newBuiltinFunction("__iter__", func(f *Frame, args Args, kwargs KWArgs) (*Object, *BaseException) {
+			return newObject(createNextType(3)), nil
+		}).ToObject(),
+	}))
+	customIterStrType := newTestClass("CustomIterStrType", []*Type{StrType}, newStringDict(map[string]*Object{
+		"__iter__": newBuiltinFunction("__iter__", func(f *Frame, args Args, kwargs KWArgs) (*Object, *BaseException) {
+			return newObject(createNextType(3)), nil
+		}).ToObject(),
+	}))
+	customIterTupleType := newTestClass("CustomIterTupleType", []*Type{TupleType}, newStringDict(map[string]*Object{
+		"__iter__": newBuiltinFunction("__iter__", func(f *Frame, args Args, kwargs KWArgs) (*Object, *BaseException) {
+			return newObject(createNextType(3)), nil
+		}).ToObject(),
+	}))
 	addType := newTestClass("Add", []*Type{ObjectType}, newStringDict(map[string]*Object{
 		"__add__": newBuiltinFunction("__add__", func(f *Frame, _ Args, _ KWArgs) (*Object, *BaseException) {
 			return NewInt(1).ToObject(), nil
@@ -186,6 +214,16 @@ func TestBuiltinFuncs(t *testing.T) {
 		{f: "divmod", args: wrapArgs(-3.25, -1.0), want: NewTuple2(NewFloat(3.0).ToObject(), NewFloat(-0.25).ToObject()).ToObject()},
 		{f: "divmod", args: wrapArgs(NewStr("a"), NewStr("b")), wantExc: mustCreateException(TypeErrorType, "unsupported operand type(s) for divmod(): 'str' and 'str'")},
 		{f: "divmod", args: wrapArgs(), wantExc: mustCreateException(TypeErrorType, "'divmod' requires 2 arguments")},
+		{f: "filter", args: wrapArgs(None, NewTuple2(NewInt(0).ToObject(), NewInt(1).ToObject())), want: NewTuple1(NewInt(1).ToObject()).ToObject()},
+		{f: "filter", args: wrapArgs(BoolType, NewTuple2(NewInt(0).ToObject(), NewInt(1).ToObject())), want: NewTuple1(NewInt(1).ToObject()).ToObject()},
+		{f: "filter", args: wrapArgs(None, "012"), want: NewStr("012").ToObject()},
+		{f: "filter", args: wrapArgs(IntType, "012"), want: NewStr("12").ToObject()},
+		{f: "filter", args: wrapArgs(None, NewUnicode("012")), want: NewUnicode("012").ToObject()},
+		{f: "filter", args: wrapArgs(None, newTestList(1, 0, 3)), want: newTestList(1, 3).ToObject()},
+		{f: "filter", args: wrapArgs(IntType, newTestList("1", "0", "3")), want: newTestList("1", "3").ToObject()},
+		{f: "filter", args: wrapArgs(BoolType, newObject(fooIterType)), want: newTestList(1, 2, 3).ToObject()},
+		{f: "filter", args: wrapArgs(BoolType, &Str{Object: Object{typ: customIterStrType}, value: "foo"}), want: NewStr("foo").ToObject()},
+		{f: "filter", args: wrapArgs(BoolType, &Tuple{Object: Object{typ: customIterTupleType}, elems: []*Object{NewInt(5).ToObject()}}), want: NewTuple1(NewInt(5).ToObject()).ToObject()},
 		{f: "getattr", args: wrapArgs(None, NewStr("foo").ToObject(), NewStr("bar").ToObject()), want: NewStr("bar").ToObject()},
 		{f: "getattr", args: wrapArgs(None, NewStr("foo").ToObject()), wantExc: mustCreateException(AttributeErrorType, "'NoneType' object has no attribute 'foo'")},
 		{f: "hasattr", args: wrapArgs(newObject(ObjectType), NewStr("foo").ToObject()), want: False.ToObject()},
