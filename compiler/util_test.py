@@ -44,18 +44,6 @@ class WriterTest(unittest.TestCase):
     dispatch = 'switch πF.State() {\n\tcase 0:\n\tdefault: panic'
     self.assertIn(dispatch, output)
 
-  def testWriteImportBlockEmptyImports(self):
-    writer = util.Writer()
-    writer.write_import_block({})
-    self.assertEqual(writer.getvalue(), '')
-
-  def testWriteImportBlockImportsSorted(self):
-    writer = util.Writer()
-    imports = {name: block.Package(name) for name in ('a', 'b', 'c')}
-    writer.write_import_block(imports)
-    self.assertEqual(writer.getvalue(),
-                     'import (\n\tπ_a "a"\n\tπ_b "b"\n\tπ_c "c"\n)\n')
-
   def testWriteMultiline(self):
     writer = util.Writer()
     writer.indent(2)

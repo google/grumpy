@@ -142,11 +142,7 @@ class Block(object):
 
 
 class ModuleBlock(Block):
-  """Python block for a module.
-
-  Attributes:
-    imports: A dict mapping fully qualified Go package names to Package objects.
-  """
+  """Python block for a module."""
 
   def __init__(self, importer, full_package_name,
                filename, src, future_features):
@@ -156,7 +152,6 @@ class ModuleBlock(Block):
     self.filename = filename
     self.buffer = source.Buffer(src)
     self.strings = set()
-    self.imports = {}
     self.future_features = future_features
 
   def bind_var(self, writer, name, value):
@@ -170,15 +165,6 @@ class ModuleBlock(Block):
 
   def resolve_name(self, writer, name):
     return self._resolve_global(writer, name)
-
-  def add_native_import(self, name, alias=None):
-    if name == 'grumpy':
-      alias = 'πg'
-    if name in self.imports:
-      return self.imports[name]
-    package = Package(name, alias)
-    self.imports[name] = package
-    return package
 
   def intern(self, s):
     if len(s) > 64 or _non_word_re.search(s):
