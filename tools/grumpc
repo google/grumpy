@@ -68,7 +68,6 @@ def main(args):
   full_package_name = args.modname.replace('.', '/')
   mod_block = block.ModuleBlock(importer, full_package_name, args.script,
                                 py_contents, future_features)
-  mod_block.add_native_import('grumpy')
 
   visitor = stmt.StatementVisitor(mod_block, future_node)
   # Indent so that the module body is aligned with the goto labels.
@@ -80,15 +79,16 @@ def main(args):
       return 2
 
   writer = util.Writer(sys.stdout)
-  package_name = args.modname.split('.')[-1]
-  writer.write('package {}'.format(package_name))
-  writer.write_import_block(mod_block.imports)
-  writer.write_tmpl(textwrap.dedent("""\
-    var Code *πg.Code
-    func init() {
-    \tCode = πg.NewCode("<module>", $script, nil, 0, func(πF *πg.Frame, _ []*πg.Object) (*πg.Object, *πg.BaseException) {
-    \t\tvar πR *πg.Object; _ = πR
-    \t\tvar πE *πg.BaseException; _ = πE"""), script=util.go_str(args.script))
+  tmpl = textwrap.dedent("""\
+      package $package
+      import πg "grumpy"
+      var Code *πg.Code
+      func init() {
+      \tCode = πg.NewCode("<module>", $script, nil, 0, func(πF *πg.Frame, _ []*πg.Object) (*πg.Object, *πg.BaseException) {
+      \t\tvar πR *πg.Object; _ = πR
+      \t\tvar πE *πg.BaseException; _ = πE""")
+  writer.write_tmpl(tmpl, package=args.modname.split('.')[-1],
+                    script=util.go_str(args.script))
   with writer.indent_block(2):
     for s in sorted(mod_block.strings):
       writer.write('ß{} := πg.InternStr({})'.format(s, util.go_str(s)))

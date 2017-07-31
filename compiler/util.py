@@ -100,15 +100,6 @@ class Writer(object):
         self.write(body)
     self.write('}')
 
-  def write_import_block(self, imports):
-    if not imports:
-      return
-    self.write('import (')
-    with self.indent_block():
-      for name in sorted(imports):
-        self.write('{} "{}"'.format(imports[name].alias, name))
-    self.write(')')
-
   def write_label(self, label):
     with self.indent_block(-1):
       self.write('Label{}:'.format(label))
