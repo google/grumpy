@@ -93,14 +93,19 @@ def main(args):
     # Make sure traceback is available in all Python binaries.
     names.add('traceback')
     go_main = os.path.join(workdir, 'main.go')
-    package = '__python__/' + modname.replace('.', '/')
-    imports = ''.join('\t_ "__python__/' + name.replace('.', '/') + '"\n'
-                      for name in names)
+    package = _package_name(modname)
+    imports = ''.join('\t_ "' + _package_name(name) + '"\n' for name in names)
     with open(go_main, 'w') as f:
       f.write(module_tmpl.substitute(package=package, imports=imports))
     return subprocess.Popen('go run ' + go_main, shell=True).wait()
   finally:
     shutil.rmtree(workdir)
+
+
+def _package_name(modname):
+  if modname.startswith('__go__/'):
+    return '__python__/' + modname
+  return '__python__/' + modname.replace('.', '/')
 
 
 if __name__ == '__main__':
