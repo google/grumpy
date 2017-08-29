@@ -509,7 +509,7 @@ class StatementVisitor(algorithm.Visitor):
       if isinstance(arg, ast.Tuple):
         arg_name = 'τ{}'.format(id(arg.elts))
         with visitor.writer.indent_block():
-          visitor._tie_target(arg, util.adjust_local_name(arg_name))
+          visitor._tie_target(arg, util.adjust_local_name(arg_name))  # pylint: disable=protected-access
 
     # Indent so that the function body is aligned with the goto labels.
     with visitor.writer.indent_block():
