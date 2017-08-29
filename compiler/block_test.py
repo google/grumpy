@@ -26,6 +26,9 @@ from grumpy.compiler import imputil
 from grumpy.compiler import util
 from grumpy import pythonparser
 
+from compiler.block import Var
+
+
 class PackageTest(unittest.TestCase):
 
   def testCreate(self):
@@ -224,6 +227,13 @@ class FunctionBlockVisitorTest(unittest.TestCase):
     self.assertEqual(sorted(visitor.vars.keys()), ['foo'])
     self.assertRegexpMatches(visitor.vars['foo'].init_expr, r'UnboundLocal')
 
+  def testTupleArgs(self):
+    func = _ParseStmt('def foo((bar, baz)): pass')
+    visitor = block.FunctionBlockVisitor(func)
+    self.assertEqual(len(visitor.vars), 3)
+    self.assertTrue(len([v for v in visitor.vars if visitor.vars[v].type == Var.TYPE_TUPLE_PARAM]), 1)
+    self.assertIn('bar', visitor.vars)
+    self.assertIn('baz', visitor.vars)
 
 def _MakeModuleBlock():
   importer = imputil.Importer(None, '__main__', '/tmp/foo.py', False)

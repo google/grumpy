@@ -243,6 +243,30 @@ class StatementVisitorTest(unittest.TestCase):
           print a, b
         foo('bar', 'baz')""")))
 
+  def testFunctionDefWithTupleArgs(self):
+    self.assertEqual((0, "('bar', 'baz')\n"), _GrumpRun(textwrap.dedent("""\
+        def foo((a, b)):
+          print(a, b)
+        foo(('bar', 'baz'))""")))
+
+  def testFunctionDefWithNestedTupleArgs(self):
+    self.assertEqual((0, "('bar', 'baz', 'qux')\n"), _GrumpRun(textwrap.dedent("""\
+        def foo(((a, b), c)):
+          print(a, b, c)
+        foo((('bar', 'baz'), 'qux'))""")))
+
+  def testFunctionDefWithMultipleTupleArgs(self):
+    self.assertEqual((0, "('bar', 'baz')\n"), _GrumpRun(textwrap.dedent("""\
+        def foo(((a, ), (b, ))):
+          print(a, b)
+        foo((('bar',), ('baz', )))""")))
+
+  def testFunctionDefTupleArgsInLambda(self):
+    self.assertEqual((0, "[(3, 2), (4, 3), (12, 1)]\n"), _GrumpRun(textwrap.dedent("""\
+        c = {12: 1, 3: 2, 4: 3}
+        top = sorted(c.items(), key=lambda (k,v): v)
+        print (top)""")))
+
   def testFunctionDefGenerator(self):
     self.assertEqual((0, "['foo', 'bar']\n"), _GrumpRun(textwrap.dedent("""\
         def gen():
