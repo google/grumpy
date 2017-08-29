@@ -26,8 +26,6 @@ from grumpy.compiler import imputil
 from grumpy.compiler import util
 from grumpy import pythonparser
 
-from compiler.block import Var
-
 
 class PackageTest(unittest.TestCase):
 
@@ -231,7 +229,7 @@ class FunctionBlockVisitorTest(unittest.TestCase):
     func = _ParseStmt('def foo((bar, baz)): pass')
     visitor = block.FunctionBlockVisitor(func)
     self.assertEqual(len(visitor.vars), 3)
-    self.assertTrue(len([v for v in visitor.vars if visitor.vars[v].type == Var.TYPE_TUPLE_PARAM]), 1)
+    self.assertEqual(len([v for v in visitor.vars if visitor.vars[v].type == block.Var.TYPE_TUPLE_PARAM]), 2)
     self.assertIn('bar', visitor.vars)
     self.assertIn('baz', visitor.vars)
 
