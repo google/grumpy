@@ -237,27 +237,18 @@ func listDelSlice(f *Frame, args Args, kwargs KWArgs) (*Object, *BaseException) 
 	if args[1].typ.slots.Index == nil || args[2].typ.slots.Index == nil {
 		return nil, f.RaiseType(TypeErrorType, "an integer is required")
 	}
-	l.mutex.Lock()
-	numListElems := len(l.elems)
-	start, raised := calcIndex(f, args[1], numListElems)
+	s := &Slice{Object: Object{typ: SliceType}}
+	var raised *BaseException
+	s.start, raised = calcIndex(f, args[1])
 	if raised != nil {
-		l.mutex.Unlock()
 		return nil, raised
 	}
-	stop, raised := calcIndex(f, args[2], numListElems)
+	s.stop, raised = calcIndex(f, args[2])
 	if raised != nil {
-		l.mutex.Unlock()
 		return nil, raised
 	}
-	if start == stop || start > stop {
-		l.mutex.Unlock()
-		return nil, nil
-	}
-	numSliceElems := stop - start
-	copy(l.elems[start:numListElems-numSliceElems], l.elems[stop:numListElems])
-	l.elems = l.elems[:numListElems-numSliceElems]
-	l.mutex.Unlock()
-	return nil, nil
+	s.step = NewInt(1).ToObject()
+	return nil, l.DelSlice(f, s)
 }
 
 func listRemove(f *Frame, args Args, kwargs KWArgs) (*Object, *BaseException) {
@@ -585,18 +576,15 @@ func initListType(dict map[string]*Object) {
 	ListType.slots.SetItem = &setItemSlot{listSetItem}
 }
 
-func calcIndex(f *Frame, i *Object, numListElems int) (int, *BaseException) {
+func calcIndex(f *Frame, i *Object) (*Object, *BaseException) {
 	index, raised := IndexInt(f, i)
 	if raised != nil {
-		return 0, raised
+		return nil, raised
 	}
 	if index < 0 {
 		index = 0
 	}
-	if index > numListElems {
-		index = numListElems
-	}
-	return index, nil
+	return NewInt(index).ToObject(), nil
 }
 
 type listIterator struct {
