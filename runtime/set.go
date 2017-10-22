@@ -106,10 +106,7 @@ func (s *Set) ToObject() *Object {
 // Update inserts all elements in the iterable o into s.
 func (s *Set) Update(f *Frame, o *Object) *BaseException {
 	raised := seqForEach(f, o, func(key *Object) *BaseException {
-		if raised := s.dict.SetItem(f, key, None); raised != nil {
-			return raised
-		}
-		return nil
+		return s.dict.SetItem(f, key, None)
 	})
 	return raised
 }

@@ -2,6 +2,7 @@ language: go
 os:
   - linux
   - osx
+osx_image: xcode7
 # Run gofmt and lint serially to avoid confusing output. Run tests in parallel
 # for speed.
 script: make gofmt lint && make -j2 test
