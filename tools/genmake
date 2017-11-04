@@ -28,11 +28,13 @@ parser.add_argument('-all_target', default='all',
                     help='make target that will build all modules')
 
 
-def _PrintRule(target, prereqs, rules):
+def _PrintRule(target, prereqs, rules, echo_debug=False):
   print '{}: {}'.format(target, ' '.join(prereqs))
   if rules:
     print '\t@mkdir -p $(@D)'
     for rule in rules:
+      if echo_debug:
+        print '\t@echo @{}'.format(rule)
       print '\t@{}'.format(rule)
   print
 
@@ -69,7 +71,9 @@ def main(args):
       go_file = os.path.join(pydir, basename, 'module.go')
       _PrintRule(go_file,
                  [os.path.join(dirpath, filename)],
-                 ['grumpc -modname={} $< > $@'.format(modname)])
+                 ['grumpc -modname={} $< > $@'.format(modname)],
+                 echo_debug=True)
+
       recipe = (r"""pydeps -modname=%s $< | awk '{gsub(/\./, "/", $$0); """
                 r"""print "%s: %s/__python__/" $$0 ".a"}' > $@""")
       dep_file = os.path.join(pydir, basename, 'module.d')
