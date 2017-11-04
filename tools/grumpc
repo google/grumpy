@@ -34,6 +34,7 @@ from grumpy import pythonparser
 parser = argparse.ArgumentParser()
 parser.add_argument('script', help='Python source filename')
 parser.add_argument('-modname', default='__main__', help='Python module name')
+parser.add_argument('-output', default=None, help='Golang output file path (defaults to stdout)')
 
 
 def main(args):
@@ -55,6 +56,11 @@ def main(args):
     print >> sys.stderr, '{}: line {}: invalid syntax: {}'.format(
         e.filename, e.lineno, e.text)
     return 2
+
+  if args.output:
+    go_result = open(args.output, 'w')
+  else:
+    go_result = sys.stdout
 
   # Do a pass for compiler directives from `from __future__ import *` statements
   try:
@@ -78,7 +84,7 @@ def main(args):
       print >> sys.stderr, str(e)
       return 2
 
-  writer = util.Writer(sys.stdout)
+  writer = util.Writer(go_result)
   tmpl = textwrap.dedent("""\
       package $package
       import πg "grumpy"
