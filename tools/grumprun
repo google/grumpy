@@ -99,7 +99,7 @@ def main(args):
       f.write(module_tmpl.substitute(package=package, imports=imports))
     return subprocess.Popen('go run ' + go_main, shell=True).wait()
   finally:
-    shutil.rmtree(workdir)
+    print 'shutil.rmtree(%s)' % workdir
 
 
 def _package_name(modname):
