@@ -23,6 +23,7 @@ import argparse
 import os
 import sys
 import textwrap
+from StringIO import StringIO
 
 from grumpy.compiler import block
 from grumpy.compiler import imputil
@@ -50,21 +51,17 @@ def main(args):
 
   with open(args.script) as py_file:
     py_contents = py_file.read()
+
   try:
-    mod = pythonparser.parse(py_contents)
+    parsed_module = pythonparser.parse(py_contents)
   except SyntaxError as e:
     print >> sys.stderr, '{}: line {}: invalid syntax: {}'.format(
         e.filename, e.lineno, e.text)
     return 2
 
-  if args.output:
-    go_result = open(args.output, 'w')
-  else:
-    go_result = sys.stdout
-
   # Do a pass for compiler directives from `from __future__ import *` statements
   try:
-    future_node, future_features = imputil.parse_future_features(mod)
+    future_node, future_features = imputil.parse_future_features(parsed_module)
   except util.CompileError as e:
     print >> sys.stderr, str(e)
     return 2
@@ -72,18 +69,19 @@ def main(args):
   importer = imputil.Importer(gopath, args.modname, args.script,
                               future_features.absolute_import)
   full_package_name = args.modname.replace('.', '/')
-  mod_block = block.ModuleBlock(importer, full_package_name, args.script,
-                                py_contents, future_features)
+  module_block = block.ModuleBlock(importer, full_package_name, args.script,
+                                   py_contents, future_features)
 
-  visitor = stmt.StatementVisitor(mod_block, future_node)
+  visitor = stmt.StatementVisitor(module_block, future_node)
   # Indent so that the module body is aligned with the goto labels.
   with visitor.writer.indent_block():
     try:
-      visitor.visit(mod)
+      visitor.visit(parsed_module)
     except util.ParseError as e:
       print >> sys.stderr, str(e)
       return 2
 
+  go_result = StringIO()
   writer = util.Writer(go_result)
   tmpl = textwrap.dedent("""\
       package $package
@@ -96,15 +94,28 @@ def main(args):
   writer.write_tmpl(tmpl, package=args.modname.split('.')[-1],
                     script=util.go_str(args.script))
   with writer.indent_block(2):
-    for s in sorted(mod_block.strings):
+    for s in sorted(module_block.strings):
       writer.write('ß{} := πg.InternStr({})'.format(s, util.go_str(s)))
-    writer.write_temp_decls(mod_block)
-    writer.write_block(mod_block, visitor.writer.getvalue())
+    writer.write_temp_decls(module_block)
+    writer.write_block(module_block, visitor.writer.getvalue())
   writer.write_tmpl(textwrap.dedent("""\
     \t\treturn nil, πE
     \t})
     \tπg.RegisterModule($modname, Code)
     }"""), modname=util.go_str(args.modname))
+
+  try:
+    if args.output:
+      go_output = open(args.output, 'w')
+    else:
+      go_output = sys.stdout
+  except IOError:
+    print >> sys.stderr, str(e)
+    return 2
+
+  go_result.seek(0)
+  go_output.write(go_result.read())
+  go_output.close()
   return 0
 
 
