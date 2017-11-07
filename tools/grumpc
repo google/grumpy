@@ -36,6 +36,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument('script', help='Python source filename')
 parser.add_argument('-modname', default='__main__', help='Python module name')
 parser.add_argument('-output', default=None, help='Golang output file path (defaults to stdout)')
+parser.add_argument('-astest', default=False, action='store_true', help='Output as a test suite.')
 
 
 def main(args):
@@ -86,12 +87,16 @@ def main(args):
   tmpl = textwrap.dedent("""\
       package $package
       import πg "grumpy"
+      $import_testing
       var Code *πg.Code
       func init() {
       \tCode = πg.NewCode("<module>", $script, nil, 0, func(πF *πg.Frame, _ []*πg.Object) (*πg.Object, *πg.BaseException) {
       \t\tvar πR *πg.Object; _ = πR
       \t\tvar πE *πg.BaseException; _ = πE""")
-  writer.write_tmpl(tmpl, package=args.modname.split('.')[-1],
+
+  go_package_name = args.modname.split('.')[-1]
+  writer.write_tmpl(tmpl, package=go_package_name,
+                    import_testing='import πt "testing"' if args.astest else '',
                     script=util.go_str(args.script))
   with writer.indent_block(2):
     for s in sorted(module_block.strings):
@@ -103,6 +108,20 @@ def main(args):
     \t})
     \tπg.RegisterModule($modname, Code)
     }"""), modname=util.go_str(args.modname))
+
+  if args.astest:
+
+    tmpl = textwrap.dedent("""\
+
+      func TestRunCode(t *testing.T) {
+      \tinit()
+      \tπg.ImportModule(grumpy.NewRootFrame(), "traceback")
+      \tπg.RunMain(Code)
+      }
+      """)
+
+    writer.write_tmpl(tmpl, package='%s_test' % go_package_name)
+    writer.write_tmpl(tmpl,)
 
   try:
     if args.output:
