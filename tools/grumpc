@@ -95,6 +95,7 @@ def main(args):
       \t\tvar πE *πg.BaseException; _ = πE""")
 
   go_package_name = args.modname.split('.')[-1]
+  modname = util.go_str(args.modname)
   writer.write_tmpl(tmpl, package=go_package_name,
                     import_testing='import πt "testing"' if args.astest else '',
                     script=util.go_str(args.script))
@@ -107,7 +108,7 @@ def main(args):
     \t\treturn nil, πE
     \t})
     \tπg.RegisterModule($modname, Code)
-    }"""), modname=util.go_str(args.modname))
+    }"""), modname=modname)
 
   if args.astest:
 
@@ -116,12 +117,12 @@ def main(args):
       func TestRunCode(t *testing.T) {
       \tinit()
       \tπg.ImportModule(grumpy.NewRootFrame(), "traceback")
+      \t//πg.ImportModule(grumpy.NewRootFrame(), $modname)
       \tπg.RunMain(Code)
       }
       """)
 
-    writer.write_tmpl(tmpl, package='%s_test' % go_package_name)
-    writer.write_tmpl(tmpl,)
+    writer.write_tmpl(tmpl, modname=modname)
 
   try:
     if args.output:
