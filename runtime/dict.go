@@ -230,7 +230,7 @@ func (iter *dictEntryIterator) next() *dictEntry {
 		// 64bit atomic ops need to be 8 byte aligned. This compile time check
 		// verifies alignment by creating a negative constant for an unsigned type.
 		// See sync/atomic docs for details.
-		const _ = -(unsafe.Offsetof(iter.index) % 8)
+		const blank = -(unsafe.Offsetof(iter.index) % 8)
 		index := int(atomic.AddInt64(&iter.index, 1)) - 1
 		if index >= numEntries {
 			break
@@ -310,7 +310,7 @@ func (d *Dict) loadVersion() int64 {
 	// 64bit atomic ops need to be 8 byte aligned. This compile time check
 	// verifies alignment by creating a negative constant for an unsigned type.
 	// See sync/atomic docs for details.
-	const _ = -(unsafe.Offsetof(d.version) % 8)
+	const blank = -(unsafe.Offsetof(d.version) % 8)
 	return atomic.LoadInt64(&d.version)
 }
 
@@ -319,7 +319,7 @@ func (d *Dict) incVersion() {
 	// 64bit atomic ops need to be 8 byte aligned. This compile time check
 	// verifies alignment by creating a negative constant for an unsigned type.
 	// See sync/atomic docs for details.
-	const _ = -(unsafe.Offsetof(d.version) % 8)
+	const blank = -(unsafe.Offsetof(d.version) % 8)
 	atomic.AddInt64(&d.version, 1)
 }
 

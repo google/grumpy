@@ -73,7 +73,7 @@ func TestFileCloseExit(t *testing.T) {
 		cases := []invokeTestCase{
 			{args: wrapArgs(newObject(FileType)), want: None},
 			{args: wrapArgs(f.open("r")), want: None},
-			{args: wrapArgs(closedFile), wantExc: mustCreateException(IOErrorType, "invalid argument")},
+			{args: wrapArgs(closedFile), wantExc: mustCreateException(IOErrorType, closedFile.file.Close().Error())},
 		}
 		for _, cas := range cases {
 			if err := runInvokeMethodTestCase(FileType, method, &cas); err != "" {

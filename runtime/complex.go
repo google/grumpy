@@ -457,7 +457,7 @@ func complexModOp(v, w complex128) complex128 {
 }
 
 const (
-	_ = iota
+	blank = iota
 	real1
 	imag1
 	real2
