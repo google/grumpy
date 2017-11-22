@@ -546,6 +546,18 @@ func builtinOrd(f *Frame, args Args, _ KWArgs) (*Object, *BaseException) {
 	return NewInt(result).ToObject(), nil
 }
 
+func builtinPower(f *Frame, args Args, kwargs KWArgs) (*Object, *BaseException) {
+	argc := len(args)
+	expectedTypes := []*Type{ObjectType, ObjectType}
+	if argc == 3 {
+		return nil, f.RaiseType(NotImplementedErrorType, "third parameter is not supported now")
+	}
+	if raised := checkFunctionArgs(f, "pow", args, expectedTypes...); raised != nil {
+		return nil, raised
+	}
+	return Pow(f, args[0], args[1])
+}
+
 func builtinPrint(f *Frame, args Args, kwargs KWArgs) (*Object, *BaseException) {
 	sep := " "
 	end := "\n"
@@ -787,6 +799,7 @@ func init() {
 		"oct":            newBuiltinFunction("oct", builtinOct).ToObject(),
 		"open":           newBuiltinFunction("open", builtinOpen).ToObject(),
 		"ord":            newBuiltinFunction("ord", builtinOrd).ToObject(),
+		"pow":            newBuiltinFunction("pow", builtinPower).ToObject(),
 		"print":          newBuiltinFunction("print", builtinPrint).ToObject(),
 		"range":          newBuiltinFunction("range", builtinRange).ToObject(),
 		"raw_input":      newBuiltinFunction("raw_input", builtinRawInput).ToObject(),
