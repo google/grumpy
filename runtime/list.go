@@ -228,6 +228,29 @@ func listDelItem(f *Frame, o *Object, key *Object) *BaseException {
 	return l.DelItem(f, index)
 }
 
+func listDelSlice(f *Frame, args Args, kwargs KWArgs) (*Object, *BaseException) {
+	argc := len(args)
+	if argc != 3 {
+		return nil, f.RaiseType(TypeErrorType, fmt.Sprintf("function takes exactly 2 arguments (%d given)", argc-1))
+	}
+	l := toListUnsafe(args[0])
+	if args[1].typ.slots.Index == nil || args[2].typ.slots.Index == nil {
+		return nil, f.RaiseType(TypeErrorType, "an integer is required")
+	}
+	s := &Slice{Object: Object{typ: SliceType}}
+	var raised *BaseException
+	s.start, raised = calcIndex(f, args[1])
+	if raised != nil {
+		return nil, raised
+	}
+	s.stop, raised = calcIndex(f, args[2])
+	if raised != nil {
+		return nil, raised
+	}
+	s.step = NewInt(1).ToObject()
+	return nil, l.DelSlice(f, s)
+}
+
 func listRemove(f *Frame, args Args, kwargs KWArgs) (*Object, *BaseException) {
 	if raised := checkMethodArgs(f, "remove", args, ListType, ObjectType); raised != nil {
 		return nil, raised
@@ -521,6 +544,7 @@ func listSort(f *Frame, args Args, _ KWArgs) (*Object, *BaseException) {
 }
 
 func initListType(dict map[string]*Object) {
+	dict["__delslice__"] = newBuiltinFunction("__delslice__", listDelSlice).ToObject()
 	dict["append"] = newBuiltinFunction("append", listAppend).ToObject()
 	dict["count"] = newBuiltinFunction("count", listCount).ToObject()
 	dict["extend"] = newBuiltinFunction("extend", listExtend).ToObject()
@@ -550,6 +574,17 @@ func initListType(dict map[string]*Object) {
 	ListType.slots.Repr = &unaryOpSlot{listRepr}
 	ListType.slots.RMul = &binaryOpSlot{listMul}
 	ListType.slots.SetItem = &setItemSlot{listSetItem}
+}
+
+func calcIndex(f *Frame, i *Object) (*Object, *BaseException) {
+	index, raised := IndexInt(f, i)
+	if raised != nil {
+		return nil, raised
+	}
+	if index < 0 {
+		index = 0
+	}
+	return NewInt(index).ToObject(), nil
 }
 
 type listIterator struct {

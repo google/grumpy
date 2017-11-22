@@ -92,6 +92,38 @@ func TestListCount(t *testing.T) {
 	}
 }
 
+func TestListDelSlice(t *testing.T) {
+	fun := newBuiltinFunction("TestListDelSlice", func(f *Frame, args Args, _ KWArgs) (*Object, *BaseException) {
+		delSlice, raised := GetAttr(f, ListType.ToObject(), NewStr("__delslice__"), nil)
+		if raised != nil {
+			return nil, raised
+		}
+		if _, raised := delSlice.Call(f, args, nil); raised != nil {
+			return nil, raised
+		}
+		return args[0], nil
+	}).ToObject()
+	cases := []invokeTestCase{
+		{args: wrapArgs(NewList(), 1, 3), want: NewList().ToObject()},
+		{args: wrapArgs(newTestList(1, 2, 3, 4, 5), -1, 3), want: newTestList(4, 5).ToObject()},
+		{args: wrapArgs(newTestList(1, 2, 3, 4, 5), 1, -3), want: newTestList(1, 2, 3, 4, 5).ToObject()},
+		{args: wrapArgs(newTestList(1, 2, 3, 4, 5), -1, -3), want: newTestList(1, 2, 3, 4, 5).ToObject()},
+		{args: wrapArgs(newTestList(1, 2, 3, 4, 5), 3, 3), want: newTestList(1, 2, 3, 4, 5).ToObject()},
+		{args: wrapArgs(newTestList(1, 2, 3, 4, 5), 1, 3), want: newTestList(1, 4, 5).ToObject()},
+		{args: wrapArgs(newTestList(1, 2, 3, 4, 5), 1, big.NewInt(3)), want: newTestList(1, 4, 5).ToObject()},
+		{args: wrapArgs(newTestList(1, 2, 3, 4, 5), 1, 31415), want: newTestList(1).ToObject()},
+		{args: wrapArgs(newTestList(1, 2, 3, 4, 5), 3, 1), want: newTestList(1, 2, 3, 4, 5).ToObject()},
+		{args: wrapArgs(newTestRange(10), 1, 8), want: newTestList(0, 8, 9).ToObject()},
+		{args: wrapArgs(NewList(), 1), wantExc: mustCreateException(TypeErrorType, "function takes exactly 2 arguments (1 given)")},
+		{args: wrapArgs(newTestList(true), None, None), wantExc: mustCreateException(TypeErrorType, "an integer is required")},
+	}
+	for _, cas := range cases {
+		if err := runInvokeTestCase(fun, &cas); err != "" {
+			t.Error(err)
+		}
+	}
+}
+
 func TestListDelItem(t *testing.T) {
 	badIndexType := newTestClass("badIndex", []*Type{ObjectType}, newStringDict(map[string]*Object{
 		"__index__": newBuiltinFunction("__index__", func(f *Frame, _ Args, _ KWArgs) (*Object, *BaseException) {
