@@ -39,11 +39,11 @@ type Generator struct {
 	mutex sync.Mutex
 	state generatorState
 	frame *Frame
-	fn    func(*Object) (*Object, *BaseException)
+	fn    func(*Object, *BaseException) (*Object, *BaseException)
 }
 
 // NewGenerator returns a new Generator object that runs the given Block b.
-func NewGenerator(f *Frame, fn func(*Object) (*Object, *BaseException)) *Generator {
+func NewGenerator(f *Frame, fn func(*Object, *BaseException) (*Object, *BaseException)) *Generator {
 	f.taken = true // Claim the frame from being returned.
 
 	// The code generator basically gives us the Frame, so we can tare it
@@ -57,13 +57,13 @@ func toGeneratorUnsafe(o *Object) *Generator {
 	return (*Generator)(o.toPointer())
 }
 
-func (g *Generator) resume(f *Frame, sendValue *Object) (*Object, *BaseException) {
+func (g *Generator) resume(f *Frame, sendValue *Object, raisedValue *BaseException) (*Object, *BaseException) {
 	var raised *BaseException
 	g.mutex.Lock()
 	oldState := g.state
 	switch oldState {
 	case generatorStateCreated:
-		if sendValue != None {
+		if sendValue != None && raisedValue == nil {
 			raised = f.RaiseType(TypeErrorType, "can't send non-None value to a just-started generator")
 		} else {
 			g.state = generatorStateRunning
@@ -83,7 +83,7 @@ func (g *Generator) resume(f *Frame, sendValue *Object) (*Object, *BaseException
 		return nil, raised
 	}
 	g.frame.pushFrame(f)
-	result, raised := g.fn(sendValue)
+	result, raised := g.fn(sendValue, raisedValue)
 	g.mutex.Lock()
 	if result == nil && raised == nil {
 		raised = f.Raise(StopIterationType.ToObject(), nil, nil)
@@ -108,18 +108,39 @@ func generatorIter(f *Frame, o *Object) (*Object, *BaseException) {
 }
 
 func generatorNext(f *Frame, o *Object) (*Object, *BaseException) {
-	return toGeneratorUnsafe(o).resume(f, None)
+	return toGeneratorUnsafe(o).resume(f, None, nil)
 }
 
 func generatorSend(f *Frame, args Args, _ KWArgs) (*Object, *BaseException) {
 	if raised := checkMethodArgs(f, "send", args, GeneratorType, ObjectType); raised != nil {
 		return nil, raised
 	}
-	return toGeneratorUnsafe(args[0]).resume(f, args[1])
+	return toGeneratorUnsafe(args[0]).resume(f, args[1], nil)
+}
+
+func generatorThrow(f *Frame, args Args, _ KWArgs) (*Object, *BaseException) {
+	argc := len(args)
+	expectedTypes := []*Type{GeneratorType, ObjectType, ObjectType, ObjectType}
+	if argc > 1 && argc < 4 {
+		expectedTypes = expectedTypes[:argc]
+	}
+	if raised := checkMethodArgs(f, "throw", args, expectedTypes...); raised != nil {
+		return nil, raised
+	}
+	var v *Object
+	if argc > 2 {
+		v = args[2]
+	}
+	var tb *Object
+	if argc > 3 {
+		tb = args[3]
+	}
+	return toGeneratorUnsafe(args[0]).resume(f, nil, f.Raise(args[1], v, tb))
 }
 
 func initGeneratorType(dict map[string]*Object) {
 	dict["send"] = newBuiltinFunction("send", generatorSend).ToObject()
+	dict["throw"] = newBuiltinFunction("throw", generatorThrow).ToObject()
 	GeneratorType.flags &= ^(typeFlagBasetype | typeFlagInstantiable)
 	GeneratorType.slots.Iter = &unaryOpSlot{generatorIter}
 	GeneratorType.slots.Next = &unaryOpSlot{generatorNext}

@@ -547,9 +547,14 @@ class StatementVisitor(algorithm.Visitor):
         self.writer.write('var πE *πg.BaseException; _ = πE')
         if func_block.is_generator:
           self.writer.write(
-              'return πg.NewGenerator(πF, func(πSent *πg.Object) '
+              'return πg.NewGenerator(πF, '
+              'func(πSent *πg.Object, πThrown *πg.BaseException) '
               '(*πg.Object, *πg.BaseException) {')
           with self.writer.indent_block():
+            self.writer.write(textwrap.dedent("""\
+              if πThrown != nil {
+              \treturn nil, πThrown
+              }"""))
             self.writer.write_block(func_block, visitor.writer.getvalue())
             self.writer.write('return nil, πE')
           self.writer.write('}).ToObject(), nil')
