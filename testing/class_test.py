@@ -40,6 +40,8 @@ assert foo.bar() == 'bar'
 assert foo.baz() == 'bar'
 
 foo.b = 10
+assert foo.b == 10
+
 del foo.b
 assert not hasattr(foo, 'b')
 try:
@@ -48,3 +50,19 @@ except AttributeError:
   pass
 else:
   raise AssertionError
+
+
+spamdict = {}
+class Spam(object):
+  def __getattr__(self, key):
+    return spamdict[key]
+  def __setattr__(self, key, value):
+    spamdict[key] = value
+
+spam = Spam()
+spam.eggs = 'with eggs'
+assert spamdict == {'eggs': 'with eggs'}, "Change spam.eggs should update spamdict"
+assert spam.eggs == 'with eggs', "spam.eggs value should came from spamdict['eggs']"
+
+spamdict['eggs'] = 'with more spam'
+assert spam.eggs == 'with more spam', "Change spamdict['eggs'] should update spam.eggs"

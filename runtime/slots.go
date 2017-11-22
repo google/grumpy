@@ -186,6 +186,26 @@ func (s *getAttributeSlot) wrapCallable(callable *Object) bool {
 	return true
 }
 
+type getAttrSlot struct {
+	Fn func(*Frame, *Object, *Str) (*Object, *BaseException)
+}
+
+func (s *getAttrSlot) makeCallable(t *Type, slotName string) *Object {
+	return newBuiltinFunction(slotName, func(f *Frame, args Args, kwargs KWArgs) (*Object, *BaseException) {
+		if raised := checkMethodArgs(f, slotName, args, t, StrType); raised != nil {
+			return nil, raised
+		}
+		return s.Fn(f, args[0], toStrUnsafe(args[1]))
+	}).ToObject()
+}
+
+func (s *getAttrSlot) wrapCallable(callable *Object) bool {
+	s.Fn = func(f *Frame, o *Object, name *Str) (*Object, *BaseException) {
+		return callable.Call(f, Args{o, name.ToObject()}, nil)
+	}
+	return true
+}
+
 type getSlot struct {
 	Fn func(*Frame, *Object, *Object, *Type) (*Object, *BaseException)
 }
@@ -388,6 +408,7 @@ type typeSlots struct {
 	GE           *binaryOpSlot
 	Get          *getSlot
 	GetAttribute *getAttributeSlot
+	GetAttr      *getAttrSlot
 	GetItem      *binaryOpSlot
 	GT           *binaryOpSlot
 	Hash         *unaryOpSlot
