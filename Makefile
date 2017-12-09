@@ -33,7 +33,7 @@ endif
 PYTHON_BIN := $(shell which $(PYTHON))
 PYTHON_VER := $(word 2,$(shell $(PYTHON) -V 2>&1))
 GO_REQ_MAJ := 1
-GO_REQ_MIN := 6
+GO_REQ_MIN := 9
 GO_MAJ_MIN := $(subst go,, $(word 3,$(shell go version 2>&1)) )
 GO_MAJ := $(word 1,$(subst ., ,$(GO_MAJ_MIN) ))
 GO_MIN := $(word 2,$(subst ., ,$(GO_MAJ_MIN) ))

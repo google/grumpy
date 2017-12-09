@@ -2,6 +2,10 @@ language: go
 os:
   - linux
   - osx
+before_script:
+  - rvm get head || true # https://github.com/travis-ci/travis-ci/issues/6307 
+  - set -e
 # Run gofmt and lint serially to avoid confusing output. Run tests in parallel
 # for speed.
 script: make gofmt lint && make -j2 test
+after_script: set +e

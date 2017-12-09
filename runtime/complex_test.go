@@ -75,6 +75,10 @@ func TestComplexEq(t *testing.T) {
 	}
 }
 
+// FIXME(corona10): Since Go 1.9 moved to C99 float division and what CPython uses as well.
+// Some tests can be failed with version < Go 1.9. We need to detect Go version.
+// And changed expected values.
+
 func TestComplexBinaryOps(t *testing.T) {
 	cases := []struct {
 		fun     func(f *Frame, v, w *Object) (*Object, *BaseException)
@@ -107,8 +111,8 @@ func TestComplexBinaryOps(t *testing.T) {
 		{Div, NewComplex(3 - 4i).ToObject(), NewLong(big.NewInt(-34)).ToObject(), NewComplex(-0.08823529411764706 + 0.11764705882352941i).ToObject(), nil},
 		{Div, NewComplex(3 + 4i).ToObject(), NewComplex(complex(math.Inf(1), math.Inf(-1))).ToObject(), NewComplex(0i).ToObject(), nil},
 		{Div, NewComplex(3 + 4i).ToObject(), NewComplex(complex(math.Inf(1), 2)).ToObject(), NewComplex(0i).ToObject(), nil},
-		{Div, NewComplex(complex(math.Inf(1), math.Inf(1))).ToObject(), NewComplex(1 + 2i).ToObject(), NewComplex(complex(math.Inf(1), math.Inf(1))).ToObject(), nil},
-		{Div, NewComplex(complex(math.Inf(1), 4)).ToObject(), NewComplex(1 + 2i).ToObject(), NewComplex(complex(math.Inf(1), math.Inf(1))).ToObject(), nil},
+		{Div, NewComplex(complex(math.Inf(1), math.Inf(1))).ToObject(), NewComplex(1 + 2i).ToObject(), NewComplex(complex(math.Inf(1), math.NaN())).ToObject(), nil},
+		{Div, NewComplex(complex(math.Inf(1), 4)).ToObject(), NewComplex(1 + 2i).ToObject(), NewComplex(complex(math.Inf(1), math.Inf(-1))).ToObject(), nil},
 		{Div, NewComplex(complex(3, math.Inf(1))).ToObject(), NewComplex(1 + 2i).ToObject(), NewComplex(complex(math.Inf(1), math.Inf(1))).ToObject(), nil},
 		{Div, NewComplex(complex(3, math.NaN())).ToObject(), NewComplex(1 + 2i).ToObject(), NewComplex(complex(math.NaN(), math.NaN())).ToObject(), nil},
 		{Div, NewStr("foo").ToObject(), NewComplex(1 + 2i).ToObject(), nil, mustCreateException(TypeErrorType, "unsupported operand type(s) for /: 'str' and 'complex'")},
@@ -189,8 +193,8 @@ func TestComplexBinaryOps(t *testing.T) {
 		{Pow, NewComplex(complex(math.Inf(-1), 2)).ToObject(), NewComplex(1 + 2i).ToObject(), NewComplex(complex(math.NaN(), math.NaN())).ToObject(), nil},
 		{Pow, NewComplex(1 + 2i).ToObject(), NewComplex(complex(1, math.Inf(1))).ToObject(), NewComplex(complex(math.NaN(), math.NaN())).ToObject(), nil},
 		{Pow, NewComplex(complex(math.NaN(), 1)).ToObject(), NewComplex(3 + 4i).ToObject(), NewComplex(complex(math.NaN(), math.NaN())).ToObject(), nil},
-		{Pow, NewComplex(3 + 4i).ToObject(), NewInt(3).ToObject(), NewComplex(-117 + 44.000000000000036i).ToObject(), nil},
-		{Pow, NewComplex(3 + 4i).ToObject(), NewFloat(3.1415).ToObject(), NewComplex(-152.8892667678244 + 35.55533513049651i).ToObject(), nil},
+		{Pow, NewComplex(3 + 4i).ToObject(), NewInt(3).ToObject(), NewComplex(-117 + 44.00000000000003i).ToObject(), nil},
+		{Pow, NewComplex(3 + 4i).ToObject(), NewFloat(3.1415).ToObject(), NewComplex(-152.8892667678244 + 35.555335130496516i).ToObject(), nil},
 		{Pow, NewComplex(3 + 4i).ToObject(), NewLong(big.NewInt(123)).ToObject(), NewComplex(5.393538720276193e+85 + 7.703512580443326e+85i).ToObject(), nil},
 		{Pow, NewComplex(1 + 2i).ToObject(), NewStr("foo").ToObject(), nil, mustCreateException(TypeErrorType, "unsupported operand type(s) for **: 'complex' and 'str'")},
 		{Pow, NewStr("foo").ToObject(), NewComplex(1 + 2i).ToObject(), nil, mustCreateException(TypeErrorType, "unsupported operand type(s) for **: 'str' and 'complex'")},
