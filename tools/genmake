@@ -86,7 +86,7 @@ def main(args):
                  [recipe % (modname, ar_name, pkg_dir)])
       go_package = '__python__/' + basename.replace(os.sep, '/')
       recipe = 'go tool compile -o $@ -p {} -complete -I {} -pack $<'
-      _PrintRule(ar_name, [go_file], [recipe.format(go_package, pkg_dir)])
+      _PrintRule(ar_name, [go_file, gotest_file], [recipe.format(go_package, pkg_dir)])
       if args.all_target:
         _PrintRule(args.all_target, [ar_name], [])
       print '-include {}\n'.format(dep_file)

@@ -130,7 +130,7 @@ ACCEPT_PY_PASS_FILES := $(patsubst %,build/%_py.pass,$(filter-out %/native_test,
 BENCHMARKS := $(patsubst %.py,%,$(wildcard benchmarks/*.py))
 BENCHMARK_BINS := $(patsubst %,build/%_benchmark,$(BENCHMARKS))
 
-TOOL_BINS = $(patsubst %,build/bin/%,benchcmp coverparse diffrange genmake pydeps)
+TOOL_BINS = $(patsubst %,build/bin/%,benchcmp coverparse diffrange genmake gentest pydeps)
 
 GOLINT_BIN = build/bin/golint
 PYLINT_BIN = build/bin/pylint
@@ -294,6 +294,7 @@ build/stdlib.mk: build/bin/genmake | $(STDLIB_SRCS)
 -include build/stdlib.mk
 
 $(patsubst %,build/src/__python__/%/module.go,$(STDLIB_PACKAGES)): $(COMPILER)
+$(patsubst %,build/src/__python__/%/module_test.go,$(STDLIB_PACKAGES)): build/bin/gentest $(COMPILER)
 $(patsubst %,build/src/__python__/%/module.d,$(STDLIB_PACKAGES)): build/bin/pydeps $(PYTHONPARSER_SRCS) $(COMPILER)
 $(patsubst %,$(PKG_DIR)/__python__/%.a,$(STDLIB_PACKAGES)): $(RUNTIME)
 
