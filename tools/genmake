@@ -69,9 +69,14 @@ def main(args):
       modname = basename.replace(os.sep, '.')
       ar_name = os.path.join(pkg_dir, '__python__', basename + '.a')
       go_file = os.path.join(pydir, basename, 'module.go')
+      gotest_file = os.path.join(pydir, basename, 'module_test.go')
       _PrintRule(go_file,
                  [os.path.join(dirpath, filename)],
                  ['grumpc -modname={} $< > $@'.format(modname)],
+                 echo_debug=True)
+      _PrintRule(gotest_file,
+                 [os.path.join(dirpath, filename)],
+                 ['gentest -modname={} $< > $@'.format(modname)],
                  echo_debug=True)
 
       recipe = (r"""pydeps -modname=%s $< | awk '{gsub(/\./, "/", $$0); """
