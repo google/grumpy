@@ -70,6 +70,9 @@ def main(args):
     gopath = gopath + os.pathsep + workdir
     package = _package_name(modname)
 
+    if not os.path.isfile(script):
+        return  # The script does not exist. And is OK!
+
     names = imputil.calculate_transitive_deps(modname, script, gopath)
 
     # Find the script associated with the given module.
