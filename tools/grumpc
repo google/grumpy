@@ -35,8 +35,10 @@ from grumpy import pythonparser
 parser = argparse.ArgumentParser()
 parser.add_argument('script', help='Python source filename')
 parser.add_argument('-modname', default='__main__', help='Python module name')
-parser.add_argument('-output', default=None, help='Golang output file path (defaults to stdout)')
-parser.add_argument('-astest', default=False, action='store_true', help='Output as a test suite.')
+parser.add_argument('-output', default=None,
+                    help='Golang output file path (defaults to stdout)')
+parser.add_argument('-astest', default=False, action='store_true',
+                    help='Output as a test suite.')
 
 
 def main(args):

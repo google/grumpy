@@ -26,7 +26,8 @@ import textwrap
 from grumpy.compiler import imputil
 
 parser = argparse.ArgumentParser()
-parser.add_argument('-modname', help='Module to generate a _test.go file to', required=True)
+parser.add_argument('-modname', required=True,
+                    help='Module to generate a _test.go file to')
 
 
 template = textwrap.dedent("""
@@ -68,7 +69,6 @@ def main(args):
 
   script = os.path.join(py_dir, '%s.py' % modname)
   gopath = gopath + os.pathsep + workdir
-  package = _package_name(modname)
 
   if not os.path.isfile(script):
     return  # The script does not exist. And is OK!
@@ -77,8 +77,7 @@ def main(args):
 
   # Find the script associated with the given module.
   for d in gopath.split(os.pathsep):
-    script = imputil.find_script(
-      os.path.join(d, 'src', '__python__'), modname)
+    script = imputil.find_script(os.path.join(d, 'src', '__python__'), modname)
     if script:
       break
   else:

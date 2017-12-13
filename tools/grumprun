@@ -23,7 +23,6 @@ Usage: $ grumprun -m <module>             # Run the named module.
 import argparse
 import os
 import random
-import shutil
 import string
 import subprocess
 import sys
