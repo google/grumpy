@@ -30,70 +30,70 @@ parser.add_argument('-modname', help='Module to generate a _test.go file to', re
 
 
 template = textwrap.dedent("""
-    package %s
-    import (
-        "os"
-        "grumpy"
-        %s
-    )
-    func TestRunCode(t *testing.T) {
-        grumpy.ImportModule(grumpy.NewRootFrame(), "traceback")
-        if grumpy.RunMain(Code) != 0 {
-            t.Fail()
-        }
-    }
+  package %s
+  import (
+  \t"os"
+  \t"grumpy"
+  \t%s
+  )
+  func TestRunCode(t *testing.T) {
+  \tgrumpy.ImportModule(grumpy.NewRootFrame(), "traceback")
+  \tif grumpy.RunMain(Code) != 0 {
+  \t\tt.Fail()
+  \t}
+  }
 """)
 
 
 def _package_name(modname):
-    if modname.startswith('__go__/'):
-        return '__python__/' + modname
-    return '__python__/' + modname.replace('.', '/')
+  if modname.startswith('__go__/'):
+    return '__python__/' + modname
+  return '__python__/' + modname.replace('.', '/')
 
 
 def _get_gopath():
-    gopath = os.getenv('GOPATH', None)
-    if not gopath:
-        print >> sys.stderr, 'GOPATH not set'
-        raise RuntimeError('GOPATH not set')
-    return gopath
+  gopath = os.getenv('GOPATH', None)
+  if not gopath:
+    print >> sys.stderr, 'GOPATH not set'
+    raise RuntimeError('GOPATH not set')
+  return gopath
 
 
 def main(args):
-    modname = args.modname
-    gopath = _get_gopath()
-    workdir = 'build'   # It is ok _right now_
-    py_dir = os.path.join(workdir, 'src', '__python__')
-    mod_dir = os.path.join(py_dir, modname)
+  modname = args.modname
+  gopath = _get_gopath()
+  workdir = 'build'   # It is ok _right now_
+  py_dir = os.path.join(workdir, 'src', '__python__')
+  mod_dir = os.path.join(py_dir, modname)
 
-    script = os.path.join(py_dir, '%s.py' % modname)
-    gopath = gopath + os.pathsep + workdir
-    package = _package_name(modname)
+  script = os.path.join(py_dir, '%s.py' % modname)
+  gopath = gopath + os.pathsep + workdir
+  package = _package_name(modname)
 
-    if not os.path.isfile(script):
-        return  # The script does not exist. And is OK!
+  if not os.path.isfile(script):
+    return  # The script does not exist. And is OK!
 
-    names = imputil.calculate_transitive_deps(modname, script, gopath)
+  names = imputil.calculate_transitive_deps(modname, script, gopath)
 
-    # Find the script associated with the given module.
-    for d in gopath.split(os.pathsep):
-        script = imputil.find_script(
-            os.path.join(d, 'src', '__python__'), modname)
-        if script:
-            break
-    else:
-        raise RuntimeError("can't find module %s", modname)
+  # Find the script associated with the given module.
+  for d in gopath.split(os.pathsep):
+    script = imputil.find_script(
+      os.path.join(d, 'src', '__python__'), modname)
+    if script:
+      break
+  else:
+    raise RuntimeError("can't find module %s", modname)
 
-    names = imputil.calculate_transitive_deps(modname, script, gopath)
-    # Make sure traceback is available in all Python binaries.
-    names.add('traceback')
+  names = imputil.calculate_transitive_deps(modname, script, gopath)
+  # Make sure traceback is available in all Python binaries.
+  names.add('traceback')
 
-    imports = '\n    '.join('"%s"' % _package_name(name) for name in names)
+  imports = '\n\t'.join('"%s"' % _package_name(name) for name in names)
 
-    testfile_contents = template % (modname, imports)
-    with open(os.path.join(mod_dir, 'module_test.go'), 'w') as go_testfile:
-        go_testfile.write(testfile_contents)
+  testfile_contents = template % (modname, imports)
+  with open(os.path.join(mod_dir, 'module_test.go'), 'w') as go_testfile:
+    go_testfile.write(testfile_contents)
 
 
 if __name__ == '__main__':
-    sys.exit(main(parser.parse_args()))
+  sys.exit(main(parser.parse_args()))
