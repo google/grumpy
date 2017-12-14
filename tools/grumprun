@@ -23,6 +23,7 @@ Usage: $ grumprun -m <module>             # Run the named module.
 import argparse
 import os
 import random
+import shutil
 import string
 import subprocess
 import sys
@@ -98,7 +99,7 @@ def main(args):
       f.write(module_tmpl.substitute(package=package, imports=imports))
     return subprocess.Popen('go run ' + go_main, shell=True).wait()
   finally:
-    print >> os.sys.stderr, 'shutil.rmtree(%s)' % workdir
+    shutil.rmtree(workdir)
 
 
 def _package_name(modname):
