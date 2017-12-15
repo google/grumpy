@@ -33,7 +33,7 @@ parser.add_argument('-modname', required=True,
 template = textwrap.dedent("""
   package %s
   import (
-  \t"os"
+  \t"testing"
   \t"grumpy"
   \t%s
   )
@@ -87,7 +87,7 @@ def main(args):
   # Make sure traceback is available in all Python binaries.
   names.add('traceback')
 
-  imports = '\n\t'.join('"%s"' % _package_name(name) for name in names)
+  imports = '\n\t'.join('_ "%s"' % _package_name(name) for name in names)
 
   testfile_contents = template % (modname, imports)
   with open(os.path.join(mod_dir, 'module_test.go'), 'w') as go_testfile:
