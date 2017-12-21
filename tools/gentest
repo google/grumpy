@@ -70,6 +70,7 @@ def main(args):
   script = os.path.join(py_dir, '%s.py' % modname.replace('.', '/'))
   gopath = gopath + os.pathsep + workdir
   testfile_modname = modname[:-5] if modname.endswith('_test') else modname
+  testfile_modname = testfile_modname.split('.')[-1]
 
   if not os.path.isfile(script):
     return  # The script does not exist. And is OK!
