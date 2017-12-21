@@ -65,10 +65,11 @@ def main(args):
   gopath = _get_gopath()
   workdir = 'build'   # It is ok _right now_
   py_dir = os.path.join(workdir, 'src', '__python__')
-  mod_dir = os.path.join(py_dir, modname)
+  mod_dir = os.path.join(py_dir, modname.replace('.', '/'))
 
-  script = os.path.join(py_dir, '%s.py' % modname)
+  script = os.path.join(py_dir, '%s.py' % modname.replace('.', '/'))
   gopath = gopath + os.pathsep + workdir
+  testfile_modname = modname[:-5] if modname.endswith('_test') else modname
 
   if not os.path.isfile(script):
     return  # The script does not exist. And is OK!
@@ -89,7 +90,6 @@ def main(args):
 
   imports = '\n\t'.join('_ "%s"' % _package_name(name) for name in names)
 
-  testfile_modname = modname[:-5] if modname.endswith('_test') else modname
   testfile_contents = template % (testfile_modname, imports)
   with open(os.path.join(mod_dir, 'module_test.go'), 'w') as go_testfile:
     go_testfile.write(testfile_contents)
