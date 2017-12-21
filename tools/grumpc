@@ -97,8 +97,16 @@ def main(args):
       \t\tvar πE *πg.BaseException; _ = πE""")
 
   go_package_name = args.modname.split('.')[-1]
+
+  # HACK: Should suppress _test from package name
+  # See: https://github.com/google/grumpy/issues/383#issuecomment-353394740
+  if go_package_name.endswith('_test'):
+    final_package_name = go_package_name[:-5]
+  else:
+    final_package_name = go_package_name
+
   modname = util.go_str(args.modname)
-  writer.write_tmpl(tmpl, package=go_package_name,
+  writer.write_tmpl(tmpl, package=final_package_name,
                     import_testing='import πt "testing"' if args.astest else '',
                     script=util.go_str(args.script))
   with writer.indent_block(2):
