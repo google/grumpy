@@ -89,7 +89,8 @@ def main(args):
 
   imports = '\n\t'.join('_ "%s"' % _package_name(name) for name in names)
 
-  testfile_contents = template % (modname, imports)
+  testfile_modname = modname[:-5] if modname.endswith('_test') else modname
+  testfile_contents = template % (testfile_modname, imports)
   with open(os.path.join(mod_dir, 'module_test.go'), 'w') as go_testfile:
     go_testfile.write(testfile_contents)
 
