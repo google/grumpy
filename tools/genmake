@@ -28,11 +28,13 @@ parser.add_argument('-all_target', default='all',
                     help='make target that will build all modules')
 
 
-def _PrintRule(target, prereqs, rules):
+def _PrintRule(target, prereqs, rules, echo_debug=False):
   print '{}: {}'.format(target, ' '.join(prereqs))
   if rules:
     print '\t@mkdir -p $(@D)'
     for rule in rules:
+      if echo_debug:
+        print '\t@echo @{}'.format(rule)
       print '\t@{}'.format(rule)
   print
 
@@ -67,9 +69,19 @@ def main(args):
       modname = basename.replace(os.sep, '.')
       ar_name = os.path.join(pkg_dir, '__python__', basename + '.a')
       go_file = os.path.join(pydir, basename, 'module.go')
+      gotest_file = os.path.join(pydir, basename, 'module_test.go')
+      ar_deps = [go_file]
       _PrintRule(go_file,
                  [os.path.join(dirpath, filename)],
-                 ['grumpc -modname={} $< > $@'.format(modname)])
+                 ['grumpc -modname={} $< > $@'.format(modname)],
+                 echo_debug=True)
+      if modname.endswith(('_test', '_tests')):
+        ar_deps.append(gotest_file)
+        _PrintRule(gotest_file,
+                   [os.path.join(dirpath, filename)],
+                   ['gentest -modname={} > $@'.format(modname)],
+                   echo_debug=True)
+
       recipe = (r"""pydeps -modname=%s $< | awk '{gsub(/\./, "/", $$0); """
                 r"""print "%s: %s/__python__/" $$0 ".a"}' > $@""")
       dep_file = os.path.join(pydir, basename, 'module.d')
@@ -77,7 +89,7 @@ def main(args):
                  [recipe % (modname, ar_name, pkg_dir)])
       go_package = '__python__/' + basename.replace(os.sep, '/')
       recipe = 'go tool compile -o $@ -p {} -complete -I {} -pack $<'
-      _PrintRule(ar_name, [go_file], [recipe.format(go_package, pkg_dir)])
+      _PrintRule(ar_name, ar_deps, [recipe.format(go_package, pkg_dir)])
       if args.all_target:
         _PrintRule(args.all_target, [ar_name], [])
       print '-include {}\n'.format(dep_file)
