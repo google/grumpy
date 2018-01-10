@@ -2,7 +2,7 @@
 
 [![Build Status](https://travis-ci.org/google/grumpy.svg?branch=master)](https://travis-ci.org/google/grumpy)
 [![Join the chat at https://gitter.im/grumpy-devel/Lobby](https://badges.gitter.im/grumpy-devel/Lobby.svg)](https://gitter.im/grumpy-devel/Lobby?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
-
+ [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 ## Overview
 
 Grumpy is a Python to Go source code transcompiler and runtime that is intended
