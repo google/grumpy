@@ -249,6 +249,8 @@ class FunctionBlock(Block):
         if var:
           if var.type == Var.TYPE_GLOBAL:
             return self._resolve_global(writer, name)
+          if var.type == Var.TYPE_TUPLE_PARAM:
+            return expr.GeneratedLocalVar(name)
           writer.write_checked_call1('πg.CheckLocal(πF, {}, {})',
                                      util.adjust_local_name(name),
                                      util.go_str(name))
@@ -263,6 +265,7 @@ class Var(object):
   TYPE_LOCAL = 0
   TYPE_PARAM = 1
   TYPE_GLOBAL = 2
+  TYPE_TUPLE_PARAM = 3
 
   def __init__(self, name, var_type, arg_index=None):
     self.name = name
@@ -273,6 +276,9 @@ class Var(object):
     elif var_type == Var.TYPE_PARAM:
       assert arg_index is not None
       self.init_expr = 'πArgs[{}]'.format(arg_index)
+    elif var_type == Var.TYPE_TUPLE_PARAM:
+      assert arg_index is None
+      self.init_expr = 'nil'
     else:
       assert arg_index is None
       self.init_expr = None
@@ -364,16 +370,40 @@ class FunctionBlockVisitor(BlockVisitor):
     BlockVisitor.__init__(self)
     self.is_generator = False
     node_args = node.args
-    args = [a.arg for a in node_args.args]
+    args = []
+    for arg in node_args.args:
+      if isinstance(arg, ast.Tuple):
+        args.append(arg.elts)
+      else:
+        args.append(arg.arg)
+     # args = [a.arg for a in node_args.args]
+
     if node_args.vararg:
       args.append(node_args.vararg.arg)
     if node_args.kwarg:
       args.append(node_args.kwarg.arg)
     for i, name in enumerate(args):
-      if name in self.vars:
-        msg = "duplicate argument '{}' in function definition".format(name)
-        raise util.ParseError(node, msg)
-      self.vars[name] = Var(name, Var.TYPE_PARAM, arg_index=i)
+      if isinstance(name, list):
+        arg_name = 'τ{}'.format(id(name))
+        for el in name:
+          self._parse_tuple(el, node)
+        self.vars[arg_name] = Var(arg_name, Var.TYPE_PARAM, i)
+      else:
+        self._check_duplicate_args(name, node)
+        self.vars[name] = Var(name, Var.TYPE_PARAM, arg_index=i)
+
+  def _parse_tuple(self, el, node):
+    if isinstance(el, ast.Tuple):
+      for x in el.elts:
+        self._parse_tuple(x, node)
+    else:
+      self._check_duplicate_args(el.arg, node)
+      self.vars[el.arg] = Var(el.arg, Var.TYPE_TUPLE_PARAM)
+
+  def _check_duplicate_args(self, name, node):
+    if name in self.vars:
+      msg = "duplicate argument '{}' in function definition".format(name)
+      raise util.ParseError(node, msg)
 
   def visit_Yield(self, unused_node): # pylint: disable=unused-argument
     self.is_generator = True

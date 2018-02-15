@@ -504,6 +504,13 @@ class StatementVisitor(algorithm.Visitor):
     func_block = block.FunctionBlock(self.block, node.name, func_visitor.vars,
                                      func_visitor.is_generator)
     visitor = StatementVisitor(func_block, self.future_node)
+
+    for arg in node.args.args:
+      if isinstance(arg, ast.Tuple):
+        arg_name = 'τ{}'.format(id(arg.elts))
+        with visitor.writer.indent_block():
+          visitor._tie_target(arg, util.adjust_local_name(arg_name))  # pylint: disable=protected-access
+
     # Indent so that the function body is aligned with the goto labels.
     with visitor.writer.indent_block():
       visitor._visit_each(node.body)  # pylint: disable=protected-access
@@ -519,9 +526,13 @@ class StatementVisitor(algorithm.Visitor):
       defaults = [None] * (argc - len(args.defaults)) + args.defaults
       for i, (a, d) in enumerate(zip(args.args, defaults)):
         with self.visit_expr(d) if d else expr.nil_expr as default:
+          if isinstance(a, ast.Tuple):
+            name = util.go_str('τ{}'.format(id(a.elts)))
+          else:
+            name = util.go_str(a.arg)
           tmpl = '$args[$i] = πg.Param{Name: $name, Def: $default}'
           self.writer.write_tmpl(tmpl, args=func_args.expr, i=i,
-                                 name=util.go_str(a.arg), default=default.expr)
+                                 name=name, default=default.expr)
       flags = []
       if args.vararg:
         flags.append('πg.CodeFlagVarArg')
@@ -583,6 +594,8 @@ class StatementVisitor(algorithm.Visitor):
   def _assign_target(self, target, value):
     if isinstance(target, ast.Name):
       self.block.bind_var(self.writer, target.id, value)
+    elif isinstance(target, ast.arg):
+      self.block.bind_var(self.writer, target.arg, value)
     elif isinstance(target, ast.Attribute):
       with self.visit_expr(target.value) as obj:
         self.writer.write_checked_call1(
