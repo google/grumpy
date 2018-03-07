@@ -65,11 +65,25 @@ func getConst(name string, v constant.Value) string {
 	case constant.Int:
 		if constant.Sign(v) >= 0 {
 			if i, exact := constant.Uint64Val(v); exact {
-				if i > math.MaxInt64 {
+				if i < math.MaxInt8 {
+					format = "uint(%s)"
+				} else if i < math.MaxInt32 {
+					format = "uint32(%s)"
+				} else {
 					format = "uint64(%s)"
 				}
 			} else {
 				format = "float64(%s)"
+			}
+		} else {
+			if i, exact := constant.Int64Val(v); exact {
+				if i > math.MinInt8 {
+					format = "int(%s)"
+				} else if i > math.MinInt32 {
+					format = "int32(%s)"
+				} else {
+					format = "int64(%s)"
+				}
 			}
 		}
 	case constant.Float:
