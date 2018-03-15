@@ -63,7 +63,7 @@ shell script called grumprun that takes Python code on stdin and builds and runs
 the code under Grumpy. All of the commands below are assumed to be run from the
 root directory of the Grumpy source code distribution:
 
-```
+```sh
 echo "print 'hello, world'" | make run
 ```
 
@@ -80,7 +80,7 @@ source code, making it similar to the PYTHONPATH.
 The first step is to set up the shell so that the Grumpy toolchain and libraries
 can be found. From the root directory of the Grumpy source distribution run:
 
-```
+```sh
 make
 export PATH=$PWD/build/bin:$PATH
 export GOPATH=$PWD/build
@@ -90,19 +90,19 @@ export PYTHONPATH=$PWD/build/lib/python2.7/site-packages
 You will know things are working if you see the expected output from this
 command:
 
-```
+```sh
 echo 'import sys; print sys.version' | grumprun
 ```
 
 Next, we will write our simple Python module into the \_\_python\_\_ directory:
 
-```
+```sh
 echo 'def hello(): print "hello, world"' > $GOPATH/src/__python__/hello.py
 ```
 
 To build a Go package from our Python script, run the following:
 
-```
+```sh
 mkdir -p $GOPATH/src/__python__/hello
 grumpc -modname=hello $GOPATH/src/__python__/hello.py > \
     $GOPATH/src/__python__/hello/module.go
@@ -112,7 +112,7 @@ You should now be able to build a Go program that imports the package
 "\_\_python\_\_/hello". We can also import this module into Python programs
 that are built using grumprun:
 
-```
+```sh
 echo 'from hello import hello; hello()' | grumprun
 ```
 
