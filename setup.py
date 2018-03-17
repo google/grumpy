@@ -39,7 +39,7 @@ test_requirements = [
     # TODO: Put package test requirements here
 ]
 
-setup(
+COMMON_OPTIONS = dict(
     name='grumpy-tools',
     version='0.1.0',
     description="Grumpy Runtime & Transpiler",
@@ -48,16 +48,6 @@ setup(
     maintainer="Alan Justino et al.",
     maintainer_email="alan.justino@yahoo.com.br",
     url='https://github.com/google/grumpy',
-    package_dir={'':'grumpy-tools-src'},
-    packages=find_packages(
-        'grumpy-tools-src',
-        exclude=["*.tests", "*.tests.*", "tests.*", "tests"],
-    ),
-    entry_points={
-        'console_scripts': [
-            'grumpy=grumpy_tools.cli:main',
-        ],
-    },
     include_package_data=True,
     install_requires=requirements,
     license="Apache Software License 2.0",
@@ -76,3 +66,35 @@ setup(
     tests_require=test_requirements,
     setup_requires=setup_requirements,
 )
+
+
+GRUMPY_TOOLS_OPTIONS = dict(
+    package_dir={'':'grumpy-tools-src'},
+    packages=find_packages(
+        'grumpy-tools-src',
+        exclude=["*.tests", "*.tests.*", "tests.*", "tests"],
+    ),
+    entry_points={
+        'console_scripts': [
+            'grumpy=grumpy_tools.cli:main',
+        ],
+    },
+)
+GRUMPY_TOOLS_OPTIONS.update(COMMON_OPTIONS)
+
+
+GRUMPY_RUNTIME_OPTIONS = dict(
+    package_dir={'':'grumpy-runtime-src'},
+    packages=find_packages(
+        'grumpy-runtime-src',
+        exclude=["*.tests", "*.tests.*", "tests.*", "tests"],
+    ),
+)
+GRUMPY_RUNTIME_OPTIONS.update(COMMON_OPTIONS)
+
+
+## Just the "tools"
+setup(**GRUMPY_TOOLS_OPTIONS)
+
+# ## Just the "runtime"
+# setup(**GRUMPY_RUNTIME_OPTIONS)
