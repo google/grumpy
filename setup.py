@@ -47,7 +47,7 @@ setup(
     author="Dylan Trotter et al.",
     maintainer="Alan Justino et al.",
     maintainer_email="alan.justino@yahoo.com.br",
-    url='https://github.com/alanjds/grumpy',
+    url='https://github.com/google/grumpy',
     package_dir={'':'grumpy-tools-src'},
     packages=find_packages(
         'grumpy-tools-src',
