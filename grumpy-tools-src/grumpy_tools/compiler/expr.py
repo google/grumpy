@@ -20,7 +20,7 @@ from __future__ import unicode_literals
 
 import abc
 
-from grumpy.compiler import util
+from grumpy_tools.compiler import util
 
 
 class GeneratedExpr(object):

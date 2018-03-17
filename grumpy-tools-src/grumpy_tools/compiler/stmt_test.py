@@ -28,8 +28,8 @@ from grumpy.compiler import imputil
 from grumpy.compiler import shard_test
 from grumpy.compiler import stmt
 from grumpy.compiler import util
-from grumpy import pythonparser
-from grumpy.pythonparser import ast
+from grumpy.vendor import pythonparser
+from grumpy.vendor.pythonparser import ast
 
 
 class StatementVisitorTest(unittest.TestCase):
@@ -545,7 +545,7 @@ def _ParseAndVisit(source):
 
 
 def _GrumpRun(cmd):
-  p = subprocess.Popen(['grumprun'], stdin=subprocess.PIPE,
+  p = subprocess.Popen(['grumpy', 'run'], stdin=subprocess.PIPE,
                        stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
   out, _ = p.communicate(cmd)
   return p.returncode, out

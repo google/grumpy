@@ -20,11 +20,14 @@ from __future__ import unicode_literals
 
 import codecs
 import contextlib
-import cStringIO
 import string
 import StringIO
 import textwrap
 
+try:
+  string.letters
+except AttributeError:
+  string.letters = string.ascii_letters
 
 _SIMPLE_CHARS = set(string.digits + string.letters + string.punctuation + " ")
 _ESCAPES = {'\t': r'\t', '\r': r'\r', '\n': r'\n', '"': r'\"', '\\': r'\\'}
@@ -62,7 +65,7 @@ class Writer(object):
   """Utility class for writing blocks of Go code to a file-like object."""
 
   def __init__(self, out=None):
-    self.out = codecs.getwriter('utf8')(out or cStringIO.StringIO())
+    self.out = codecs.getwriter('utf8')(out or StringIO.StringIO())
     self.indent_level = 0
 
   def getvalue(self):

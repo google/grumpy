@@ -56,6 +56,17 @@ There are three basic categories of incomplete functionality:
 
 ## Running Grumpy Programs
 
+### Pre-requisites
+
+The Grumpy Transpiler and Runner tools are provided as a Python Package.
+All of the commands below are assumed to be run from the
+root directory of the Grumpy source code distribution. Install the package:
+
+```
+pip2 install -U pip setuptools
+python2 setup.py develop
+```
+
 ### Method 1: make run:
 
 The simplest way to execute a Grumpy program is to use `make run`, which wraps a
@@ -64,6 +75,7 @@ the code under Grumpy. All of the commands below are assumed to be run from the
 root directory of the Grumpy source code distribution:
 
 ```
+cd grumpy-runtime-src
 echo "print 'hello, world'" | make run
 ```
 
@@ -81,6 +93,7 @@ The first step is to set up the shell so that the Grumpy toolchain and libraries
 can be found. From the root directory of the Grumpy source distribution run:
 
 ```
+cd grumpy-runtime-src
 make
 export PATH=$PWD/build/bin:$PATH
 export GOPATH=$PWD/build
@@ -91,18 +104,21 @@ You will know things are working if you see the expected output from this
 command:
 
 ```
+cd grumpy-runtime-src
 echo 'import sys; print sys.version' | grumprun
 ```
 
 Next, we will write our simple Python module into the \_\_python\_\_ directory:
 
 ```
+cd grumpy-runtime-src
 echo 'def hello(): print "hello, world"' > $GOPATH/src/__python__/hello.py
 ```
 
 To build a Go package from our Python script, run the following:
 
 ```
+cd grumpy-runtime-src
 mkdir -p $GOPATH/src/__python__/hello
 grumpc -modname=hello $GOPATH/src/__python__/hello.py > \
     $GOPATH/src/__python__/hello/module.go
@@ -113,6 +129,7 @@ You should now be able to build a Go program that imports the package
 that are built using grumprun:
 
 ```
+cd grumpy-runtime-src
 echo 'from hello import hello; hello()' | grumprun
 ```
 

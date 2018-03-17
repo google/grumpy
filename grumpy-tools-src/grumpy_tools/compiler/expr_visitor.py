@@ -21,10 +21,10 @@ from __future__ import unicode_literals
 import contextlib
 import textwrap
 
-from grumpy.compiler import expr
-from grumpy.compiler import util
-from grumpy.pythonparser import algorithm
-from grumpy.pythonparser import ast
+from grumpy_tools.compiler import expr
+from grumpy_tools.compiler import util
+from grumpy_tools.vendor.pythonparser import algorithm
+from grumpy_tools.vendor.pythonparser import ast
 
 
 class ExprVisitor(algorithm.Visitor):
