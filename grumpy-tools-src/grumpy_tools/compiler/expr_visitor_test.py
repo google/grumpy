@@ -237,7 +237,7 @@ def _ParseAndVisitExpr(expr):
 
 
 def _GrumpRun(cmd):
-  p = subprocess.Popen(['grumprun'], stdin=subprocess.PIPE,
+  p = subprocess.Popen(['grumpy', 'run'], stdin=subprocess.PIPE,
                        stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
   out, _ = p.communicate(cmd)
   return p.returncode, out
