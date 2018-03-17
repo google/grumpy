@@ -56,6 +56,17 @@ There are three basic categories of incomplete functionality:
 
 ## Running Grumpy Programs
 
+### Pre-requisites
+
+The Grumpy Transpiler and Runner tools are provided as a Python Package.
+All of the commands below are assumed to be run from the
+root directory of the Grumpy source code distribution. Install the package:
+
+```
+pip2 install -U pip setuptools
+python2 setup.py develop
+```
+
 ### Method 1: make run:
 
 The simplest way to execute a Grumpy program is to use `make run`, which wraps a
