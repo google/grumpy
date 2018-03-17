@@ -20,8 +20,8 @@ import argparse
 import os
 import sys
 
-from grumpy.compiler import imputil
-from grumpy.compiler import util
+from grumpy_tools.compiler import imputil
+from grumpy_tools.compiler import util
 
 
 parser = argparse.ArgumentParser()
