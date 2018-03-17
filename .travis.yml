@@ -5,6 +5,8 @@ os:
 before_script:
   - rvm get head || true # https://github.com/travis-ci/travis-ci/issues/6307 
   - set -e
+  - python setup.py develop
+  - cd grumpy-runtime-src
 # Run gofmt and lint serially to avoid confusing output. Run tests in parallel
 # for speed.
 script: make gofmt lint && make -j2 test
