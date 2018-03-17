@@ -26,7 +26,7 @@ from grumpy.compiler import block
 from grumpy.compiler import imputil
 from grumpy.compiler import shard_test
 from grumpy.compiler import stmt
-from grumpy import pythonparser
+from grumpy.vendor import pythonparser
 
 
 def _MakeExprTest(expr):

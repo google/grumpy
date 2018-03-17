@@ -21,13 +21,13 @@ from __future__ import unicode_literals
 import string
 import textwrap
 
-from grumpy.compiler import block
-from grumpy.compiler import expr
-from grumpy.compiler import expr_visitor
-from grumpy.compiler import imputil
-from grumpy.compiler import util
-from grumpy.pythonparser import algorithm
-from grumpy.pythonparser import ast
+from grumpy_tools.compiler import block
+from grumpy_tools.compiler import expr
+from grumpy_tools.compiler import expr_visitor
+from grumpy_tools.compiler import imputil
+from grumpy_tools.compiler import util
+from grumpy_tools.vendor.pythonparser import algorithm
+from grumpy_tools.vendor.pythonparser import ast
 
 
 _NATIVE_TYPE_PREFIX = 'type_'

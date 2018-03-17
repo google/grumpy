@@ -27,7 +27,7 @@ import unittest
 
 from grumpy.compiler import imputil
 from grumpy.compiler import util
-from grumpy import pythonparser
+from grumpy.vendor import pythonparser
 
 
 class ImportVisitorTest(unittest.TestCase):

@@ -55,7 +55,7 @@ setup(
     ),
     entry_points={
         'console_scripts': [
-            'grumpy=grumpy.cli:main',
+            'grumpy=grumpy_tools.cli:main',
         ],
     },
     include_package_data=True,
