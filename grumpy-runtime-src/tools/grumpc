@@ -1,5 +1,3 @@
 #!/bin/bash
 
-set -v
-
 exec grumpy transpile $@
