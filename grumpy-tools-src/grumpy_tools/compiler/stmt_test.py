@@ -23,13 +23,13 @@ import subprocess
 import textwrap
 import unittest
 
-from grumpy.compiler import block
-from grumpy.compiler import imputil
-from grumpy.compiler import shard_test
-from grumpy.compiler import stmt
-from grumpy.compiler import util
-from grumpy.vendor import pythonparser
-from grumpy.vendor.pythonparser import ast
+from grumpy_tools.compiler import block
+from grumpy_tools.compiler import imputil
+from grumpy_tools.compiler import shard_test
+from grumpy_tools.compiler import stmt
+from grumpy_tools.compiler import util
+from grumpy_tools.vendor import pythonparser
+from grumpy_tools.vendor.pythonparser import ast
 
 
 class StatementVisitorTest(unittest.TestCase):
