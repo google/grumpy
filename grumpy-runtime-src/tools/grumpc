@@ -1,3 +1,5 @@
-#!/usr/bin/env bash
+#!/bin/bash
+
+set -v
 
 exec grumpy transpile $@
