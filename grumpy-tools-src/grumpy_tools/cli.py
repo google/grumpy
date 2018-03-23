@@ -5,7 +5,7 @@ import sys
 
 import click
 
-from . import grumpc, grumprun
+from . import grumpc, grumprun, pydeps
 
 
 @click.group('grumpy')
@@ -29,6 +29,17 @@ def transpile(script=None, modname=None):
 @click.option('-m', '-modname', '--modname', help='Run the named module')
 def run(modname=None):
     result = grumprun.main(modname=modname)
+    sys.exit(result)
+
+
+@main.command('depends')
+@click.argument('script')
+@click.option('-m', '-modname', '--modname', default='__main__', help='Python module name')
+def depends(script=None, modname=None):
+    """
+    Translates the python SCRIPT file to Go, then prints to stdout
+    """
+    result = pydeps.main(script=script, modname=modname)
     sys.exit(result)
 
 
