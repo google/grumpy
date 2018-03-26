@@ -247,7 +247,7 @@ $(PYLINT_BIN):
 	@cd build/third_party/pylint-1.6.4 && $(PYTHON) setup.py install --prefix $(ROOT_DIR)/build
 
 pylint: $(PYLINT_BIN) $(COMPILER_SRCS) $(PYTHONPARSER_SRCS) $(TOOL_BINS)
-	@$(PYTHON) $(PYLINT_BIN) $(COMPILER_SRCS) $(TOOL_BINS)
+	@$(PYTHON) $(PYLINT_BIN) $(COMPILER_SRCS) $(filter-out %pydeps,$(TOOL_BINS))
 
 lint: golint pylint
 

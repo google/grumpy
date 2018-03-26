@@ -7,7 +7,7 @@ import pytest
 
 from click.testing import CliRunner
 
-from grumpy import cli
+from grumpy_tools import cli
 
 
 @pytest.fixture
