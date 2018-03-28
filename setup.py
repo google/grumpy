@@ -18,6 +18,8 @@
 """The setup script."""
 
 from setuptools import setup, find_packages
+from distutils.command.build import build as BuildCommand
+import subprocess
 
 with open('README.md') as readme_file:
     readme = readme_file.read()
@@ -83,12 +85,23 @@ GRUMPY_TOOLS_OPTIONS = dict(
 GRUMPY_TOOLS_OPTIONS.update(COMMON_OPTIONS)
 
 
+class MakeCommand(BuildCommand):
+    def run(self, *args, **kwargs):
+        result = BuildCommand.run(self, *args, **kwargs)
+        subprocess.check_call(["cd grumpy-runtime-src && make"], shell=True)
+
+        return result
+
+
 GRUMPY_RUNTIME_OPTIONS = dict(
     package_dir={'':'grumpy-runtime-src'},
     packages=find_packages(
         'grumpy-runtime-src',
         exclude=["*.tests", "*.tests.*", "tests.*", "tests"],
     ),
+    cmdclass={
+        'build': MakeCommand,
+    },
 )
 GRUMPY_RUNTIME_OPTIONS.update(COMMON_OPTIONS)
 
