@@ -43,7 +43,6 @@ test_requirements = [
 ]
 
 COMMON_OPTIONS = dict(
-    name='grumpy-tools',
     version='0.1.0',
     description="Grumpy Runtime & Transpiler",
     long_description=readme,
@@ -72,6 +71,7 @@ COMMON_OPTIONS = dict(
 
 
 GRUMPY_TOOLS_OPTIONS = dict(
+    name='grumpy-tools',
     package_dir={'':'grumpy-tools-src'},
     packages=find_packages(
         'grumpy-tools-src',
@@ -95,6 +95,8 @@ class MakeCommand(BuildCommand):
 
 
 GRUMPY_RUNTIME_OPTIONS = dict(
+    name='grumpy-runtime',
+    requires=['grumpy_tools'],
     package_dir={'':'grumpy-runtime-src'},
     packages=find_packages(
         'grumpy-runtime-src',
