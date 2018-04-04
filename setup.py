@@ -32,6 +32,7 @@ requirements = [
 ]
 
 setup_requirements = [
+    'setuptools>=28.8.0',
     'pytest-runner',
     # TODO(alanjds): Put setup requirements (distutils extensions, etc.) here
 ]
