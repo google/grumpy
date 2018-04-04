@@ -82,6 +82,9 @@ GRUMPY_TOOLS_OPTIONS = dict(
             'grumpy=grumpy_tools.cli:main',
         ],
     },
+    cmdclass={
+        'build': BuildCommand,
+    },
 )
 GRUMPY_TOOLS_OPTIONS.update(COMMON_OPTIONS)
 
