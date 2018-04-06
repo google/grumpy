@@ -1,3 +1,15 @@
-#!/bin/bash
+#!/usr/bin/env python
+## Import boilerplate
+import os
+import sys
+try:
+    import grumpy_tools
+except ImportError:  # Fallback to local folder
+    sys.path.append(os.path.join(os.getcwd(), '../grumpy-tools-src/'))
+## end.
 
-exec grumpy run $@
+import sys
+from grumpy_tools import cli
+
+sys.argv = ['grumpy', 'run'] + sys.argv[1:]
+sys.exit(cli.main())
