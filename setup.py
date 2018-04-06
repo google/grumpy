@@ -18,6 +18,7 @@
 """The setup script."""
 
 from setuptools import setup, find_packages
+from setuptools.command.bdist_egg import bdist_egg as BdistEggCommand
 from distutils.command.build import build as BuildCommand
 import subprocess
 
@@ -82,19 +83,24 @@ GRUMPY_TOOLS_OPTIONS = dict(
             'grumpy=grumpy_tools.cli:main',
         ],
     },
-    cmdclass={
-        'build': BuildCommand,
-    },
 )
 GRUMPY_TOOLS_OPTIONS.update(COMMON_OPTIONS)
 
 
-class MakeCommand(BuildCommand):
-    def run(self, *args, **kwargs):
-        result = BuildCommand.run(self, *args, **kwargs)
+def _run_make(self, *args, **kwargs):
         subprocess.check_call(["cd grumpy-runtime-src && make --debug"], shell=True)
 
-        return result
+
+class BuildMakeCommand(BuildCommand):
+    def run(self, *args, **kwargs):
+        _run_make(self, *args, **kwargs)
+        result = BuildCommand.run(self, *args, **kwargs)
+
+
+class BdistEggMakeCommand(BdistEggCommand):
+    def run(self, *args, **kwargs):
+        _run_make(self, *args, **kwargs)
+        result = BdistEggCommand.run(self, *args, **kwargs)
 
 
 GRUMPY_RUNTIME_OPTIONS = dict(
@@ -106,8 +112,10 @@ GRUMPY_RUNTIME_OPTIONS = dict(
         exclude=["*.tests", "*.tests.*", "tests.*", "tests"],
     ),
     cmdclass={
-        'build': MakeCommand,
+        'build': BuildMakeCommand,
+        'bdist_egg': BdistEggMakeCommand,
     },
+    zip_safe=False,
 )
 GRUMPY_RUNTIME_OPTIONS.update(COMMON_OPTIONS)
 
