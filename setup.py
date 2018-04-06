@@ -92,7 +92,7 @@ GRUMPY_TOOLS_OPTIONS.update(COMMON_OPTIONS)
 class MakeCommand(BuildCommand):
     def run(self, *args, **kwargs):
         result = BuildCommand.run(self, *args, **kwargs)
-        subprocess.check_call(["cd grumpy-runtime-src && make"], shell=True)
+        subprocess.check_call(["cd grumpy-runtime-src && make --debug"], shell=True)
 
         return result
 
