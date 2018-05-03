@@ -2,3 +2,15 @@ build
 errors.err
 *.swp
 *.pyc
+*.egg
+.eggs/
+
+grumpy-tools-src/dist/
+grumpy-tools-src/*.egg-info
+
+# Cache
+.pytest_cache/
+
+# Editors
+.vscode/
+
