@@ -76,7 +76,7 @@ COMMON_OPTIONS = dict(
 
 
 def _run_make(self, *args, **kwargs):
-        subprocess.check_call(["cd grumpy-runtime-src && make --debug"], shell=True)
+    subprocess.check_call(["""echo "print 'Make Runtime Success'" | make run --debug"""], shell=True)
 
 
 class BuildMakeCommand(BuildCommand):
