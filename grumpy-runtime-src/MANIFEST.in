@@ -1,0 +1,11 @@
+global-include *.py
+global-include *.go
+global-include *.mk
+global-include Makefile
+
+global-exclude *.egg-info/*
+global-exclude *_test.py
+
+recursive-exclude grumpy-tools-src *.go
+prune testing/
+prune third_party/stdlib/test/

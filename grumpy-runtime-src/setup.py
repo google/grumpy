@@ -17,6 +17,7 @@
 
 """The setup script."""
 
+import sys
 from setuptools import setup, find_packages
 from setuptools.command.bdist_egg import bdist_egg as BdistEggCommand
 from distutils.command.build import build as BuildCommand
@@ -42,6 +43,10 @@ test_requirements = [
     'pytest',
     # TODO: Put package test requirements here
 ]
+
+needs_pytest = {'pytest', 'test', 'ptr'}.intersection(sys.argv)
+if needs_pytest:
+    setup_requirements += ['pytest-runner']
 
 COMMON_OPTIONS = dict(
     version='0.1.1',
@@ -70,23 +75,6 @@ COMMON_OPTIONS = dict(
 )
 
 
-GRUMPY_TOOLS_OPTIONS = dict(
-    name='grumpy-tools',
-    package_dir={'':'grumpy-tools-src'},
-    packages=find_packages(
-        'grumpy-tools-src',
-        exclude=["*.tests", "*.tests.*", "tests.*", "tests"],
-    ),
-    include_package_data=False,
-    entry_points={
-        'console_scripts': [
-            'grumpy=grumpy_tools.cli:main',
-        ],
-    },
-)
-GRUMPY_TOOLS_OPTIONS.update(COMMON_OPTIONS)
-
-
 def _run_make(self, *args, **kwargs):
         subprocess.check_call(["cd grumpy-runtime-src && make --debug"], shell=True)
 
@@ -106,9 +94,7 @@ class BdistEggMakeCommand(BdistEggCommand):
 GRUMPY_RUNTIME_OPTIONS = dict(
     name='grumpy-runtime',
     requires=['grumpy_tools'],
-    package_dir={'':'grumpy-runtime-src'},
     packages=find_packages(
-        'grumpy-runtime-src',
         exclude=["*.tests", "*.tests.*", "tests.*", "tests"],
     ),
     include_package_data=True,
@@ -120,9 +106,4 @@ GRUMPY_RUNTIME_OPTIONS = dict(
 )
 GRUMPY_RUNTIME_OPTIONS.update(COMMON_OPTIONS)
 
-
-## Just the "tools"
-setup(**GRUMPY_TOOLS_OPTIONS)
-
-# ## Just the "runtime"
 setup(**GRUMPY_RUNTIME_OPTIONS)

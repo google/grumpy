@@ -7,6 +7,8 @@ errors.err
 
 grumpy-tools-src/dist/
 grumpy-tools-src/*.egg-info
+grumpy-runtime-src/dist
+grumpy-runtime-src/*.egg-info
 
 # Cache
 .pytest_cache/
