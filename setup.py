@@ -44,14 +44,13 @@ test_requirements = [
 ]
 
 COMMON_OPTIONS = dict(
-    version='0.1.0',
+    version='0.1.1',
     description="Grumpy Runtime & Transpiler",
     long_description=readme,
     author="Dylan Trotter et al.",
     maintainer="Alan Justino et al.",
     maintainer_email="alan.justino@yahoo.com.br",
     url='https://github.com/google/grumpy',
-    include_package_data=True,
     install_requires=requirements,
     license="Apache Software License 2.0",
     zip_safe=False,
@@ -78,6 +77,7 @@ GRUMPY_TOOLS_OPTIONS = dict(
         'grumpy-tools-src',
         exclude=["*.tests", "*.tests.*", "tests.*", "tests"],
     ),
+    include_package_data=False,
     entry_points={
         'console_scripts': [
             'grumpy=grumpy_tools.cli:main',
@@ -111,6 +111,7 @@ GRUMPY_RUNTIME_OPTIONS = dict(
         'grumpy-runtime-src',
         exclude=["*.tests", "*.tests.*", "tests.*", "tests"],
     ),
+    include_package_data=True,
     cmdclass={
         'build': BuildMakeCommand,
         'bdist_egg': BdistEggMakeCommand,
