@@ -5,8 +5,5 @@ global-include Makefile
 recursive-include tools *
 
 global-exclude *.egg-info/*
-global-exclude *_test.py
 
 recursive-exclude grumpy-tools-src *.go
-prune testing/
-prune third_party/stdlib/test/
