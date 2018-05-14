@@ -17,10 +17,12 @@
 
 """The setup script."""
 
+import os
+import fnmatch
+import shutil
 import sys
 from setuptools import setup, find_packages
-from setuptools.command.bdist_egg import bdist_egg as BdistEggCommand
-from distutils.command.build import build as BuildCommand
+from distutils.command.build_py import build_py as BuildCommand
 import subprocess
 
 with open('README.md') as readme_file:
@@ -79,16 +81,43 @@ def _run_make(self, *args, **kwargs):
     subprocess.check_call(["""echo "print 'Make Runtime Success'" | make run --debug"""], shell=True)
 
 
+def _glob_deep(directory, pattern):
+    # From: https://stackoverflow.com/a/2186673/798575
+    for root, dirs, files in os.walk(directory):
+        for basename in files:
+            if fnmatch.fnmatch(basename, pattern):
+                filename = os.path.join(root, basename)
+                yield filename
+
+
 class BuildMakeCommand(BuildCommand):
     def run(self, *args, **kwargs):
-        _run_make(self, *args, **kwargs)
-        result = BuildCommand.run(self, *args, **kwargs)
+        # Thanks http://www.digip.org/blog/2011/01/generating-data-files-in-setup.py.html for the tip
 
-
-class BdistEggMakeCommand(BdistEggCommand):
-    def run(self, *args, **kwargs):
         _run_make(self, *args, **kwargs)
-        result = BdistEggCommand.run(self, *args, **kwargs)
+
+        # Makefile creates a "gopath" folder named "build" on root folder. Change it!
+        shutil.move('build', 'gopath')
+
+        if not self.dry_run:
+            target_dir = os.path.join(self.build_lib, 'grumpy_runtime/data')
+            self.mkpath(target_dir)
+            shutil.move('gopath', target_dir)
+
+            build_dir = os.path.join(self.build_lib, 'grumpy_runtime')
+            built_files = _glob_deep(os.path.join(build_dir, 'gopath'), '*')
+
+            # Strip directory from globbed filenames
+            build_dir_len = len(build_dir) + 1 # One more for leading "/"
+            built_files = [fn[build_dir_len:] for fn in built_files]
+
+            self.data_files = [
+                # (package, src_dir, build_dir, filenames[])
+                ('grumpy_runtime', 'grumpy_runtime', build_dir, built_files),
+            ]
+
+        super_result = BuildCommand.run(self, *args, **kwargs)
+        return super_result
 
 
 GRUMPY_RUNTIME_OPTIONS = dict(
@@ -99,8 +128,7 @@ GRUMPY_RUNTIME_OPTIONS = dict(
     ),
     include_package_data=True,
     cmdclass={
-        'build': BuildMakeCommand,
-        'bdist_egg': BdistEggMakeCommand,
+        'build_py': BuildMakeCommand,
     },
     zip_safe=False,
 )
