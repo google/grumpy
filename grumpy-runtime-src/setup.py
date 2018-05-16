@@ -25,20 +25,14 @@ from setuptools import setup, find_packages
 from distutils.command.build_py import build_py as BuildCommand
 import subprocess
 
-with open('README.md') as readme_file:
-    readme = readme_file.read()
-
-requirements = [
-    'Click>=6.0',
-    # TODO: Put package requirements here
-    'importlib2>=3.5.0.2',
-    'click-default-group>=1.2',
-]
+try:
+    with open('README.md') as readme_file:
+        readme = readme_file.read()
+except:
+    readme = ''
 
 setup_requirements = [
     'setuptools>=28.8.0',
-    'pytest-runner',
-    # TODO(alanjds): Put setup requirements (distutils extensions, etc.) here
 ]
 
 test_requirements = [
@@ -51,14 +45,13 @@ if needs_pytest:
     setup_requirements += ['pytest-runner']
 
 COMMON_OPTIONS = dict(
-    version='0.1.1',
+    version='0.1.5',
     description="Grumpy Runtime & Transpiler",
     long_description=readme,
     author="Dylan Trotter et al.",
     maintainer="Alan Justino et al.",
     maintainer_email="alan.justino@yahoo.com.br",
     url='https://github.com/google/grumpy',
-    install_requires=requirements,
     license="Apache Software License 2.0",
     zip_safe=False,
     keywords='grumpy_runtime',
@@ -123,6 +116,7 @@ class BuildMakeCommand(BuildCommand):
 GRUMPY_RUNTIME_OPTIONS = dict(
     name='grumpy-runtime',
     requires=['grumpy_tools'],
+    install_requires=['grumpy-tools>=0.1.5'],
     packages=find_packages(
         exclude=["*.tests", "*.tests.*", "tests.*", "tests"],
     ),
