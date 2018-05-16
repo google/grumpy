@@ -49,7 +49,6 @@ COMMON_OPTIONS = dict(
     maintainer="Alan Justino et al.",
     maintainer_email="alan.justino@yahoo.com.br",
     url='https://github.com/google/grumpy',
-    install_requires=requirements,
     license="Apache Software License 2.0",
     zip_safe=False,
     keywords='grumpy_runtime',
@@ -114,6 +113,7 @@ class BuildMakeCommand(BuildCommand):
 GRUMPY_RUNTIME_OPTIONS = dict(
     name='grumpy-runtime',
     requires=['grumpy_tools>=0.1.4'],
+    install_requires=['grumpy_tools>=0.1.4'],
     packages=find_packages(
         exclude=["*.tests", "*.tests.*", "tests.*", "tests"],
     ),
