@@ -113,7 +113,7 @@ class BuildMakeCommand(BuildCommand):
 
 GRUMPY_RUNTIME_OPTIONS = dict(
     name='grumpy-runtime',
-    requires=['grumpy_tools'],
+    requires=['grumpy_tools>=0.1.4'],
     packages=find_packages(
         exclude=["*.tests", "*.tests.*", "tests.*", "tests"],
     ),
