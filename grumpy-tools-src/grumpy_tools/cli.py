@@ -2,6 +2,7 @@
 
 """Console script for grumpy_tools."""
 import sys
+from pkg_resources import resource_filename, Requirement, DistributionNotFound
 
 import click
 
@@ -28,6 +29,17 @@ def transpile(script=None, modname=None):
 @main.command('run')
 @click.option('-m', '-modname', '--modname', help='Run the named module')
 def run(modname=None):
+    try:
+        runtime_gopath = resource_filename(
+            Requirement.parse('grumpy-runtime'),
+            'grumpy_runtime/data/gopath',
+        )
+    except DistributionNotFound:
+        runtime_gopath = None
+
+    if not runtime_gopath:
+        raise click.ClickException("Could not found the Grumpy Runtime 'data/gopath' resource.\n"
+                                   "Is 'grumpy-runtime' package installed?")
     result = grumprun.main(modname=modname)
     sys.exit(result)
 
