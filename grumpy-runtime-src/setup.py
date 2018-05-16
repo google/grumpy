@@ -28,17 +28,8 @@ import subprocess
 with open('README.md') as readme_file:
     readme = readme_file.read()
 
-requirements = [
-    'Click>=6.0',
-    # TODO: Put package requirements here
-    'importlib2>=3.5.0.2',
-    'click-default-group>=1.2',
-]
-
 setup_requirements = [
     'setuptools>=28.8.0',
-    'pytest-runner',
-    # TODO(alanjds): Put setup requirements (distutils extensions, etc.) here
 ]
 
 test_requirements = [
