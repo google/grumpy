@@ -20,8 +20,11 @@
 import sys
 from setuptools import setup, find_packages
 
-with open('README.md') as readme_file:
-    readme = readme_file.read()
+try:
+    with open('README.md') as readme_file:
+        readme = readme_file.read()
+except:
+    readme = ''
 
 requirements = [
     'Click>=6.0',
@@ -45,7 +48,7 @@ if needs_pytest:
 
 
 COMMON_OPTIONS = dict(
-    version='0.1.4',
+    version='0.1.5',
     description="Grumpy Runtime & Transpiler",
     long_description=readme,
     author="Dylan Trotter et al.",
