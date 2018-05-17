@@ -6,8 +6,11 @@ before_script:
   - python -c "import fcntl; fcntl.fcntl(1, fcntl.F_SETFL, 0)"  # https://github.com/travis-ci/travis-ci/issues/8920#issuecomment-352661024
 # Run gofmt and lint serially to avoid confusing output. Run tests in parallel
 # for speed.
+  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then sudo pip2 install pytest ; fi
+  - if [[ "$TRAVIS_OS_NAME" != "osx" ]]; then pip2 install pytest --user ; fi
 script:
   - cd grumpy-tools-src
+  - pytest
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then sudo pip2 install . ; fi
   - if [[ "$TRAVIS_OS_NAME" != "osx" ]]; then pip2 install . --user ; fi
   - which grumpy
