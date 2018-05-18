@@ -7,10 +7,17 @@ before_script:
 # Run gofmt and lint serially to avoid confusing output. Run tests in parallel
 # for speed.
 script:
+  # Install the thing
   - cd grumpy-tools-src
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then sudo pip2 install . ; fi
   - if [[ "$TRAVIS_OS_NAME" != "osx" ]]; then pip2 install . --user ; fi
   - which grumpy
+  - cd ../grumpy-runtime-src
+  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then sudo pip2 install . ; fi
+  - if [[ "$TRAVIS_OS_NAME" != "osx" ]]; then pip2 install . --user ; fi
+  # Test the thing
+  - cd ../grumpy-tools-src
+  - pytest
   - cd ../grumpy-runtime-src
   - make gofmt lint && make -j2 test
 
