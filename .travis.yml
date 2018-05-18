@@ -1,6 +1,5 @@
 language: go
 go:
-  - "1.9.2"
   - "1.10.x"
 
 os:
