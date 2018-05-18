@@ -14,7 +14,6 @@ script:
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then sudo pip2 install . ; fi
   - if [[ "$TRAVIS_OS_NAME" != "osx" ]]; then pip2 install . --user ; fi
   - which grumpy
-  - pytest
   - cd ../grumpy-runtime-src
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then sudo pip2 install . ; fi
   - if [[ "$TRAVIS_OS_NAME" != "osx" ]]; then pip2 install . --user ; fi
