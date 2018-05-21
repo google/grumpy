@@ -146,7 +146,7 @@ clean:
 run: $(RUNNER)
 	@$(RUNNER_BIN)
 
-test: $(ACCEPT_PASS_FILES) $(ACCEPT_PY_PASS_FILES) $(COMPILER_PASS_FILES) $(COMPILER_EXPR_VISITOR_PASS_FILES) $(COMPILER_STMT_PASS_FILES) $(RUNTIME_PASS_FILE) $(STDLIB_PASS_FILES)
+test: $(ACCEPT_PASS_FILES) $(ACCEPT_PY_PASS_FILES) $(RUNTIME_PASS_FILE) $(STDLIB_PASS_FILES)
 
 precommit: cover gofmt lint test
 
@@ -246,8 +246,8 @@ $(PYLINT_BIN):
 	@cd build/third_party && curl -sL https://pypi.io/packages/source/p/pylint/pylint-1.6.4.tar.gz | tar -zx
 	@cd build/third_party/pylint-1.6.4 && $(PYTHON) setup.py install --prefix $(ROOT_DIR)/build
 
-pylint: $(PYLINT_BIN) $(COMPILER_SRCS) $(PYTHONPARSER_SRCS) $(COMPILER_BIN) $(RUNNER_BIN) $(TOOL_BINS)
-	@$(PYTHON) $(PYLINT_BIN) $(COMPILER_SRCS) $(COMPILER_BIN) $(RUNNER_BIN) $(TOOL_BINS)
+pylint: $(PYLINT_BIN) $(COMPILER_SRCS) $(PYTHONPARSER_SRCS) $(TOOL_BINS)
+	@$(PYTHON) $(PYLINT_BIN) $(COMPILER_SRCS) $(filter-out %pydeps,$(TOOL_BINS))
 
 lint: golint pylint
 

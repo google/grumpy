@@ -15,28 +15,23 @@
 # limitations under the License.
 
 """Outputs names of modules imported by a script."""
+from __future__ import absolute_import
 
-import argparse
 import os
 import sys
 
-from grumpy.compiler import imputil
-from grumpy.compiler import util
+from .compiler import imputil
+from .compiler import util
 
 
-parser = argparse.ArgumentParser()
-parser.add_argument('script', help='Python source filename')
-parser.add_argument('-modname', default='__main__', help='Python module name')
-
-
-def main(args):
+def main(script=None, modname=None):
   gopath = os.getenv('GOPATH', None)
   if not gopath:
     print >> sys.stderr, 'GOPATH not set'
     return 1
 
   try:
-    imports = imputil.collect_imports(args.modname, args.script, gopath)
+    imports = imputil.collect_imports(modname, script, gopath)
   except SyntaxError as e:
     print >> sys.stderr, '{}: line {}: invalid syntax: {}'.format(
         e.filename, e.lineno, e.text)
@@ -45,7 +40,7 @@ def main(args):
     print >> sys.stderr, str(e)
     return 2
 
-  names = set([args.modname])
+  names = set([modname])
   for imp in imports:
     if imp.is_native:
       print imp.name
@@ -58,6 +53,3 @@ def main(args):
           names.add(name)
           print name
 
-
-if __name__ == '__main__':
-  main(parser.parse_args())

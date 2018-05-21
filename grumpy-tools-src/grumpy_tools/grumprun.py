@@ -29,11 +29,8 @@ import subprocess
 import sys
 import tempfile
 
-from grumpy.compiler import imputil
+from .compiler import imputil
 
-
-parser = argparse.ArgumentParser()
-parser.add_argument('-m', '--modname', help='Run the named module')
 
 module_tmpl = string.Template("""\
 package main
@@ -50,13 +47,12 @@ func main() {
 """)
 
 
-def main(args):
+def main(modname=None):
   gopath = os.getenv('GOPATH', None)
   if not gopath:
     print >> sys.stderr, 'GOPATH not set'
     return 1
 
-  modname = args.modname
   workdir = tempfile.mkdtemp()
   try:
     if modname:
@@ -83,7 +79,7 @@ def main(args):
       # Compile the dummy script to Go using grumpc.
       fd = os.open(os.path.join(mod_dir, 'module.go'), os.O_WRONLY | os.O_CREAT)
       try:
-        p = subprocess.Popen('grumpc ' + script, stdout=fd, shell=True)
+        p = subprocess.Popen('grumpy transpile ' + script, stdout=fd, shell=True)
         if p.wait():
           return 1
       finally:
@@ -106,7 +102,3 @@ def _package_name(modname):
   if modname.startswith('__go__/'):
     return '__python__/' + modname
   return '__python__/' + modname.replace('.', '/')
-
-
-if __name__ == '__main__':
-  sys.exit(main(parser.parse_args()))

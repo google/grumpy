@@ -24,30 +24,22 @@ import os
 import sys
 import textwrap
 
-from grumpy.compiler import block
-from grumpy.compiler import imputil
-from grumpy.compiler import stmt
-from grumpy.compiler import util
-from grumpy import pythonparser
+from .compiler import block
+from .compiler import imputil
+from .compiler import stmt
+from .compiler import util
+from .vendor import pythonparser
 
 
-parser = argparse.ArgumentParser()
-parser.add_argument('script', help='Python source filename')
-parser.add_argument('-modname', default='__main__', help='Python module name')
-
-
-def main(args):
-  for arg in ('script', 'modname'):
-    if not getattr(args, arg, None):
-      print >> sys.stderr, '{} arg must not be empty'.format(arg)
-      return 1
+def main(script=None, modname=None):
+  assert script and modname, 'Script "%s" or Modname "%s" is empty' % (script,modname)
 
   gopath = os.getenv('GOPATH', None)
   if not gopath:
     print >> sys.stderr, 'GOPATH not set'
     return 1
 
-  with open(args.script) as py_file:
+  with open(script) as py_file:
     py_contents = py_file.read()
   try:
     mod = pythonparser.parse(py_contents)
@@ -63,10 +55,10 @@ def main(args):
     print >> sys.stderr, str(e)
     return 2
 
-  importer = imputil.Importer(gopath, args.modname, args.script,
+  importer = imputil.Importer(gopath, modname, script,
                               future_features.absolute_import)
-  full_package_name = args.modname.replace('.', '/')
-  mod_block = block.ModuleBlock(importer, full_package_name, args.script,
+  full_package_name = modname.replace('.', '/')
+  mod_block = block.ModuleBlock(importer, full_package_name, script,
                                 py_contents, future_features)
 
   visitor = stmt.StatementVisitor(mod_block, future_node)
@@ -87,8 +79,8 @@ def main(args):
       \tCode = πg.NewCode("<module>", $script, nil, 0, func(πF *πg.Frame, _ []*πg.Object) (*πg.Object, *πg.BaseException) {
       \t\tvar πR *πg.Object; _ = πR
       \t\tvar πE *πg.BaseException; _ = πE""")
-  writer.write_tmpl(tmpl, package=args.modname.split('.')[-1],
-                    script=util.go_str(args.script))
+  writer.write_tmpl(tmpl, package=modname.split('.')[-1],
+                    script=util.go_str(script))
   with writer.indent_block(2):
     for s in sorted(mod_block.strings):
       writer.write('ß{} := πg.InternStr({})'.format(s, util.go_str(s)))
@@ -98,9 +90,5 @@ def main(args):
     \t\treturn nil, πE
     \t})
     \tπg.RegisterModule($modname, Code)
-    }"""), modname=util.go_str(args.modname))
+    }"""), modname=util.go_str(modname))
   return 0
-
-
-if __name__ == '__main__':
-  sys.exit(main(parser.parse_args()))

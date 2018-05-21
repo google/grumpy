@@ -20,9 +20,9 @@ from __future__ import unicode_literals
 
 import unittest
 
-from grumpy.compiler import block
-from grumpy.compiler import imputil
-from grumpy.compiler import util
+from grumpy_tools.compiler import block
+from grumpy_tools.compiler import imputil
+from grumpy_tools.compiler import util
 
 
 class WriterTest(unittest.TestCase):
