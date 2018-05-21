@@ -58,13 +58,20 @@ There are three basic categories of incomplete functionality:
 
 ### Pre-requisites
 
-The Grumpy Transpiler and Runner tools are provided as a Python Package.
-All of the commands below are assumed to be run from the
-root directory of the Grumpy source code distribution. Install the package:
+The commands ahead assumes that you have Golang installed and a recent
+version of Python 2, `setuptools` and `pip`.
+
+### Method 1: binary package
+
+For convenience, a Python package is provided from the PyPI. During install,
+many Grumpy will be compiled and stored inside your Python installation.
+
+You need Golang preinstalled anyway for the installation to be successful.
 
 ```
-pip2 install -U pip setuptools
-python2 setup.py develop
+pip2 install -U grumpy-runtime -I --no-cache
+(wait about 5 minutes)
+echo "print 'hello, world'" | grumpy run
 ```
 
 ### Method 1: make run:
