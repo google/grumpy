@@ -48,7 +48,7 @@ if needs_pytest:
 
 
 COMMON_OPTIONS = dict(
-    version='0.1.5',
+    version='0.1.6',
     description="Grumpy Runtime & Transpiler",
     long_description=readme,
     author="Dylan Trotter et al.",
