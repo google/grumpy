@@ -22,7 +22,8 @@ import fnmatch
 import shutil
 import sys
 from setuptools import setup, find_packages
-from distutils.command.build_py import build_py as BuildCommand
+from distutils.command.build_py import build_py as BuildPyCommand
+from distutils.command.build_ext import build_ext as BuildExtCommand
 import subprocess
 
 try:
@@ -83,7 +84,40 @@ def _glob_deep(directory, pattern):
                 yield filename
 
 
-class BuildMakeCommand(BuildCommand):
+class BuildMakeCommandInstall(BuildPyCommand):  # Ran on setup.py install
+    def run(self, *args, **kwargs):
+        # Thanks http://www.digip.org/blog/2011/01/generating-data-files-in-setup.py.html for the tip
+
+        _run_make(self, *args, **kwargs)
+
+        # Makefile creates a "gopath" folder named "build" on root folder. Change it!
+        shutil.move('build', 'gopath')
+
+        if not self.dry_run:
+            target_dir = os.path.join(self.build_lib, 'grumpy_runtime/data')
+
+            # Remove the symlink used on develop
+            shutil.rmtree(target_dir)
+            self.mkpath(target_dir)
+            shutil.move('gopath', target_dir)
+
+            build_dir = os.path.join(self.build_lib, 'grumpy_runtime')
+            built_files = _glob_deep(os.path.join(build_dir, 'gopath'), '*')
+
+            # Strip directory from globbed filenames
+            build_dir_len = len(build_dir) + 1 # One more for leading "/"
+            built_files = [fn[build_dir_len:] for fn in built_files]
+
+            self.data_files = [
+                # (package, src_dir, build_dir, filenames[])
+                ('grumpy_runtime', 'grumpy_runtime', build_dir, built_files),
+            ]
+
+        super_result = BuildPyCommand.run(self, *args, **kwargs)
+        return super_result
+
+
+class BuildMakeCommandDevelop(BuildExtCommand):  # Ran on setup.py develop
     def run(self, *args, **kwargs):
         # Thanks http://www.digip.org/blog/2011/01/generating-data-files-in-setup.py.html for the tip
 
@@ -109,7 +143,7 @@ class BuildMakeCommand(BuildCommand):
                 ('grumpy_runtime', 'grumpy_runtime', build_dir, built_files),
             ]
 
-        super_result = BuildCommand.run(self, *args, **kwargs)
+        super_result = BuildExtCommand.run(self, *args, **kwargs)
         return super_result
 
 
@@ -122,7 +156,8 @@ GRUMPY_RUNTIME_OPTIONS = dict(
     ),
     include_package_data=True,
     cmdclass={
-        'build_py': BuildMakeCommand,
+        'build_py': BuildMakeCommandInstall,   # Ran on setup.py install
+        'build_ext': BuildMakeCommandDevelop,  # Ran on setup.py develop
     },
     zip_safe=False,
 )
