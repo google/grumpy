@@ -1,0 +1,9 @@
+global-include *.py
+global-include *.go
+global-include *.mk
+global-include Makefile
+recursive-include tools *
+
+global-exclude *.egg-info/*
+
+recursive-exclude grumpy-tools-src *.go

@@ -1,0 +1,8 @@
+#!/usr/bin/env python
+## Import boilerplate
+import os
+import sys
+from grumpy_tools import cli
+
+sys.argv = ['grumpy', 'run'] + sys.argv[1:]
+sys.exit(cli.main())
