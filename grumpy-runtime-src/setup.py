@@ -97,7 +97,7 @@ class BuildMakeCommandInstall(BuildPyCommand):  # Ran on setup.py install
             target_dir = os.path.join(self.build_lib, 'grumpy_runtime/data')
 
             # Remove the symlink used on develop
-            shutil.rmtree(target_dir)
+            shutil.rmtree(target_dir, ignore_errors=True)
             self.mkpath(target_dir)
             shutil.move('gopath', target_dir)
 
