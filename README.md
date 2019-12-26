@@ -163,7 +163,7 @@ available in Python.
 
 ### Source Code Overview
 
-- `compiler`: Python package implementating Python -> Go transcompilation logic.
+- `compiler`: Python package implementing Python -> Go transcompilation logic.
 - `lib`: Grumpy-specific Python standard library implementation.
 - `runtime`: Go source code for the Grumpy runtime library.
 - `third_party/ouroboros`: Pure Python standard libraries copied from the
